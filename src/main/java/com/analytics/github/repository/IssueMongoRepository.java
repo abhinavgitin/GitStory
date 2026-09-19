@@ -6,9 +6,12 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
 /**
- * Spring Data MongoDB repository for issue documents.
+ * Spring Data MongoDB repository for issue documents scoped by username.
  */
 public interface IssueMongoRepository extends MongoRepository<IssueDocument, String> {
-    long countByState(String state);
-    List<IssueDocument> findByRepoId(long repoId);
+    long countByUsername(String username);
+    long countByUsernameAndState(String username, String state);
+    List<IssueDocument> findByUsername(String username);
+    List<IssueDocument> findByUsernameAndRepoId(String username, long repoId);
+    void deleteByUsername(String username);
 }

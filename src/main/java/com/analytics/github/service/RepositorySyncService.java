@@ -40,12 +40,16 @@ public class RepositorySyncService {
 
         List<GitHubRepoResponse> fetchedRepos = gitHubApiClient.fetchPublicUserRepositories(username);
 
-        // Preserve existing lastCommitSyncAt across sync passes
+        // Preserve existing lastCommitSyncAt and languages across sync passes
         List<RepositoryDocument> existing = repositoryMongoRepository.findByUsernameOrderByGithubPushedAtDesc(username);
         Map<Long, Instant> lastCommitSyncMap = new HashMap<>();
+        Map<Long, Map<String, Long>> existingLanguagesMap = new HashMap<>();
         for (RepositoryDocument doc : existing) {
             if (doc.lastCommitSyncAt() != null) {
                 lastCommitSyncMap.put(doc.repoId(), doc.lastCommitSyncAt());
+            }
+            if (doc.languages() != null && !doc.languages().isEmpty()) {
+                existingLanguagesMap.put(doc.repoId(), doc.languages());
             }
         }
 
@@ -59,7 +63,7 @@ public class RepositorySyncService {
                     return p2.compareTo(p1);
                 })
                 .limit(maxRepos)
-                .map(repo -> toDocument(username, repo, syncedAt, lastCommitSyncMap.get(repo.id())))
+                .map(repo -> toDocument(username, repo, syncedAt, lastCommitSyncMap.get(repo.id()), existingLanguagesMap.get(repo.id())))
                 .toList();
 
         repositoryMongoRepository.saveAll(documents);
@@ -76,7 +80,8 @@ public class RepositorySyncService {
             String username,
             GitHubRepoResponse repo,
             Instant syncedAt,
-            Instant lastCommitSyncAt
+            Instant lastCommitSyncAt,
+            Map<String, Long> existingLanguages
     ) {
         return new RepositoryDocument(
                 RepositoryDocument.buildId(username, repo.id()),
@@ -96,7 +101,13 @@ public class RepositorySyncService {
                 repo.updatedAt(),
                 repo.pushedAt(),
                 syncedAt,
-                lastCommitSyncAt
+                lastCommitSyncAt,
+                existingLanguages != null ? existingLanguages : java.util.Collections.emptyMap(),
+                repo.topics(),
+                repo.licenseName(),
+                repo.size(),
+                repo.archived(),
+                repo.watchersCount()
         );
     }
 }

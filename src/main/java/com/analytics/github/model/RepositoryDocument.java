@@ -5,6 +5,9 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * MongoDB document entity representing a stored repository under a specific user.
@@ -35,8 +38,20 @@ public record RepositoryDocument(
     Instant githubUpdatedAt,
     Instant githubPushedAt,
     Instant syncedAt,
-    Instant lastCommitSyncAt
+    Instant lastCommitSyncAt,
+    Map<String, Long> languages,
+    List<String> topics,
+    String license,
+    int sizeKb,
+    boolean archived,
+    int watchersCount
 ) {
+    public RepositoryDocument {
+        languages = languages != null ? languages : Collections.emptyMap();
+        topics = topics != null ? topics : Collections.emptyList();
+        license = license != null ? license : "None";
+    }
+
     public static String buildId(String username, Long repoId) {
         return username + ":" + repoId;
     }
@@ -45,8 +60,17 @@ public record RepositoryDocument(
         return new RepositoryDocument(
             id, username, repoId, name, fullName, description, htmlUrl, fork, defaultBranch,
             language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
-            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages,
+            topics, license, sizeKb, archived, watchersCount
+        );
+    }
+
+    public RepositoryDocument withLanguages(Map<String, Long> languages) {
+        return new RepositoryDocument(
+            id, username, repoId, name, fullName, description, htmlUrl, fork, defaultBranch,
+            language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages,
+            topics, license, sizeKb, archived, watchersCount
         );
     }
 }
-

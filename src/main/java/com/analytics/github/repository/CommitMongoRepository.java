@@ -17,6 +17,8 @@ public interface CommitMongoRepository extends MongoRepository<CommitDocument, S
 
     long countByUsername(String username);
 
+    List<CommitDocument> findByUsername(String username);
+
     Optional<CommitDocument> findTopByUsernameOrderByAuthorDateAsc(String username);
 
     Optional<CommitDocument> findTopByUsernameOrderByAuthorDateDesc(String username);

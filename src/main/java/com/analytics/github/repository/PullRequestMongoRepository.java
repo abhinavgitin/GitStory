@@ -6,10 +6,12 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
 /**
- * Spring Data MongoDB repository for pull request documents.
- * Spring auto-generates the implementation at runtime via proxy — no boilerplate needed.
+ * Spring Data MongoDB repository for pull request documents scoped by username.
  */
 public interface PullRequestMongoRepository extends MongoRepository<PullRequestDocument, String> {
-    long countByState(String state);
-    List<PullRequestDocument> findByRepoId(long repoId);
+    long countByUsername(String username);
+    long countByUsernameAndState(String username, String state);
+    List<PullRequestDocument> findByUsername(String username);
+    List<PullRequestDocument> findByUsernameAndRepoId(String username, long repoId);
+    void deleteByUsername(String username);
 }

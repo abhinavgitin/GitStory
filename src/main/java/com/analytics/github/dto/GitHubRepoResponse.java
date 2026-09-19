@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Immutable DTO representing a single repository returned by the GitHub REST API.
@@ -18,9 +20,9 @@ public record GitHubRepoResponse(
     @JsonProperty("html_url")
     String htmlUrl,
     @JsonProperty("private")
-    boolean privateRepo,
+    Boolean privateRepo,
     @JsonProperty("fork")
-    boolean fork,
+    Boolean fork,
     @JsonProperty("default_branch")
     String defaultBranch,
     String language,
@@ -35,11 +37,31 @@ public record GitHubRepoResponse(
     @JsonProperty("updated_at")
     Instant updatedAt,
     @JsonProperty("pushed_at")
-    Instant pushedAt
+    Instant pushedAt,
+    List<String> topics,
+    Integer size,
+    Boolean archived,
+    @JsonProperty("watchers_count")
+    Integer watchersCount,
+    GitHubLicenseResponse license
 ) {
     public GitHubRepoResponse {
+        privateRepo = privateRepo != null && privateRepo;
+        fork = fork != null && fork;
+        archived = archived != null && archived;
         stargazersCount = stargazersCount != null ? stargazersCount : 0;
         forksCount = forksCount != null ? forksCount : 0;
         openIssuesCount = openIssuesCount != null ? openIssuesCount : 0;
+        topics = topics != null ? topics : Collections.emptyList();
+        size = size != null ? size : 0;
+        watchersCount = watchersCount != null ? watchersCount : 0;
+    }
+
+    public String licenseName() {
+        if (license == null) return "None";
+        if (license.spdxId() != null && !license.spdxId().isBlank() && !"NOASSERTION".equalsIgnoreCase(license.spdxId())) {
+            return license.spdxId();
+        }
+        return license.name() != null ? license.name() : "None";
     }
 }

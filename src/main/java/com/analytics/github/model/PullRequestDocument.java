@@ -1,23 +1,21 @@
 package com.analytics.github.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
 /**
- * MongoDB document storing a GitHub pull request.
- * Uses Spring Data @Document to map to the "pull_requests" collection.
- * The @Id is a composite string "repoId-number" to ensure uniqueness across repos.
- *
- * Common beginner mistake: using GitHub's global PR id as @Id. GitHub's id is unique
- * globally, but a composite key is more predictable for upserts and avoids relying
- * on the assumption that GitHub ids never collide across different API versions.
+ * MongoDB document storing a GitHub pull request authored by a tracked user.
+ * The @Id is a composite string "username-repoId-number".
  */
 @Document(collection = "pull_requests")
 public record PullRequestDocument(
     @Id
     String id,
+    @Indexed
+    String username,
     long repoId,
     String repoName,
     int number,
@@ -28,7 +26,7 @@ public record PullRequestDocument(
     Instant closedAt,
     Instant syncedAt
 ) {
-    public static String compositeId(long repoId, int number) {
-        return repoId + "-" + number;
+    public static String compositeId(String username, long repoId, int number) {
+        return username.toLowerCase() + "-" + repoId + "-" + number;
     }
 }

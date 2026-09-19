@@ -27,27 +27,14 @@ public class ProfileAnalyticsService {
         this.userProfileMongoRepository = userProfileMongoRepository;
     }
 
-    public UserProfileResponse getUserProfile() {
-        return userProfileMongoRepository.findAll().stream().findFirst()
+    public UserProfileResponse getUserProfile(String username) {
+        return userProfileMongoRepository.findById(username.toLowerCase())
                 .map(this::toProfileResponse)
-                .orElseGet(() -> new UserProfileResponse(
-                        "abhinavgitin",
-                        "Abhinav Puri",
-                        null,
-                        "",
-                        "https://github.com/abhinavgitin",
-                        9,
-                        0,
-                        0,
-                        0,
-                        Instant.now(),
-                        "Unknown",
-                        Instant.now()
-                ));
+                .orElse(null);
     }
 
-    public ContributionCalendarResponse getContributionCalendar() {
-        return userProfileMongoRepository.findAll().stream().findFirst()
+    public ContributionCalendarResponse getContributionCalendar(String username) {
+        return userProfileMongoRepository.findById(username.toLowerCase())
                 .map(this::toCalendarResponse)
                 .orElseGet(() -> new ContributionCalendarResponse(0, 0, 0, Collections.emptyList()));
     }
@@ -60,8 +47,11 @@ public class ProfileAnalyticsService {
                 doc.bio(),
                 doc.avatarUrl(),
                 doc.htmlUrl(),
+                doc.company(),
+                doc.location(),
+                doc.blog(),
                 doc.publicRepos(),
-                doc.totalPrivateRepos(),
+                doc.publicGists(),
                 doc.followers(),
                 doc.following(),
                 doc.accountCreatedAt(),

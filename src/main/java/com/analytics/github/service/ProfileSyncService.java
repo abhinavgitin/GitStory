@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * Service managing synchronization between GitHub's user profile & GraphQL contribution calendar
- * and MongoDB storage.
+ * and MongoDB storage per user.
  */
 @Service
 public class ProfileSyncService {
@@ -32,29 +32,27 @@ public class ProfileSyncService {
         this.userProfileMongoRepository = userProfileMongoRepository;
     }
 
-    public UserProfileDocument syncUserProfile() {
-        log.info("Starting profile and contribution calendar synchronization");
+    public UserProfileDocument syncUserProfile(String username) {
+        log.info("Starting profile and contribution calendar synchronization for user: {}", username);
 
-        GitHubUserProfileResponse userProfile = gitHubApiClient.fetchAuthenticatedUser();
-        GraphQLContributionCalendarResult calendarResult = gitHubApiClient.fetchContributionCalendarGraphQL();
-
-        if (userProfile == null) {
-            log.warn("Could not fetch user profile from GitHub; aborting profile sync pass");
-            return userProfileMongoRepository.findAll().stream().findFirst().orElse(null);
-        }
+        GitHubUserProfileResponse userProfile = gitHubApiClient.fetchUserProfile(username);
+        GraphQLContributionCalendarResult calendarResult = gitHubApiClient.fetchContributionCalendarGraphQL(username);
 
         int totalContributions = calendarResult != null ? calendarResult.totalContributions() : 0;
         List<ContributionDayRecord> calendarDays = calendarResult != null ? calendarResult.days() : Collections.emptyList();
 
         UserProfileDocument document = new UserProfileDocument(
-                userProfile.login(),
+                username.toLowerCase(),
                 userProfile.login(),
                 userProfile.name(),
                 userProfile.bio(),
                 userProfile.avatarUrl(),
                 userProfile.htmlUrl(),
+                userProfile.company(),
+                userProfile.location(),
+                userProfile.blog(),
                 userProfile.publicRepos(),
-                userProfile.totalPrivateRepos(),
+                userProfile.publicGists(),
                 userProfile.followers(),
                 userProfile.following(),
                 userProfile.createdAt(),

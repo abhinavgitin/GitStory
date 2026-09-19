@@ -64,7 +64,10 @@ class UserIsolationTest {
     @Test
     void repositoryQueries_strictlyIsolateByUsername() {
         RepositoryDocument repoUserA = new RepositoryDocument(
-                "usera:101", "usera", 101L, "repo-a", "usera/repo-a", null, "https://github.com", false, "main", "Java", 5, 0, 0, Instant.now(), Instant.now(), Instant.now(), Instant.now(), null
+                "usera:101", "usera", 101L, "repo-a", "usera/repo-a", null, "https://github.com",
+                false, "main", "Java", 5, 0, 0, Instant.now(), Instant.now(), Instant.now(),
+                Instant.now(), null, java.util.Collections.emptyMap(), java.util.Collections.emptyList(),
+                "MIT", 120, false, 5
         );
 
         when(repositoryMongoRepository.findByUsernameAndForkFalseOrderByGithubPushedAtDesc("usera"))

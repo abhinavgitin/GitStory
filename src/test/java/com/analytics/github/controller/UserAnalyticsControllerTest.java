@@ -6,7 +6,12 @@ import com.analytics.github.dto.CommitWeekdayStatsResponse;
 import com.analytics.github.dto.RecentCommitResponse;
 import com.analytics.github.model.RepositoryDocument;
 import com.analytics.github.service.CommitAnalyticsService;
+import com.analytics.github.service.LanguageAnalyticsService;
+import com.analytics.github.service.PrIssueAnalyticsService;
+import com.analytics.github.service.ProfileAnalyticsService;
+import com.analytics.github.service.RepoInsightsAnalyticsService;
 import com.analytics.github.service.RepositorySyncService;
+import com.analytics.github.service.UserActivityAnalyticsService;
 import com.analytics.github.service.UsernameValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +37,21 @@ class UserAnalyticsControllerTest {
     void setUp() {
         repositorySyncService = mock(RepositorySyncService.class);
         commitAnalyticsService = mock(CommitAnalyticsService.class);
+        LanguageAnalyticsService languageAnalyticsService = mock(LanguageAnalyticsService.class);
+        ProfileAnalyticsService profileAnalyticsService = mock(ProfileAnalyticsService.class);
+        RepoInsightsAnalyticsService repoInsightsAnalyticsService = mock(RepoInsightsAnalyticsService.class);
+        PrIssueAnalyticsService prIssueAnalyticsService = mock(PrIssueAnalyticsService.class);
+        UserActivityAnalyticsService userActivityAnalyticsService = mock(UserActivityAnalyticsService.class);
         UsernameValidator usernameValidator = new UsernameValidator();
 
         UserAnalyticsController controller = new UserAnalyticsController(
                 repositorySyncService,
                 commitAnalyticsService,
+                languageAnalyticsService,
+                profileAnalyticsService,
+                repoInsightsAnalyticsService,
+                prIssueAnalyticsService,
+                userActivityAnalyticsService,
                 usernameValidator
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -64,7 +79,13 @@ class UserAnalyticsControllerTest {
                 Instant.now(),
                 Instant.now(),
                 Instant.now(),
-                null
+                null,
+                java.util.Collections.emptyMap(),
+                java.util.Collections.emptyList(),
+                "MIT",
+                150,
+                false,
+                10
         );
         when(repositorySyncService.getStoredRepositoriesForUser("abhinavgitin"))
                 .thenReturn(List.of(repo));

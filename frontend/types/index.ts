@@ -11,7 +11,12 @@ export interface Repository {
   language: string | null;
   stargazersCount: number;
   forksCount: number;
+  watchersCount?: number;
   openIssuesCount: number;
+  topics?: string[];
+  license?: string;
+  sizeKb?: number;
+  archived?: boolean;
   githubCreatedAt: string;
   githubUpdatedAt: string;
   githubPushedAt: string;
@@ -104,8 +109,11 @@ export interface UserProfile {
   bio: string | null;
   avatarUrl: string;
   htmlUrl: string;
+  company: string | null;
+  location: string | null;
+  blog: string | null;
   publicRepos: number;
-  totalPrivateRepos: number;
+  publicGists: number;
   followers: number;
   following: number;
   accountCreatedAt: string;
@@ -127,8 +135,6 @@ export interface ContributionCalendar {
   days: ContributionDay[];
 }
 
-// ── Slice 5d: Pull Requests & Issues ──
-
 export interface PrSummary {
   totalPrs: number;
   openPrs: number;
@@ -145,3 +151,54 @@ export interface IssueSummary {
   closeRate: number;
 }
 
+export interface RepoHighlight {
+  name: string;
+  htmlUrl: string;
+  stars: number;
+  forks: number;
+  sizeKb: number;
+  pushedAt: string;
+  createdAt: string;
+  primaryLanguage: string | null;
+}
+
+export interface RepoInsights {
+  totalRepos: number;
+  totalStars: number;
+  totalForks: number;
+  totalWatchers: number;
+  totalOpenIssues: number;
+  totalSizeKb: number;
+  activeRepos: number;
+  staleRepos: number;
+  archivedRepos: number;
+  topByStars: RepoHighlight[];
+  topByRecent: RepoHighlight[];
+  topBySize: RepoHighlight[];
+  topicCounts: Record<string, number>;
+  licenseCounts: Record<string, number>;
+}
+
+export interface ActivityEvent {
+  id: string;
+  type: string;
+  repoName: string;
+  createdAt: string;
+  details: string;
+}
+
+export interface UserOrg {
+  login: string;
+  avatarUrl: string;
+  description: string;
+}
+
+export interface UserActivity {
+  recentEvents: ActivityEvent[];
+  organizations: UserOrg[];
+  mostActiveDay: string;
+  activePattern: string;
+  currentStreakDays: number;
+  longestStreakDays: number;
+  commitsByMonth: Record<string, number>;
+}

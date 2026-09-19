@@ -3,7 +3,7 @@ package com.analytics.github.dto;
 import java.time.Instant;
 
 /**
- * Developer profile analytics response.
+ * Developer profile analytics response (public only).
  */
 public record UserProfileResponse(
     String login,
@@ -11,8 +11,11 @@ public record UserProfileResponse(
     String bio,
     String avatarUrl,
     String htmlUrl,
+    String company,
+    String location,
+    String blog,
     int publicRepos,
-    int totalPrivateRepos,
+    int publicGists,
     int followers,
     int following,
     Instant accountCreatedAt,

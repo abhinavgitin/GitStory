@@ -39,15 +39,15 @@ public class LanguageAnalyticsService {
         this.repositoryMongoRepository = repositoryMongoRepository;
     }
 
-    public LanguageOverviewResponse getLanguageOverview() {
-        List<RepositoryDocument> repos = repositoryMongoRepository.findAll();
+    public LanguageOverviewResponse getLanguageOverview(String username) {
+        List<RepositoryDocument> repos = repositoryMongoRepository.findByUsernameAndForkFalseOrderByGithubPushedAtDesc(username);
 
         Map<String, Long> globalTotals = new HashMap<>();
         List<RepoLanguageResponse> repoBreakdown = new ArrayList<>();
         long grandTotalBytes = 0;
 
         for (RepositoryDocument repo : repos) {
-            Map<String, Long> repoLangs = Collections.emptyMap();
+            Map<String, Long> repoLangs = repo.languages() != null ? repo.languages() : Collections.emptyMap();
             long repoTotal = 0;
             List<LanguageStatItem> repoItems = new ArrayList<>();
 

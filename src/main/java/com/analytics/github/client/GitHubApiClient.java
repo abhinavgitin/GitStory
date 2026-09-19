@@ -145,56 +145,7 @@ public class GitHubApiClient {
         }
     }
 
-    public GitHubUserProfileResponse fetchAuthenticatedUser() {
-        try {
-            log.info("Fetching authenticated user profile from GitHub: /user");
-            ResponseEntity<Map<String, Object>> response = restClient.get()
-                    .uri("/user")
-                    .retrieve()
-                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
-                    .toEntity(new ParameterizedTypeReference<>() {});
 
-            checkRateLimit(response.getHeaders());
-            Map<String, Object> map = response.getBody();
-            if (map == null) {
-                return null;
-            }
-
-            Long id = map.get("id") instanceof Number num ? num.longValue() : 0L;
-            String login = String.valueOf(map.getOrDefault("login", ""));
-            String name = map.get("name") instanceof String s ? s : login;
-            String bio = map.get("bio") instanceof String s ? s : null;
-            String avatarUrl = String.valueOf(map.getOrDefault("avatar_url", ""));
-            String htmlUrl = String.valueOf(map.getOrDefault("html_url", ""));
-            int publicRepos = map.get("public_repos") instanceof Number num ? num.intValue() : 0;
-            int totalPrivateRepos = map.get("total_private_repos") instanceof Number num ? num.intValue() : 0;
-            int followers = map.get("followers") instanceof Number num ? num.intValue() : 0;
-            int following = map.get("following") instanceof Number num ? num.intValue() : 0;
-
-            Instant createdAt = Instant.now();
-            if (map.get("created_at") instanceof String s) {
-                try {
-                    createdAt = Instant.parse(s);
-                } catch (Exception ignored) {}
-            }
-
-            Instant updatedAt = Instant.now();
-            if (map.get("updated_at") instanceof String s) {
-                try {
-                    updatedAt = Instant.parse(s);
-                } catch (Exception ignored) {}
-            }
-
-            return new GitHubUserProfileResponse(
-                    id, login, name, bio, avatarUrl, htmlUrl,
-                    publicRepos, totalPrivateRepos, followers, following,
-                    createdAt, updatedAt
-            );
-        } catch (Exception e) {
-            log.warn("Soft failure fetching authenticated user profile from GitHub: {}", e.getMessage());
-            return null;
-        }
-    }
 
     /**
      * Fetches all pull requests for a repository (all states: open, closed, merged).
@@ -413,6 +364,107 @@ public class GitHubApiClient {
             }
         }
         return null;
+    }
+
+    public GraphQLContributionCalendarResult fetchContributionCalendarGraphQL(String username) {
+        log.info("Fetching contribution calendar via GitHub GraphQL API for username: {}", username);
+        String query = """
+            query($username: String!) {
+              user(login: $username) {
+                contributionsCollection {
+                  contributionCalendar {
+                    totalContributions
+                    weeks {
+                      contributionDays {
+                        date
+                        contributionCount
+                        color
+                        weekday
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        Map<String, Object> body = Map.of(
+            "query", query,
+            "variables", Map.of("username", username)
+        );
+
+        try {
+            Map<String, Object> root = restClient.post()
+                    .uri("https://api.github.com/graphql")
+                    .body(body)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+
+            if (root == null || root.containsKey("errors")) {
+                log.warn("GraphQL returned errors or empty response for user {}: {}", username, root != null ? root.get("errors") : "null");
+                return new GraphQLContributionCalendarResult(0, Collections.emptyList());
+            }
+
+            if (root.get("data") instanceof Map<?, ?> dataMap &&
+                dataMap.get("user") instanceof Map<?, ?> userMap &&
+                userMap.get("contributionsCollection") instanceof Map<?, ?> collMap &&
+                collMap.get("contributionCalendar") instanceof Map<?, ?> calMap) {
+
+                int total = calMap.get("totalContributions") instanceof Number num ? num.intValue() : 0;
+                List<ContributionDayRecord> days = new ArrayList<>();
+
+                if (calMap.get("weeks") instanceof List<?> weeks) {
+                    for (Object weekObj : weeks) {
+                        if (weekObj instanceof Map<?, ?> weekMap && weekMap.get("contributionDays") instanceof List<?> cDays) {
+                            for (Object dayObj : cDays) {
+                                if (dayObj instanceof Map<?, ?> dayMap) {
+                                    Object dateVal = dayMap.get("date");
+                                    String date = dateVal != null ? dateVal.toString() : "";
+                                    int count = dayMap.get("contributionCount") instanceof Number cNum ? cNum.intValue() : 0;
+                                    Object colorVal = dayMap.get("color");
+                                    String color = colorVal != null ? colorVal.toString() : "#161b22";
+                                    int weekday = dayMap.get("weekday") instanceof Number wNum ? wNum.intValue() : 0;
+                                    days.add(new ContributionDayRecord(date, count, color, weekday));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                log.info("Successfully fetched {} contribution days (total: {}) for user {}", days.size(), total, username);
+                return new GraphQLContributionCalendarResult(total, days);
+            }
+            return new GraphQLContributionCalendarResult(0, Collections.emptyList());
+        } catch (Exception ex) {
+            log.warn("GraphQL contribution query failed for user {}: {}. Returning empty calendar.", username, ex.getMessage());
+            return new GraphQLContributionCalendarResult(0, Collections.emptyList());
+        }
+    }
+
+    public List<Map<String, Object>> fetchPublicEvents(String username) {
+        log.info("Fetching public activity events for user: {}", username);
+        try {
+            return restClient.get()
+                    .uri("/users/{username}/events/public?per_page=30", username)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception ex) {
+            log.warn("Failed to fetch public events for {}: {}", username, ex.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    public List<Map<String, Object>> fetchUserOrgs(String username) {
+        log.info("Fetching public organizations for user: {}", username);
+        try {
+            return restClient.get()
+                    .uri("/users/{username}/orgs", username)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception ex) {
+            log.warn("Failed to fetch organizations for {}: {}", username, ex.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     private String sanitizeUri(String uri) {

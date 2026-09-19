@@ -19,17 +19,26 @@ public class AsyncRefreshRunner {
     private static final Logger log = LoggerFactory.getLogger(AsyncRefreshRunner.class);
 
     private final UserSyncService userSyncService;
+    private final ProfileSyncService profileSyncService;
     private final RepositorySyncService repositorySyncService;
     private final CommitSyncService commitSyncService;
+    private final LanguageSyncService languageSyncService;
+    private final PrIssueSyncService prIssueSyncService;
 
     public AsyncRefreshRunner(
         UserSyncService userSyncService,
+        ProfileSyncService profileSyncService,
         RepositorySyncService repositorySyncService,
-        CommitSyncService commitSyncService
+        CommitSyncService commitSyncService,
+        LanguageSyncService languageSyncService,
+        PrIssueSyncService prIssueSyncService
     ) {
         this.userSyncService = userSyncService;
+        this.profileSyncService = profileSyncService;
         this.repositorySyncService = repositorySyncService;
         this.commitSyncService = commitSyncService;
+        this.languageSyncService = languageSyncService;
+        this.prIssueSyncService = prIssueSyncService;
     }
 
     @Async(AsyncConfig.REFRESH_EXECUTOR)
@@ -37,17 +46,20 @@ public class AsyncRefreshRunner {
         try {
             log.info("Worker thread starting background sync pipeline for user: {}", username);
 
-            // Step 1: User Profile (fails fast with 404 if user not on GitHub)
+            // Step 1: User Profile & 52-week contribution calendar
             manager.updateStep(username, "PROFILE");
             userSyncService.syncUser(username);
+            profileSyncService.syncUserProfile(username);
 
-            // Step 2: Public Repositories (caps at max-repos, skips forks)
+            // Step 2: Public Repositories (caps at max-repos, skips forks) & Language bytes
             manager.updateStep(username, "REPOS");
             var repos = repositorySyncService.syncRepositories(username);
+            languageSyncService.syncAllLanguages(repos);
 
-            // Step 3: Commits (author=username, capped at 12 months on first run, incremental since)
+            // Step 3: Commits & PRs/Issues authored by user
             manager.updateStep(username, "COMMITS");
             var commitMetrics = commitSyncService.syncAllCommits(username, repos);
+            prIssueSyncService.syncForUser(username, repos);
 
             Instant finishedAt = Instant.now();
             Instant syncedAt = Instant.now();
