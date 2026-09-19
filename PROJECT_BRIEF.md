@@ -91,7 +91,7 @@ Backend:
 12. NO other libraries unless I approve them. Ask first.
 
 Frontend (Phase 4): Next.js, TypeScript, Tailwind CSS, a light chart
-library, TanStack Query. Separate project (`D:\Workplace\DevCore\github-analytics-web`), not served by Spring.
+library, TanStack Query. Located in `frontend/` within the project root (`D:\Workplace\DevCore\Spring\frontend`).
 
 My global skills: `apple-design`, `apple-motion`, `liquid-glass`.
 These are FRONTEND skills. Apply them tastefully in Phase 4 and Phase 5 with restraint.

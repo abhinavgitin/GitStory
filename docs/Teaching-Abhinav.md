@@ -304,6 +304,38 @@ src/
      `Controller` (HTTP) -> `Service` (Logic) -> `Repository` / `Client` (Data/Network).
    - This prevents spaghetti code where database queries or external API calls are written directly inside controllers.
 
-### Where will the Frontend live?
-The Next.js frontend will **not** be placed inside Java or `src/main/resources`.
-It will live as a completely independent project (running on port 3000 via `npm run dev`), communicating with Spring Boot strictly over HTTP JSON APIs (`http://localhost:8080/api/...`).
+### Where does the Frontend live?
+The Next.js frontend is located in `frontend/` directly inside the project root (`D:\Workplace\DevCore\Spring\frontend`).
+It does not touch `src/` or `resources/`, and runs on port 3000 via `npm run dev`. It communicates with Spring Boot strictly over HTTP JSON APIs (`http://localhost:8080/api/...`).
+
+---
+
+## 8. Frontend Architecture: The Backend-For-Frontend (BFF) Pattern
+
+### The Problem
+If a browser client (React in Chrome/Edge) makes a direct request to `http://localhost:8080/api/refresh`, it must send the secret header:
+```http
+POST /api/refresh HTTP/1.1
+X-Refresh-Secret: your-40-character-secret
+```
+Because the browser makes this call, anyone can open DevTools (F12) -> Network tab, click the request, and read `X-Refresh-Secret`. Furthermore, if this key is compiled into client code using `NEXT_PUBLIC_*`, it gets embedded as plain text in the JavaScript bundle that the browser downloads.
+
+### The Solution: Route Handlers (BFF)
+Instead of the browser talking directly to Spring, the browser talks **only** to Next.js server-side route handlers:
+
+```text
+Browser (React) 
+  --> (No secret) --> Next.js Server Handler (`/api/refresh`)
+                        --> (Injects REFRESH_SECRET) --> Spring Boot (:8080)
+```
+
+1. Next.js creates server endpoints inside `frontend/app/api/.../route.ts`.
+2. These handlers run in Node.js on the server, not in the browser.
+3. The route handler reads `process.env.REFRESH_SECRET` from `frontend/.env.local`.
+4. The route handler makes the HTTP request to Spring Boot with `X-Refresh-Secret` and passes the response back to the browser.
+
+### Key Benefits:
+1. **Secret Isolation**: The browser never sees or downloads `REFRESH_SECRET`.
+2. **Zero CORS in Spring Boot**: Browsers enforce CORS for security. Server-to-server HTTP calls (Node to Spring) do not enforce CORS. Because the browser never calls `:8080` directly, Spring Boot needs **no CORS configuration**.
+3. **Hidden Backend Topology**: In production, the Spring Boot URL and port are completely invisible to external users.
+

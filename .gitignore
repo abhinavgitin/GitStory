@@ -10,3 +10,10 @@ build/
 *.iml
 .vscode/
 bin/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.env*.local
+frontend/out/

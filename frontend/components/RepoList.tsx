@@ -50,8 +50,8 @@ export function RepoList({ repos }: RepoListProps) {
 
       if (!matchesSearch) return false;
 
-      if (filterType === 'public') return !repo.isPrivate;
-      if (filterType === 'private') return repo.isPrivate;
+      if (filterType === 'public') return !repo.privateRepo;
+      if (filterType === 'private') return repo.privateRepo;
       return true;
     });
   }, [repos, search, filterType]);
@@ -142,13 +142,13 @@ export function RepoList({ repos }: RepoListProps) {
 
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                      repo.isPrivate
+                      repo.privateRepo
                         ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                         : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
                     }`}
                   >
-                    {repo.isPrivate ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
-                    {repo.isPrivate ? 'Private' : 'Public'}
+                    {repo.privateRepo ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                    {repo.privateRepo ? 'Private' : 'Public'}
                   </span>
                 </div>
 
@@ -183,7 +183,7 @@ export function RepoList({ repos }: RepoListProps) {
                 </div>
 
                 <span className="text-[11px] text-zinc-500">
-                  {formatUpdatedTime(repo.updatedAt)}
+                  {formatUpdatedTime(repo.githubUpdatedAt)}
                 </span>
               </div>
             </div>
