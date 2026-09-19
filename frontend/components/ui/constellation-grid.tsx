@@ -19,11 +19,13 @@ interface ConstellationGridProps {
     description?: string;
     children?: React.ReactNode;
     className?: string;
+    showVignette?: boolean;
 }
 
 export default function ConstellationGrid({
     children,
     className = "relative w-full overflow-hidden select-none bg-zinc-950",
+    showVignette = false,
 }: ConstellationGridProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -36,9 +38,10 @@ export default function ConstellationGrid({
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        let animationFrameId: number;
+        let animationFrameId: number | null = null;
         let width = 0;
         let height = 0;
+        let spacing = 75;
 
         // Mouse velocity & inertial tracking
         const mouse = {
@@ -65,7 +68,9 @@ export default function ConstellationGrid({
             initNodes();
         };
 
+        // Window-level mouse tracking so interaction works even when container has pointer-events-none
         const handleMouseMove = (e: MouseEvent) => {
+            if (!container) return;
             const rect = container.getBoundingClientRect();
             mouse.x = e.clientX - rect.left;
             mouse.y = e.clientY - rect.top;
@@ -78,8 +83,8 @@ export default function ConstellationGrid({
 
         const initNodes = () => {
             nodes = [];
-            // Optimal spacing for responsive performance across tall layouts
-            const spacing = Math.max(65, Math.min(85, Math.floor(width / 22)));
+            // Responsive node distribution
+            spacing = Math.max(65, Math.min(85, Math.floor(width / 22)));
             const cols = Math.ceil(width / spacing) + 1;
             const rows = Math.ceil(height / spacing) + 1;
 
@@ -114,8 +119,12 @@ export default function ConstellationGrid({
         }
 
         window.addEventListener('resize', updateDimensions);
-        container.addEventListener('mousemove', handleMouseMove);
-        container.addEventListener('mouseleave', handleMouseLeave);
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
+        window.addEventListener('mouseleave', handleMouseLeave);
+
+        const prefersReducedMotion =
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         let lastTime = performance.now();
 
@@ -151,8 +160,8 @@ export default function ConstellationGrid({
                 const dy = mouse.y - n.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
-                // Dynamic shockwave repulsion based on cursor speed
-                if (dist < mouse.radius && dist > 0) {
+                // Dynamic shockwave repulsion based on cursor speed (only if not reduced motion)
+                if (!prefersReducedMotion && dist < mouse.radius && dist > 0) {
                     const power = (1 - dist / mouse.radius);
                     const force = power * (1500 + speed * 150);
                     const angle = Math.atan2(dy, dx);
@@ -175,9 +184,9 @@ export default function ConstellationGrid({
                 n.y += n.vy * dt * 60;
             }
 
-            // Draw Connections (Distance Culling)
-            const MAX_CONN_DIST = 75;
-            const MAX_CONN_DIST_SQ = MAX_CONN_DIST * MAX_CONN_DIST;
+            // Draw Connections (Distance Culling scaled to node spacing)
+            const maxConnDist = Math.max(90, Math.floor(spacing * 1.35));
+            const maxConnDistSq = maxConnDist * maxConnDist;
 
             for (let i = 0; i < nodes.length; i++) {
                 const n = nodes[i];
@@ -188,9 +197,9 @@ export default function ConstellationGrid({
                     const ndy = n.y - n2.y;
                     const distSq = ndx * ndx + ndy * ndy;
 
-                    if (distSq < MAX_CONN_DIST_SQ) {
+                    if (distSq < maxConnDistSq) {
                         const nDist = Math.sqrt(distSq);
-                        const alpha = (1 - nDist / MAX_CONN_DIST) * 0.12;
+                        const alpha = (1 - nDist / maxConnDist) * 0.14;
 
                         ctx.strokeStyle = `rgba(${nodeColor}, ${alpha})`;
                         ctx.lineWidth = 0.6;
@@ -210,7 +219,7 @@ export default function ConstellationGrid({
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const isNear = dist < mouse.radius;
 
-                const baseAlpha = isNear ? 0.95 : 0.22 + Math.sin(n.pulse) * 0.08;
+                const baseAlpha = isNear ? 0.95 : 0.24 + Math.sin(n.pulse) * 0.08;
 
                 if (isNear) {
                     ctx.fillStyle = `rgba(${accentColor}, 0.95)`;
@@ -244,17 +253,25 @@ export default function ConstellationGrid({
                 }
             }
 
-            animationFrameId = requestAnimationFrame(render);
+            if (!prefersReducedMotion) {
+                animationFrameId = requestAnimationFrame(render);
+            }
         };
 
-        animationFrameId = requestAnimationFrame(render);
+        if (prefersReducedMotion) {
+            render(performance.now());
+        } else {
+            animationFrameId = requestAnimationFrame(render);
+        }
 
         return () => {
-            cancelAnimationFrame(animationFrameId);
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
             if (resizeObserver) resizeObserver.disconnect();
             window.removeEventListener('resize', updateDimensions);
-            container.removeEventListener('mousemove', handleMouseMove);
-            container.removeEventListener('mouseleave', handleMouseLeave);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseleave', handleMouseLeave);
         };
     }, []);
 
@@ -263,14 +280,20 @@ export default function ConstellationGrid({
             {/* Ambient canvas background */}
             <canvas ref={canvasRef} className="absolute inset-0 block pointer-events-none z-0" />
 
-            {/* Seamless gradient transition overlays */}
-            <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
-            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+            {/* Optional gradient transition overlays (disabled by default for full-page background) */}
+            {showVignette && (
+                <>
+                    <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+                </>
+            )}
 
             {/* Seamless Content Wrapper */}
-            <div className="relative z-10 w-full">
-                {children}
-            </div>
+            {children && (
+                <div className="relative z-10 w-full">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
