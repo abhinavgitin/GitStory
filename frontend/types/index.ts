@@ -85,3 +85,51 @@ export interface LanguageOverviewResponse {
   languages: LanguageStatItem[];
   repoBreakdown: RepoLanguageResponse[];
 }
+
+export interface UserProfile {
+  login: string;
+  name: string;
+  bio: string | null;
+  avatarUrl: string;
+  htmlUrl: string;
+  publicRepos: number;
+  totalPrivateRepos: number;
+  followers: number;
+  following: number;
+  accountCreatedAt: string;
+  accountAgeFormatted: string;
+  syncedAt: string;
+}
+
+export interface ContributionDay {
+  date: string;
+  count: number;
+  color: string;
+  weekday: number;
+}
+
+export interface ContributionCalendar {
+  totalContributions: number;
+  currentStreak: number;
+  longestStreak: number;
+  days: ContributionDay[];
+}
+
+// ── Slice 5d: Pull Requests & Issues ──
+
+export interface PrSummary {
+  totalPrs: number;
+  openPrs: number;
+  mergedPrs: number;
+  closedPrs: number;
+  mergeRate: number;
+  avgTimeToMergeHours: number;
+}
+
+export interface IssueSummary {
+  totalIssues: number;
+  openIssues: number;
+  closedIssues: number;
+  closeRate: number;
+}
+

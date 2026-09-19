@@ -30,11 +30,7 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
       onStatusChange(status);
     }
     if (status?.state === 'SUCCESS') {
-      queryClient.invalidateQueries({ queryKey: ['repos'] });
-      queryClient.invalidateQueries({ queryKey: ['commitSummary'] });
-      queryClient.invalidateQueries({ queryKey: ['commitsByHour'] });
-      queryClient.invalidateQueries({ queryKey: ['commitsByWeekday'] });
-      queryClient.invalidateQueries({ queryKey: ['recentCommits'] });
+      queryClient.invalidateQueries();
     }
   }, [status, onStatusChange, queryClient]);
 
@@ -90,4 +86,3 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
     </div>
   );
 }
-
