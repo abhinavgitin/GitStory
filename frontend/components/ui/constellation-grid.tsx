@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface Node {
     x: number;
@@ -22,23 +22,11 @@ interface ConstellationGridProps {
 }
 
 export default function ConstellationGrid({
-    title = "Constellation",
-    description = "High-velocity dynamic mesh. Sweep your cursor quickly across the grid to unleash kinetic shockwaves.",
     children,
-    className = "relative w-full min-h-[70vh] md:min-h-[85vh] overflow-hidden select-none bg-slate-950",
+    className = "relative w-full overflow-hidden select-none bg-zinc-950",
 }: ConstellationGridProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-
-    // Sync theme preference
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkMode(mediaQuery.matches);
-        const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -60,12 +48,12 @@ export default function ConstellationGrid({
             prevY: -1000,
             vx: 0,
             vy: 0,
-            radius: 220,
+            radius: 200,
         };
 
         let nodes: Node[] = [];
 
-        const handleResize = () => {
+        const updateDimensions = () => {
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             width = container.clientWidth || window.innerWidth;
             height = container.clientHeight || window.innerHeight;
@@ -78,7 +66,7 @@ export default function ConstellationGrid({
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            const rect = canvas.getBoundingClientRect();
+            const rect = container.getBoundingClientRect();
             mouse.x = e.clientX - rect.left;
             mouse.y = e.clientY - rect.top;
         };
@@ -90,7 +78,8 @@ export default function ConstellationGrid({
 
         const initNodes = () => {
             nodes = [];
-            const spacing = 55; // Tighter grid density for richer visual connections
+            // Optimal spacing for responsive performance across tall layouts
+            const spacing = Math.max(65, Math.min(85, Math.floor(width / 22)));
             const cols = Math.ceil(width / spacing) + 1;
             const rows = Math.ceil(height / spacing) + 1;
 
@@ -105,7 +94,7 @@ export default function ConstellationGrid({
                         vy: 0,
                         baseX: x,
                         baseY: y,
-                        radius: Math.random() * 1.2 + 1.2,
+                        radius: Math.random() * 1.1 + 1.1,
                         label: `${(i * 7).toString(16).toUpperCase()}:${(j * 11).toString(16).toUpperCase()}`,
                         pulse: Math.random() * Math.PI * 2,
                     });
@@ -113,15 +102,24 @@ export default function ConstellationGrid({
             }
         };
 
-        handleResize();
-        window.addEventListener('resize', handleResize);
+        updateDimensions();
+
+        // Use ResizeObserver so canvas adjusts smoothly if content height changes dynamically
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(() => {
+                updateDimensions();
+            });
+            resizeObserver.observe(container);
+        }
+
+        window.addEventListener('resize', updateDimensions);
         container.addEventListener('mousemove', handleMouseMove);
         container.addEventListener('mouseleave', handleMouseLeave);
 
         let lastTime = performance.now();
 
         const render = (now: number) => {
-            // Normalize dt across high-refresh displays
             const dt = Math.min((now - lastTime) / 1000, 0.05);
             lastTime = now;
 
@@ -133,17 +131,16 @@ export default function ConstellationGrid({
 
             const speed = Math.sqrt(mouse.vx * mouse.vx + mouse.vy * mouse.vy);
 
-            // Color paletting for dark/light seamlessness
-            const bgColor = isDarkMode ? '#030407' : '#f8fafc';
-            const nodeColor = isDarkMode ? '255, 255, 255' : '15, 23, 42';
-            const accentColor = isDarkMode ? '56, 189, 248' : '2, 132, 199'; // Sky Cyan Accent
+            const bgColor = '#09090b';
+            const nodeColor = '255, 255, 255';
+            const accentColor = '56, 189, 248'; // Sky Cyan Accent
 
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, width, height);
 
             // Node Physics Engine (Hooke's Law Spring-Mass-Damping system)
-            const SPRING_K = 18; // Spring stiffness
-            const DAMPING = 0.82; // Velocity resistance
+            const SPRING_K = 18;
+            const DAMPING = 0.82;
 
             for (let i = 0; i < nodes.length; i++) {
                 const n = nodes[i];
@@ -160,28 +157,25 @@ export default function ConstellationGrid({
                     const force = power * (1500 + speed * 150);
                     const angle = Math.atan2(dy, dx);
 
-                    // Impulse force pushing node away from cursor
                     n.vx -= Math.cos(angle) * force * dt;
                     n.vy -= Math.sin(angle) * force * dt;
                 }
 
-                // Calculate restoring force back to home anchor point (baseX, baseY)
+                // Restoring force
                 const homeDx = n.baseX - n.x;
                 const homeDy = n.baseY - n.y;
 
                 n.vx += homeDx * SPRING_K * dt;
                 n.vy += homeDy * SPRING_K * dt;
 
-                // Apply Damping
                 n.vx *= DAMPING;
                 n.vy *= DAMPING;
 
-                // Integrate position
                 n.x += n.vx * dt * 60;
                 n.y += n.vy * dt * 60;
             }
 
-            // Draw Connections (Optimized Distance Culling)
+            // Draw Connections (Distance Culling)
             const MAX_CONN_DIST = 75;
             const MAX_CONN_DIST_SQ = MAX_CONN_DIST * MAX_CONN_DIST;
 
@@ -196,10 +190,10 @@ export default function ConstellationGrid({
 
                     if (distSq < MAX_CONN_DIST_SQ) {
                         const nDist = Math.sqrt(distSq);
-                        const alpha = (1 - nDist / MAX_CONN_DIST) * (isDarkMode ? 0.18 : 0.08);
+                        const alpha = (1 - nDist / MAX_CONN_DIST) * 0.12;
 
                         ctx.strokeStyle = `rgba(${nodeColor}, ${alpha})`;
-                        ctx.lineWidth = 0.7;
+                        ctx.lineWidth = 0.6;
                         ctx.beginPath();
                         ctx.moveTo(n.x, n.y);
                         ctx.lineTo(n2.x, n2.y);
@@ -216,25 +210,27 @@ export default function ConstellationGrid({
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const isNear = dist < mouse.radius;
 
-                // Node base opacity pulse
-                const baseAlpha = isNear ? 0.95 : 0.25 + Math.sin(n.pulse) * 0.1;
+                const baseAlpha = isNear ? 0.95 : 0.22 + Math.sin(n.pulse) * 0.08;
 
-                ctx.fillStyle = isNear
-                    ? `rgba(${accentColor}, ${baseAlpha})`
-                    : `rgba(${nodeColor}, ${baseAlpha})`;
+                if (isNear) {
+                    ctx.fillStyle = `rgba(${accentColor}, 0.95)`;
+                    ctx.shadowColor = `rgba(${accentColor}, 0.8)`;
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.fillStyle = `rgba(${nodeColor}, ${baseAlpha})`;
+                    ctx.shadowBlur = 0;
+                }
 
-                const currentRadius = isNear
-                    ? n.radius * 2.2
-                    : n.radius + Math.sin(n.pulse) * 0.3;
+                const currentRadius = isNear ? n.radius * 1.5 : n.radius;
 
                 ctx.beginPath();
                 ctx.arc(n.x, n.y, Math.max(0.5, currentRadius), 0, Math.PI * 2);
                 ctx.fill();
 
-                // High-tech Spatial Radar Rings on active proximity
-                if (dist < 90) {
+                // Spatial Radar Rings on proximity
+                if (dist < 85) {
                     const pulseRing = ((n.pulse * 20) % 30) + 4;
-                    const ringAlpha = (1 - pulseRing / 34) * 0.4;
+                    const ringAlpha = (1 - pulseRing / 34) * 0.35;
 
                     ctx.strokeStyle = `rgba(${accentColor}, ${ringAlpha})`;
                     ctx.lineWidth = 1;
@@ -242,8 +238,7 @@ export default function ConstellationGrid({
                     ctx.arc(n.x, n.y, pulseRing, 0, Math.PI * 2);
                     ctx.stroke();
 
-                    // Hex Coordinate Readout
-                    ctx.font = '8px ui-monospace, SFMono-Regular, Consolas, monospace';
+                    ctx.font = '9px "JetBrains Mono", ui-monospace, monospace';
                     ctx.fillStyle = `rgba(${accentColor}, 0.85)`;
                     ctx.fillText(n.label, n.x + 10, n.y - 10);
                 }
@@ -256,31 +251,26 @@ export default function ConstellationGrid({
 
         return () => {
             cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('resize', handleResize);
+            if (resizeObserver) resizeObserver.disconnect();
+            window.removeEventListener('resize', updateDimensions);
             container.removeEventListener('mousemove', handleMouseMove);
             container.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [isDarkMode]);
+    }, []);
 
     return (
         <div ref={containerRef} className={className}>
-            <canvas ref={canvasRef} className="absolute inset-0 block cursor-crosshair" />
+            {/* Ambient canvas background */}
+            <canvas ref={canvasRef} className="absolute inset-0 block pointer-events-none z-0" />
 
-            {/* Seamless overlay content or default title */}
-            {children ? (
-                <div className="relative z-10 w-full h-full flex flex-col justify-center">
-                    {children}
-                </div>
-            ) : (
-                <div className="relative z-10 flex h-full flex-col items-center justify-center text-center px-4 pointer-events-none mix-blend-difference text-white">
-                    <h1 className="font-mono text-6xl md:text-9xl font-black tracking-tighter uppercase leading-none">
-                        {title}
-                    </h1>
-                    <p className="mt-4 font-mono text-xs md:text-sm max-w-lg opacity-70">
-                        {description}
-                    </p>
-                </div>
-            )}
+            {/* Seamless gradient transition overlays */}
+            <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+
+            {/* Seamless Content Wrapper */}
+            <div className="relative z-10 w-full">
+                {children}
+            </div>
         </div>
     );
 }
