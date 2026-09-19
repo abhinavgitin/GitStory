@@ -65,7 +65,7 @@ public class RefreshManager {
         Instant currentLastSyncedAt = statusRef.get().lastSyncedAt();
 
         // Atomically publish RUNNING state to the request thread and any polling thread
-        statusRef.set(RefreshStatusResponse.running(startedAt, currentLastSyncedAt));
+        statusRef.set(RefreshStatusResponse.running(startedAt, currentLastSyncedAt, "STARTING"));
 
         try {
             asyncRefreshRunner.runAsyncRefresh(startedAt, currentLastSyncedAt, this);
@@ -81,9 +81,29 @@ public class RefreshManager {
         return statusRef.get();
     }
 
+    public void updateStep(String step) {
+        RefreshStatusResponse current = statusRef.get();
+        if (current != null && current.state() == RefreshState.RUNNING) {
+            statusRef.set(RefreshStatusResponse.running(current.startedAt(), current.lastSyncedAt(), step));
+            log.info("Refresh progress: current step is {}", step);
+        }
+    }
+
     public void onRefreshSuccess(Instant startedAt, Instant finishedAt, Instant syncedAt, int reposSynced) {
+        onRefreshSuccess(startedAt, finishedAt, syncedAt, reposSynced, 0, 0, 0);
+    }
+
+    public void onRefreshSuccess(
+        Instant startedAt,
+        Instant finishedAt,
+        Instant syncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced
+    ) {
         isRunning.set(false);
-        statusRef.set(RefreshStatusResponse.success(startedAt, finishedAt, syncedAt, reposSynced));
+        statusRef.set(RefreshStatusResponse.success(startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced));
 
         try {
             // Persist updated lastSyncedAt ONLY on successful completion
@@ -95,7 +115,8 @@ public class RefreshManager {
                     reposSynced,
                     null
             ));
-            log.info("Saved SUCCESS sync metadata to MongoDB. Repos: {}, SyncedAt: {}", reposSynced, syncedAt);
+            log.info("Saved SUCCESS sync metadata to MongoDB. Repos: {}, Skipped: {}, Failed: {}, Commits: {}, SyncedAt: {}",
+                    reposSynced, reposSkipped, reposFailed, commitsSynced, syncedAt);
         } catch (Exception ex) {
             log.error("Failed to persist sync metadata on success: {}", ex.getMessage());
         }

@@ -18,25 +18,47 @@ public class AsyncRefreshRunner {
     private static final Logger log = LoggerFactory.getLogger(AsyncRefreshRunner.class);
 
     private final RepositorySyncService repositorySyncService;
+    private final CommitSyncService commitSyncService;
 
-    public AsyncRefreshRunner(RepositorySyncService repositorySyncService) {
+    public AsyncRefreshRunner(
+        RepositorySyncService repositorySyncService,
+        CommitSyncService commitSyncService
+    ) {
         this.repositorySyncService = repositorySyncService;
+        this.commitSyncService = commitSyncService;
     }
 
     @Async(AsyncConfig.REFRESH_EXECUTOR)
     public void runAsyncRefresh(Instant startedAt, Instant previousLastSyncedAt, RefreshManager manager) {
         try {
-            log.info("Worker thread starting repository refresh in background...");
-            RepoSyncResult result = repositorySyncService.syncRepositories();
+            log.info("Worker thread starting background sync pipeline...");
+
+            // Step 1: Repositories
+            manager.updateStep("REPOS");
+            var repos = repositorySyncService.syncRepositories();
+
+            // Step 2: Commits
+            manager.updateStep("COMMITS");
+            var commitMetrics = commitSyncService.syncAllCommits(repos);
+
             Instant finishedAt = Instant.now();
-            manager.onRefreshSuccess(startedAt, finishedAt, result.syncedAt(), result.reposSynced());
+            Instant syncedAt = Instant.now();
+
+            manager.onRefreshSuccess(
+                    startedAt,
+                    finishedAt,
+                    syncedAt,
+                    repos.size(),
+                    commitMetrics.reposSkipped(),
+                    commitMetrics.reposFailed(),
+                    commitMetrics.commitsSynced()
+            );
         } catch (Exception ex) {
-            log.error("Background repository refresh encountered an error: {}", ex.getMessage());
+            log.error("Background refresh encountered an error: {}", ex.getMessage(), ex);
             Instant finishedAt = Instant.now();
             String cleanError = sanitizeErrorMessage(ex);
             manager.onRefreshFailure(startedAt, finishedAt, previousLastSyncedAt, cleanError);
         } finally {
-            // Guarantee that the running flag is released even if unexpected JVM errors occur
             manager.releaseRunningFlag();
         }
     }

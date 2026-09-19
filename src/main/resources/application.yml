@@ -21,6 +21,9 @@ github:
 refresh:
   secret: ${REFRESH_SECRET}
 
+app:
+  timezone: Asia/Kolkata
+
 management:
   endpoints:
     web:

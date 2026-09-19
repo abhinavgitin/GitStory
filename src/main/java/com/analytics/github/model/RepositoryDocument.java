@@ -27,5 +27,14 @@ public record RepositoryDocument(
     Instant githubCreatedAt,
     Instant githubUpdatedAt,
     Instant githubPushedAt,
-    Instant syncedAt
-) {}
+    Instant syncedAt,
+    Instant lastCommitSyncAt
+) {
+    public RepositoryDocument withLastCommitSyncAt(Instant lastCommitSyncAt) {
+        return new RepositoryDocument(
+            id, name, fullName, description, htmlUrl, privateRepo, fork, defaultBranch,
+            language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt
+        );
+    }
+}

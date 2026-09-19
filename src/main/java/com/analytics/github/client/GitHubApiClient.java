@@ -1,5 +1,6 @@
 package com.analytics.github.client;
 
+import com.analytics.github.dto.GitHubCommitResponse;
 import com.analytics.github.dto.GitHubRepoResponse;
 import com.analytics.github.exception.GitHubRateLimitException;
 import org.slf4j.Logger;
@@ -8,16 +9,18 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Client component responsible for fetching repository data from the GitHub REST API,
- * handling Link-header pagination, and enforcing rate limit protections.
+ * Client component responsible for fetching repository and commit data from the GitHub REST API,
+ * handling Link-header pagination, empty-repository handling, and enforcing rate limit protections.
  */
 @Component
 public class GitHubApiClient {
@@ -57,30 +60,79 @@ public class GitHubApiClient {
         return Collections.unmodifiableList(allRepositories);
     }
 
-    private ResponseEntity<List<GitHubRepoResponse>> executeGetRepositories(String uri) {
-        RestClient.RequestHeadersSpec<?> requestSpec;
-        if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            requestSpec = restClient.get().uri(URI.create(uri));
-        } else {
-            requestSpec = restClient.get().uri(uri);
+    public List<GitHubCommitResponse> fetchCommitsForRepo(String owner, String repo, String author, Instant since) {
+        List<GitHubCommitResponse> allCommits = new ArrayList<>();
+        StringBuilder initialUri = new StringBuilder("/repos/")
+                .append(owner).append("/").append(repo).append("/commits?per_page=100");
+        if (author != null && !author.isBlank()) {
+            initialUri.append("&author=").append(author);
         }
+        if (since != null) {
+            initialUri.append("&since=").append(since.toString());
+        }
+
+        String nextUri = initialUri.toString();
+
+        while (nextUri != null) {
+            log.info("Fetching commits page for {}/{}: {}", owner, repo, sanitizeUri(nextUri));
+
+            ResponseEntity<List<GitHubCommitResponse>> response;
+            try {
+                response = executeGetCommits(nextUri);
+            } catch (HttpClientErrorException.Conflict conflictEx) {
+                log.warn("Repository {}/{} is empty (HTTP 409 Conflict). Skipping commit fetch.", owner, repo);
+                return Collections.emptyList();
+            }
+
+            HttpHeaders headers = response.getHeaders();
+            checkRateLimit(headers);
+
+            List<GitHubCommitResponse> pageItems = response.getBody();
+            if (pageItems != null && !pageItems.isEmpty()) {
+                allCommits.addAll(pageItems);
+            }
+
+            nextUri = extractNextLink(headers);
+        }
+
+        log.info("Finished fetching commits for {}/{}. Total retrieved: {}", owner, repo, allCommits.size());
+        return Collections.unmodifiableList(allCommits);
+    }
+
+    private ResponseEntity<List<GitHubRepoResponse>> executeGetRepositories(String uri) {
+        RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
+                ? restClient.get().uri(URI.create(uri))
+                : restClient.get().uri(uri);
 
         return requestSpec
                 .retrieve()
-                .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> {
-                    String retryAfter = res.getHeaders().getFirst("Retry-After");
-                    String reset = res.getHeaders().getFirst("X-RateLimit-Reset");
-                    StringBuilder message = new StringBuilder("GitHub API rate limit exceeded (HTTP ")
-                            .append(res.getStatusCode().value())
-                            .append(")");
-                    if (retryAfter != null && !retryAfter.isBlank()) {
-                        message.append(". Retry-After: ").append(retryAfter).append(" seconds");
-                    } else if (reset != null && !reset.isBlank()) {
-                        message.append(". Quota resets at epoch: ").append(reset);
-                    }
-                    throw new GitHubRateLimitException(message.toString());
-                })
+                .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
                 .toEntity(new ParameterizedTypeReference<>() {});
+    }
+
+    private ResponseEntity<List<GitHubCommitResponse>> executeGetCommits(String uri) {
+        RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
+                ? restClient.get().uri(URI.create(uri))
+                : restClient.get().uri(uri);
+
+        return requestSpec
+                .retrieve()
+                .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
+                .toEntity(new ParameterizedTypeReference<>() {});
+    }
+
+    private void handleRateLimit(org.springframework.http.client.ClientHttpResponse res) throws java.io.IOException {
+        String retryAfter = res.getHeaders().getFirst("Retry-After");
+        String reset = res.getHeaders().getFirst("X-RateLimit-Reset");
+        StringBuilder message = new StringBuilder("GitHub API rate limit exceeded (HTTP ")
+                .append(res.getStatusCode().value())
+                .append(")");
+        if (retryAfter != null && !retryAfter.isBlank()) {
+            message.append(". Retry-After: ").append(retryAfter).append(" seconds");
+        } else if (reset != null && !reset.isBlank()) {
+            message.append(". Quota resets at epoch: ").append(reset);
+        }
+        throw new GitHubRateLimitException(message.toString());
     }
 
     private void checkRateLimit(HttpHeaders headers) {
@@ -127,8 +179,7 @@ public class GitHubApiClient {
     }
 
     private String sanitizeUri(String uri) {
-        // Strip out query parameters from logs to ensure no secrets or sensitive params are leaked
         int queryIndex = uri.indexOf('?');
-        return queryIndex != -1 ? uri.substring(0, queryIndex) : uri;
+        return (queryIndex >= 0) ? uri.substring(0, queryIndex) + "?[redacted]" : uri;
     }
 }
