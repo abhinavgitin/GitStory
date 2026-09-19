@@ -23,9 +23,6 @@ const LANGUAGE_COLORS: Record<string, string> = {
 
 export function OverviewCards({ repos }: OverviewCardsProps) {
   const totalRepos = repos.length;
-  const privateRepos = repos.filter((r) => r.privateRepo).length;
-  const publicRepos = totalRepos - privateRepos;
-
   const totalStars = repos.reduce((acc, r) => acc + (r.stargazersCount || 0), 0);
   const totalForks = repos.reduce((acc, r) => acc + (r.forksCount || 0), 0);
 
@@ -67,11 +64,10 @@ export function OverviewCards({ repos }: OverviewCardsProps) {
           <div className="flex items-center gap-2 text-xs">
             <span className="inline-flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-medium">
               <Globe className="w-3.5 h-3.5" />
-              {publicRepos} public
+              {totalRepos} public
             </span>
-            <span className="inline-flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 font-medium">
-              <Lock className="w-3.5 h-3.5" />
-              {privateRepos} private
+            <span className="inline-flex items-center gap-1.5 text-zinc-400 bg-zinc-800/60 px-3 py-1 rounded-full border border-zinc-700/40 font-mono text-[11px]">
+              Indexed
             </span>
           </div>
         </div>

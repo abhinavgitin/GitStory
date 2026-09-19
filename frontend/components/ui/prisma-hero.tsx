@@ -129,6 +129,7 @@ export interface PrismaHeroProps {
   ctaText?: string;
   ctaHref?: string;
   lastSyncedAt?: string | null;
+  username?: string;
   onStatusChange?: (status: RefreshStatus | undefined) => void;
   showIntegratedNav?: boolean;
 }
@@ -146,6 +147,7 @@ export const PrismaHero = ({
   ctaText = "Explore Analytics",
   ctaHref = "#analytics",
   lastSyncedAt,
+  username,
   onStatusChange,
   showIntegratedNav = false,
 }: PrismaHeroProps) => {
@@ -187,8 +189,8 @@ export const PrismaHero = ({
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
           {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner">
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner group-hover:border-zinc-500 transition-colors">
               <GithubIcon className="w-4 h-4" />
             </div>
             <div>
@@ -198,20 +200,29 @@ export const PrismaHero = ({
                   Telemetry
                 </span>
               </h2>
-              <p className="text-[11px] text-zinc-400 font-medium">Personal Telemetry Engine</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Public Developer Intelligence</p>
             </div>
-          </div>
+          </a>
 
           {/* Right Nav Actions */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {lastSyncedAt !== undefined && (
+            {lastSyncedAt !== undefined && lastSyncedAt !== null && (
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
                 <Clock className="w-3.5 h-3.5 text-zinc-500" />
                 <span>{formatRelativeTime(lastSyncedAt)}</span>
               </div>
             )}
 
-            <RefreshButton onStatusChange={onStatusChange} />
+            {username ? (
+              <RefreshButton username={username} onStatusChange={onStatusChange} />
+            ) : (
+              <a
+                href="#search-section"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-sm transition-all duration-150 active:scale-[0.97]"
+              >
+                Search User
+              </a>
+            )}
           </div>
         </motion.div>
       </header>

@@ -1,434 +1,219 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Repository,
-  RefreshStatus,
-  CommitSummary,
-  CommitHourStats,
-  CommitWeekdayStats,
-  RecentCommit,
-  LanguageOverviewResponse,
-  RepoLanguageResponse,
-  UserProfile,
-  ContributionCalendar,
-  PrSummary,
-  IssueSummary,
-} from '@/types';
-import { OverviewCards } from '@/components/OverviewCards';
-import { RepoList } from '@/components/RepoList';
-import { ErrorState } from '@/components/ErrorState';
-import { CommitSummaryCard } from '@/components/CommitSummaryCard';
-import { CommitHourChart } from '@/components/CommitHourChart';
-import { CommitWeekdayChart } from '@/components/CommitWeekdayChart';
-import { RecentCommitsList } from '@/components/RecentCommitsList';
-import { LanguageDistributionCard } from '@/components/LanguageDistributionCard';
-import { ContributionHeatmap } from '@/components/ContributionHeatmap';
-import { PrIssueCard } from '@/components/PrIssueCard';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PrismaHero } from '@/components/ui/prisma-hero';
 import ConstellationGrid from '@/components/ui/constellation-grid';
+import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
+import { Search, ArrowRight, Sparkles, Shield, GitCommit, BarChart3, Database } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-10 animate-pulse motion-reduce:animate-none">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-44 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
-          />
-        ))}
-      </div>
-      <div className="h-72 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
-      <div className="h-80 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
-      <div className="h-72 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-64 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
+const SAMPLE_USERS = [
+  { username: 'abhinavgitin', label: 'Abhinav Gitin', badge: 'Featured' },
+  { username: 'torvalds', label: 'Linus Torvalds', badge: 'Linux' },
+  { username: 'shadcn', label: 'shadcn', badge: 'UI' },
+  { username: 'gaearon', label: 'Dan Abramov', badge: 'React' },
+];
 
-export default function Home() {
-  // ── Repositories & Background Refresh Status ──
-  const {
-    data: repos,
-    isLoading: isReposLoading,
-    isError: isReposError,
-    refetch: refetchRepos,
-    isFetching: isReposFetching,
-  } = useQuery<Repository[]>({
-    queryKey: ['repos'],
-    queryFn: async () => {
-      const res = await fetch('/api/repos');
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to fetch repositories');
-      }
-      return res.json();
-    },
-    retry: 1,
-  });
+export default function LandingPage() {
+  const router = useRouter();
+  const [inputVal, setInputVal] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data: status } = useQuery<RefreshStatus>({
-    queryKey: ['refreshStatus'],
-    queryFn: async () => {
-      const res = await fetch('/api/refresh/status');
-      if (!res.ok) throw new Error('Failed to fetch status');
-      return res.json();
-    },
-    refetchInterval: (query) => {
-      return query.state.data?.state === 'RUNNING' ? 1500 : false;
-    },
-    refetchIntervalInBackground: false,
-  });
-
-  // ── Commit Analytics ──
-  const {
-    data: commitSummary,
-    isLoading: isCommitSummaryLoading,
-  } = useQuery<CommitSummary>({
-    queryKey: ['commitSummary'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/commits/summary');
-      if (!res.ok) throw new Error('Failed to fetch commit summary');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const {
-    data: commitsByHour,
-    isLoading: isHourLoading,
-  } = useQuery<CommitHourStats[]>({
-    queryKey: ['commitsByHour'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/commits/by-hour');
-      if (!res.ok) throw new Error('Failed to fetch commit hour stats');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const {
-    data: commitsByWeekday,
-    isLoading: isWeekdayLoading,
-  } = useQuery<CommitWeekdayStats[]>({
-    queryKey: ['commitsByWeekday'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/commits/by-weekday');
-      if (!res.ok) throw new Error('Failed to fetch commit weekday stats');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const {
-    data: recentCommits,
-    isLoading: isRecentCommitsLoading,
-  } = useQuery<RecentCommit[]>({
-    queryKey: ['recentCommits'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/commits/recent');
-      if (!res.ok) throw new Error('Failed to fetch recent commits');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  // ── Language Telemetry ──
-  const {
-    data: languageOverview,
-    isLoading: isLanguagesLoading,
-  } = useQuery<LanguageOverviewResponse>({
-    queryKey: ['languageAnalytics'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/languages');
-      if (!res.ok) throw new Error('Failed to fetch language analytics');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  // ── User Profile & 52-Week Contributions ──
-  const {
-    data: userProfile,
-    isLoading: isProfileLoading,
-  } = useQuery<UserProfile>({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/profile');
-      if (!res.ok) throw new Error('Failed to fetch profile');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const {
-    data: contributionCalendar,
-    isLoading: isCalendarLoading,
-  } = useQuery<ContributionCalendar>({
-    queryKey: ['contributionCalendar'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/contributions');
-      if (!res.ok) throw new Error('Failed to fetch contributions');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  // ── Pull Requests & Issues ──
-  const {
-    data: prSummary,
-    isLoading: isPrLoading,
-  } = useQuery<PrSummary>({
-    queryKey: ['prSummary'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/prs/summary');
-      if (!res.ok) throw new Error('Failed to fetch PR summary');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const {
-    data: issueSummary,
-    isLoading: isIssueLoading,
-  } = useQuery<IssueSummary>({
-    queryKey: ['issueSummary'],
-    queryFn: async () => {
-      const res = await fetch('/api/analytics/issues/summary');
-      if (!res.ok) throw new Error('Failed to fetch issue summary');
-      return res.json();
-    },
-    retry: 1,
-  });
-
-  const languagesByRepo = useMemo(() => {
-    const map: Record<number, RepoLanguageResponse> = {};
-    if (languageOverview?.repoBreakdown) {
-      for (const item of languageOverview.repoBreakdown) {
-        map[item.repoId] = item;
-      }
+  const handleSearch = (targetUsername?: string) => {
+    const raw = targetUsername ?? inputVal;
+    if (!raw.trim()) {
+      setErrorMsg('Please enter a GitHub username.');
+      return;
     }
-    return map;
-  }, [languageOverview]);
 
-  const totalCommits = commitSummary?.totalCommits ?? 301;
-  const activeReposCount = repos?.length ?? 9;
+    if (!isValidGitHubUsername(raw)) {
+      setErrorMsg(
+        'Invalid username format. Use 1–39 alphanumeric characters or single hyphens.'
+      );
+      return;
+    }
+
+    setErrorMsg(null);
+    const normalized = normalizeUsername(raw);
+    router.push(`/u/${encodeURIComponent(normalized)}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-white/20 selection:text-white">
-      {/* ── Integrated Prisma Hero with Full-bleed Liquid Glass Header & Big Display Typography ── */}
+    <div className="relative min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-between selection:bg-zinc-800 selection:text-zinc-100">
+      {/* ── Top Hero Section ── */}
       <PrismaHero
-        title="Telemetry"
-        subtitle="Live commit distribution, PR lifecycle, velocity rhythms, and codebase telemetry mapped in real time across your GitHub ecosystem."
-        stats={[
-          { label: 'Commits', value: totalCommits.toLocaleString() },
-          { label: 'Repositories', value: activeReposCount },
-          { label: 'Languages', value: languageOverview?.languages.length ?? 0 },
-          { label: 'Cadence', value: 'Night Owl' },
-        ]}
-        lastSyncedAt={status?.lastSyncedAt}
-        ctaText="Explore Analytics"
-        ctaHref="#analytics"
+        title="TELEMETRY*"
+        subtitle="Public repository telemetry, commit distribution cycles, and codebase velocity metrics for any developer ecosystem."
+        ctaText="Look Up User"
+        ctaHref="#search-section"
       />
 
-      {/* ── Top Overview Section ── */}
-      <section id="analytics" className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-8 scroll-mt-6">
-        {isReposError ? (
-          <ErrorState onRetry={() => refetchRepos()} isRetrying={isReposFetching} />
-        ) : isReposLoading ? (
-          <DashboardSkeleton />
-        ) : (
-          <OverviewCards repos={repos || []} />
-        )}
-      </section>
+      {/* ── Constellation Grid Background Section ── */}
+      <section id="search-section" className="relative w-full py-20 px-4 sm:px-6 lg:px-8 flex-1 flex flex-col justify-center items-center">
+        {/* Constellation Canvas as Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <ConstellationGrid />
+        </div>
 
-      {/* ── Radiant Transition Horizon into Constellation Grid ── */}
-      {!isReposError && !isReposLoading && (
-        <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 my-10 select-none">
-          <div className="relative flex items-center justify-center">
-            {/* Ambient radiant blur glow */}
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-3/4 max-w-3xl h-28 bg-gradient-to-r from-sky-500/10 via-cyan-400/20 to-indigo-500/10 blur-3xl pointer-events-none" />
-            {/* Precision glowing laser beam */}
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-            {/* Pulsing telemetry constellation badge */}
-            <div className="absolute px-4 py-1.5 rounded-full bg-zinc-900/90 border border-cyan-500/30 text-[11px] font-mono tracking-widest text-cyan-300 uppercase shadow-[0_0_24px_rgba(56,189,248,0.25)] flex items-center gap-2 backdrop-blur-xl">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
-              </span>
-              <span>Constellation Telemetry Mesh</span>
+        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center text-center">
+          {/* Subtle Tag */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-700/60 text-xs text-zinc-300 font-medium mb-6 backdrop-blur-md shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Multi-User Telemetry Engine</span>
+          </motion.div>
+
+          {/* Heading */}
+          <motion.h2
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4"
+          >
+            Inspect Any GitHub Profile
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="text-sm sm:text-base text-zinc-400 max-w-lg mb-8 leading-relaxed"
+          >
+            Public data only. Type any GitHub username to visualize commit patterns, repository health, and productivity rhythms.
+          </motion.p>
+
+          {/* ── Liquid Glass Search Card ── */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="w-full rounded-3xl p-3 sm:p-4 mb-8"
+            style={{
+              background: 'rgba(18, 18, 23, 0.75)',
+              backdropFilter: 'blur(28px) saturate(190%)',
+              WebkitBackdropFilter: 'blur(28px) saturate(190%)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.18), 0 16px 40px rgba(0, 0, 0, 0.6)',
+            }}
+          >
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Input field */}
+              <div className="relative flex-1 w-full">
+                <Search className="w-5 h-5 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={inputVal}
+                  onChange={(e) => {
+                    setInputVal(e.target.value);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="e.g. abhinavgitin, torvalds..."
+                  autoComplete="off"
+                  spellCheck="false"
+                  className="w-full min-h-[52px] bg-zinc-950/80 text-white placeholder-zinc-500 font-mono text-sm sm:text-base rounded-2xl pl-12 pr-4 py-3 border border-zinc-800/90 focus:outline-none focus:border-zinc-500 transition-colors shadow-inner"
+                />
+              </div>
+
+              {/* Submit CTA */}
+              <button
+                onClick={() => handleSearch()}
+                aria-label="Analyze developer telemetry"
+                className="w-full sm:w-auto min-h-[52px] px-6 py-3 rounded-2xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_rgba(0,0,0,0.3)] shrink-0"
+              >
+                <span>View Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="mt-3 text-left px-2 text-xs font-medium text-rose-400 flex items-center gap-1.5">
+                <span>{errorMsg}</span>
+              </div>
+            )}
+          </motion.div>
+
+          {/* ── Quick-Select Chips ── */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
+            <span className="text-xs text-zinc-500 mr-1 font-mono">Quick load:</span>
+            {SAMPLE_USERS.map((sample) => (
+              <button
+                key={sample.username}
+                onClick={() => handleSearch(sample.username)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 hover:bg-zinc-800/90 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-700 text-xs font-mono transition-all duration-150 active:scale-[0.97] cursor-pointer"
+              >
+                <span>@{sample.username}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/50">
+                  {sample.badge}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* ── Feature Highlights ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full text-left">
+            <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col justify-between">
+              <div className="w-8 h-8 rounded-xl bg-zinc-800 flex items-center justify-center text-blue-400 mb-3">
+                <GitCommit className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-200 mb-1">Commit Chronology</h3>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Ingests up to 12 months of public commit history mapped to author handles.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col justify-between">
+              <div className="w-8 h-8 rounded-xl bg-zinc-800 flex items-center justify-center text-emerald-400 mb-3">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-200 mb-1">Productivity Rhythms</h3>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  24-hour diurnal focus detection (Night Owl vs Day Focus) and weekday distribution.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col justify-between">
+              <div className="w-8 h-8 rounded-xl bg-zinc-800 flex items-center justify-center text-purple-400 mb-3">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-200 mb-1">Atomic Per-User Sync</h3>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  15-minute cooldown per user with concurrency caps and zero cross-user leakage.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </section>
 
-      {/* ── Constellation Grid Background: Codebase Composition all the way down ── */}
-      {!isReposError && !isReposLoading && (
-        <ConstellationGrid className="relative w-full overflow-hidden bg-zinc-950">
-          <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20 space-y-20">
-            {/* 2. Codebase Composition & Language Telemetry */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Codebase Composition
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Byte-level volume telemetry and language distribution across repositories
-                </p>
-              </div>
-              <LanguageDistributionCard
-                data={languageOverview ?? null}
-                loading={isLanguagesLoading}
-              />
-            </motion.section>
-
-            {/* 3. 52-Week Contribution Cadence & Streak Analysis */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Contribution Cadence
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  52-week activity stream and streak metrics synchronized via GitHub GraphQL
-                </p>
-              </div>
-              <ContributionHeatmap
-                calendar={contributionCalendar ?? null}
-                profile={userProfile ?? null}
-                isLoading={isCalendarLoading || isProfileLoading}
-              />
-            </motion.section>
-
-            {/* 4. Engineering Velocity: Pull Requests & Issue Resolution */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Engineering Velocity
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Pull request lifecycle, merge efficiency, and issue resolution metrics
-                </p>
-              </div>
-              <PrIssueCard
-                prSummary={prSummary ?? null}
-                issueSummary={issueSummary ?? null}
-                isLoading={isPrLoading || isIssueLoading}
-              />
-            </motion.section>
-
-            {/* 5. Commit Velocity & Distribution */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Commit Velocity & Distribution
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Temporal productivity rhythms and weekly cadence analyzed across your repositories
-                </p>
-              </div>
-
-              {/* Row 1: 2-Column Spacious Grid for Summary & Weekday */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CommitSummaryCard
-                  summary={commitSummary}
-                  isLoading={isCommitSummaryLoading}
-                />
-                <CommitWeekdayChart
-                  stats={commitsByWeekday}
-                  isLoading={isWeekdayLoading}
-                />
-              </div>
-
-              {/* Row 2: Full-Width 24-Hour Productivity Bar Chart */}
-              <div className="w-full">
-                <CommitHourChart
-                  stats={commitsByHour}
-                  isLoading={isHourLoading}
-                />
-              </div>
-            </motion.section>
-
-            {/* 6. Recent Commits Feed */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Activity Feed
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Recent push events and commit log history
-                </p>
-              </div>
-              <RecentCommitsList
-                commits={recentCommits}
-                isLoading={isRecentCommitsLoading}
-              />
-            </motion.section>
-
-            {/* 7. Repositories Explorer */}
-            <motion.section
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Repositories Explorer
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Filter, search, and inspect individual repository metrics
-                </p>
-              </div>
-              <RepoList repos={repos || []} languagesByRepo={languagesByRepo} />
-            </motion.section>
-          </main>
-
-          <footer className="border-t border-zinc-800/80 py-12 text-center text-xs text-zinc-500 font-mono">
-            <p>GitHub Analytics Dashboard &middot; Spring Boot + Next.js &middot; Personal Telemetry Engine</p>
-          </footer>
-        </ConstellationGrid>
-      )}
+      {/* ── Honest Footer & Transparency Notes ── */}
+      <footer className="relative z-10 w-full border-t border-zinc-900 py-8 px-4 text-center text-xs text-zinc-500 space-y-2">
+        <div className="flex items-center justify-center gap-2 text-zinc-400">
+          <Shield className="w-3.5 h-3.5 text-zinc-500" />
+          <span>Public data only. Commits are matched by verified GitHub handle.</span>
+        </div>
+        <p className="text-[11px] text-zinc-600">
+          Data is cached from GitHub&apos;s public API and can be removed upon request.
+        </p>
+      </footer>
     </div>
   );
 }

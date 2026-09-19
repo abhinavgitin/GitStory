@@ -6,6 +6,7 @@ import { RefreshButton } from './RefreshButton';
 import { Clock } from 'lucide-react';
 
 interface NavbarProps {
+  username?: string;
   lastSyncedAt?: string | null;
 }
 
@@ -45,7 +46,7 @@ function formatRelativeTime(dateString: string | null | undefined): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function Navbar({ lastSyncedAt }: NavbarProps) {
+export function Navbar({ username, lastSyncedAt }: NavbarProps) {
   const [, setCurrentTime] = useState<number>(Date.now());
   const [liveStatus, setLiveStatus] = useState<RefreshStatus | undefined>();
 
@@ -59,17 +60,17 @@ export function Navbar({ lastSyncedAt }: NavbarProps) {
   return (
     <header className="apple-liquid-glass sticky top-0 z-50 w-full transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-sm">
+        <a href="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-sm group-hover:border-zinc-500 transition-colors">
             <GithubIcon className="w-4 h-4" />
           </div>
           <div>
             <h1 className="text-sm font-semibold tracking-tight text-zinc-100">
               GitHub Analytics
             </h1>
-            <p className="text-[11px] text-zinc-400 font-medium">Personal Dashboard</p>
+            <p className="text-[11px] text-zinc-400 font-medium">Public Developer Intelligence</p>
           </div>
-        </div>
+        </a>
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/60 px-2.5 py-1 rounded-md border border-zinc-800/80">
@@ -77,7 +78,16 @@ export function Navbar({ lastSyncedAt }: NavbarProps) {
             <span>Synced {formatRelativeTime(effectiveLastSynced)}</span>
           </div>
 
-          <RefreshButton onStatusChange={setLiveStatus} />
+          {username ? (
+            <RefreshButton username={username} onStatusChange={setLiveStatus} />
+          ) : (
+            <a
+              href="/"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition-all active:scale-[0.97]"
+            >
+              Search
+            </a>
+          )}
         </div>
       </div>
     </header>
