@@ -37,11 +37,16 @@ export function PopoverForm({
     <div
       key={title}
       className={className}
+      style={{
+        minHeight: open ? height : "40px",
+        height: open ? height : "40px",
+        transition: "min-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
     >
       <motion.button
         layoutId={shouldReduceMotion ? undefined : `${title}-wrapper`}
         onClick={() => setOpen(true)}
-        style={{ borderRadius: 10 }}
+        style={{ borderRadius: 10, visibility: open ? "hidden" : "visible" }}
         className="flex h-10 items-center border border-zinc-700/80 bg-[#121212] px-4 text-sm font-medium text-zinc-100 outline-none hover:border-zinc-500 hover:bg-zinc-900 transition-colors focus:ring-1 focus:ring-zinc-500 cursor-pointer shadow-md active:scale-[0.97]"
       >
         <motion.span layoutId={shouldReduceMotion ? undefined : `${title}-title`}>{title}</motion.span>

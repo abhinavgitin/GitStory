@@ -84,7 +84,7 @@ export function UsernamePopover() {
       height="285px"
       showCloseButton={formState !== "success"}
       showSuccess={formState === "success"}
-      className="relative flex items-center justify-center w-full py-1 z-30"
+      className="relative flex flex-col items-center justify-start w-full z-30"
       successChild={
         <PopoverFormSuccess
           title="Opening dashboard"

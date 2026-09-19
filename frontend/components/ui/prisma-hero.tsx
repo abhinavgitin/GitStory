@@ -133,6 +133,8 @@ export interface PrismaHeroProps {
   showIntegratedNav?: boolean;
   children?: React.ReactNode;
   className?: string;
+  variant?: 'landing' | 'default';
+  sourceHref?: string;
 }
 
 const defaultStats = [
@@ -151,9 +153,13 @@ export const PrismaHero = ({
   username,
   onStatusChange,
   showIntegratedNav = false,
+  variant,
+  sourceHref = "#",
   children,
   className,
 }: PrismaHeroProps) => {
+  const isLanding = variant === 'landing' || (variant === undefined && Boolean(children));
+
   return (
     <section className={className || "relative w-full min-h-[90vh] md:min-h-screen flex flex-col justify-between overflow-hidden bg-zinc-950"}>
       {/* Background video */}
@@ -162,77 +168,82 @@ export const PrismaHero = ({
         loop
         muted
         playsInline
-        className="absolute inset-0 h-full w-full object-cover scale-105 filter brightness-90 pointer-events-none"
+        className="absolute inset-0 h-full w-full object-cover scale-105 filter brightness-110 contrast-105 pointer-events-none"
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_170732_8a9ccda6-5cff-4628-b164-059c500a2b41.mp4"
       />
 
       {/* Noise texture overlay — adds cinematic grain */}
-      <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.6] mix-blend-overlay" />
+      <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.35] mix-blend-overlay" />
 
-      {/* Gradient overlays for depth layering */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-zinc-950" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+      {/* Subtle transparent dark overlay for general text contrast without creating solid black areas */}
+      <div className="pointer-events-none absolute inset-0 bg-black/25" />
 
-      {/* ── Liquid Glass Navbar ── */}
-      <header className="relative z-30 w-full px-4 sm:px-8 pt-4">
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl md:rounded-full px-5 py-3"
-          style={{
-            background: 'rgba(18, 18, 23, 0.65)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
-          }}
-        >
-          {/* Top specular rim highlight */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      {/* Subtle bottom 35% gradient (transparent to 45% black) for wordmark legibility */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-b from-transparent via-black/20 to-black/45" />
 
-          {/* Brand */}
-          <a href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner group-hover:border-zinc-500 transition-colors">
-              <GithubIcon className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                <span>GitStory</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold tracking-wider">
-                  BETA
-                </span>
-              </h2>
-              <p className="text-[11px] text-zinc-400 font-medium">Read any developer&apos;s commits</p>
-            </div>
-          </a>
+      {/* ── Top Bar / Navbar (omitted entirely on landing page) ── */}
+      {!isLanding && (
+        /* Original Wide Navbar for other views */
+        <header className="relative z-30 w-full px-4 sm:px-8 pt-4">
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl md:rounded-full px-5 py-3"
+            style={{
+              background: 'rgba(18, 18, 23, 0.65)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            {/* Top specular rim highlight */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-          {/* Right Nav Actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            {lastSyncedAt !== undefined && lastSyncedAt !== null && (
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
-                <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                <span>{formatRelativeTime(lastSyncedAt)}</span>
+            {/* Brand */}
+            <a href="/" className="flex items-center gap-3 group">
+              <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner group-hover:border-zinc-500 transition-colors">
+                <GithubIcon className="w-4 h-4" />
               </div>
-            )}
+              <div>
+                <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                  <span>GitStory</span>
+                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold tracking-wider">
+                    BETA
+                  </span>
+                </h2>
+                <p className="text-[11px] text-zinc-400 font-medium">Read any developer&apos;s commits</p>
+              </div>
+            </a>
 
-            {username ? (
-              <RefreshButton username={username} onStatusChange={onStatusChange} />
-            ) : !children ? (
-              <a
-                href="#search-section"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-sm transition-all duration-150 active:scale-[0.97]"
-              >
-                Search User
-              </a>
-            ) : null}
-          </div>
-        </motion.div>
-      </header>
+            {/* Right Nav Actions */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              {lastSyncedAt !== undefined && lastSyncedAt !== null && (
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
+                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>{formatRelativeTime(lastSyncedAt)}</span>
+                </div>
+              )}
+
+              {username ? (
+                <RefreshButton username={username} onStatusChange={onStatusChange} />
+              ) : (
+                <a
+                  href="#search-section"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-sm transition-all duration-150 active:scale-[0.97]"
+                >
+                  Search User
+                </a>
+              )}
+            </div>
+          </motion.div>
+        </header>
+      )}
 
       {/* ── Main Hero Content Container (Proper Document Flow) ── */}
       {children ? (
-        <div className="relative z-20 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col justify-center items-center">
+        <div className="relative z-20 w-full flex-1 flex flex-col justify-between items-center overflow-visible">
           {children}
         </div>
       ) : (
