@@ -61,8 +61,8 @@ Goals of the project:
 | 1     | Foundation and env setup                                    | DONE     |
 | 2     | GitHub client, fetch my repos, store in Mongo               | DONE     |
 | 3     | Refresh endpoint, background job, status endpoint           | DONE     |
-| 4     | Frontend v1 (Next.js)                                       | ACTIVE   |
-| 5     | Analytics endpoints and matching charts                     | LOCKED   |
+| 4     | Frontend v1 (Next.js)                                       | DONE     |
+| 5     | Analytics endpoints and matching charts                     | ACTIVE   |
 | 6     | Polish: tests, README, deploy                               | LOCKED   |
 
 RULES:

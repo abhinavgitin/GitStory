@@ -31,6 +31,10 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
     }
     if (status?.state === 'SUCCESS') {
       queryClient.invalidateQueries({ queryKey: ['repos'] });
+      queryClient.invalidateQueries({ queryKey: ['commitSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['commitsByHour'] });
+      queryClient.invalidateQueries({ queryKey: ['commitsByWeekday'] });
+      queryClient.invalidateQueries({ queryKey: ['recentCommits'] });
     }
   }, [status, onStatusChange, queryClient]);
 
@@ -55,7 +59,7 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
       {status?.state === 'RUNNING' && (
         <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse motion-reduce:animate-none" />
-          Sync in progress
+          {status?.currentStep ? `Syncing ${status.currentStep.toLowerCase()}...` : 'Sync in progress'}
         </span>
       )}
 
