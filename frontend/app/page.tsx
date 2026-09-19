@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import {
   Repository,
   RefreshStatus,
@@ -14,8 +13,9 @@ import {
   RepoLanguageResponse,
   UserProfile,
   ContributionCalendar,
+  PrSummary,
+  IssueSummary,
 } from '@/types';
-import { Navbar } from '@/components/Navbar';
 import { OverviewCards } from '@/components/OverviewCards';
 import { RepoList } from '@/components/RepoList';
 import { ErrorState } from '@/components/ErrorState';
@@ -25,36 +25,39 @@ import { CommitWeekdayChart } from '@/components/CommitWeekdayChart';
 import { RecentCommitsList } from '@/components/RecentCommitsList';
 import { LanguageDistributionCard } from '@/components/LanguageDistributionCard';
 import { ContributionHeatmap } from '@/components/ContributionHeatmap';
+import { PrIssueCard } from '@/components/PrIssueCard';
+import { PrismaHero } from '@/components/ui/prisma-hero';
 import ConstellationGrid from '@/components/ui/constellation-grid';
-import { WordsPullUp } from '@/components/ui/prisma-hero';
-import { ArrowRight, GitCommit, GitFork, Moon, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 animate-pulse motion-reduce:animate-none">
+    <div className="space-y-10 animate-pulse motion-reduce:animate-none">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-36 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
+            className="h-44 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
           />
         ))}
       </div>
+      <div className="h-72 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
+      <div className="h-80 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
+      <div className="h-72 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
           <div
             key={i}
-            className="h-56 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
+            className="h-64 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl"
           />
         ))}
       </div>
-      <div className="h-64 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl" />
-      <div className="h-72 bg-zinc-900/30 border border-zinc-800/60 rounded-3xl" />
     </div>
   );
 }
 
 export default function Home() {
+  // ── Repositories & Background Refresh Status ──
   const {
     data: repos,
     isLoading: isReposLoading,
@@ -87,6 +90,7 @@ export default function Home() {
     refetchIntervalInBackground: false,
   });
 
+  // ── Commit Analytics ──
   const {
     data: commitSummary,
     isLoading: isCommitSummaryLoading,
@@ -139,6 +143,7 @@ export default function Home() {
     retry: 1,
   });
 
+  // ── Language Telemetry ──
   const {
     data: languageOverview,
     isLoading: isLanguagesLoading,
@@ -152,6 +157,7 @@ export default function Home() {
     retry: 1,
   });
 
+  // ── User Profile & 52-Week Contributions ──
   const {
     data: userProfile,
     isLoading: isProfileLoading,
@@ -178,6 +184,33 @@ export default function Home() {
     retry: 1,
   });
 
+  // ── Pull Requests & Issues ──
+  const {
+    data: prSummary,
+    isLoading: isPrLoading,
+  } = useQuery<PrSummary>({
+    queryKey: ['prSummary'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/prs/summary');
+      if (!res.ok) throw new Error('Failed to fetch PR summary');
+      return res.json();
+    },
+    retry: 1,
+  });
+
+  const {
+    data: issueSummary,
+    isLoading: isIssueLoading,
+  } = useQuery<IssueSummary>({
+    queryKey: ['issueSummary'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/issues/summary');
+      if (!res.ok) throw new Error('Failed to fetch issue summary');
+      return res.json();
+    },
+    retry: 1,
+  });
+
   const languagesByRepo = useMemo(() => {
     const map: Record<number, RepoLanguageResponse> = {};
     if (languageOverview?.repoBreakdown) {
@@ -192,138 +225,138 @@ export default function Home() {
   const activeReposCount = repos?.length ?? 9;
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
-      <Navbar lastSyncedAt={status?.lastSyncedAt} />
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-white/20 selection:text-white">
+      {/* ── Integrated Prisma Hero with Full-bleed Liquid Glass Header & Big Display Typography ── */}
+      <PrismaHero
+        title="Telemetry"
+        subtitle="Live commit distribution, PR lifecycle, velocity rhythms, and codebase telemetry mapped in real time across your GitHub ecosystem."
+        stats={[
+          { label: 'Commits', value: totalCommits.toLocaleString() },
+          { label: 'Repositories', value: activeReposCount },
+          { label: 'Languages', value: languageOverview?.languages.length ?? 0 },
+          { label: 'Cadence', value: 'Night Owl' },
+        ]}
+        lastSyncedAt={status?.lastSyncedAt}
+        ctaText="Explore Analytics"
+        ctaHref="#analytics"
+      />
 
-      {/* Kinetic Interactive Constellation Hero */}
-      <section className="relative w-full border-b border-zinc-800/80">
-        <ConstellationGrid
-          className="relative w-full min-h-[55vh] md:min-h-[65vh] overflow-hidden select-none bg-zinc-950 flex flex-col justify-center items-center"
-        >
-          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center flex flex-col items-center pointer-events-auto">
-            {/* <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] text-xs text-zinc-300 font-medium mb-6"
-            >
-            </motion.div> */}
-
-            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-zinc-100 leading-[0.95] mb-6">
-              <WordsPullUp text="Codebase Telemetry" showAsterisk />
-            </h1>
-
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="max-w-2xl text-sm sm:text-base md:text-lg text-zinc-400 font-normal leading-relaxed mb-8"
-            >
-              Live commit distribution, velocity patterns, and repository telemetry mapped in real time across your GitHub ecosystem.
-            </motion.p>
-
-            {/* Hero Live Stat Ribbon with Staggered Entrance */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl mb-9">
-              {[
-                {
-                  label: 'Total Commits',
-                  value: totalCommits,
-                  icon: <GitCommit className="w-3.5 h-3.5 text-blue-400" />,
-                  isMono: true,
-                },
-                {
-                  label: 'Repositories',
-                  value: activeReposCount,
-                  icon: <GitFork className="w-3.5 h-3.5 text-emerald-400" />,
-                  isMono: true,
-                },
-                {
-                  label: 'Timezone',
-                  value: 'Asia/Kolkata',
-                  icon: null,
-                  isMono: true,
-                },
-                {
-                  label: 'Cadence',
-                  value: 'Night Owl',
-                  icon: <Moon className="w-3.5 h-3.5 text-indigo-400" />,
-                  isMono: false,
-                  valueClass: 'text-indigo-300',
-                },
-              ].map((item, index) => (
-                <motion.div
-                  key={item.label}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{
-                    duration: 0.7,
-                    delay: 0.55 + index * 0.08,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm"
-                >
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 mb-1">
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </div>
-                  <div
-                    className={`text-xl sm:text-2xl font-bold text-zinc-100 ${
-                      item.isMono ? 'font-mono tabular-nums' : ''
-                    } ${item.valueClass ?? ''}`}
-                  >
-                    {item.value}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Prisma Magnetic Action Button */}
-            <motion.a
-              href="#analytics"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.85, ease: [0.16, 1, 0.3, 1] }}
-              className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-1.5 pl-6 pr-1.5 text-xs sm:text-sm font-semibold text-zinc-950 shadow-[0_4px_24px_rgba(255,255,255,0.18)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
-            >
-              <span>Explore Analytics</span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110">
-                <ArrowRight className="h-4 w-4" />
-              </span>
-            </motion.a>
-          </div>
-        </ConstellationGrid>
-      </section>
-
-      {/* Main Analytics Canvas */}
-      <main id="analytics" className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12">
+      {/* ── Top Overview Section ── */}
+      <section id="analytics" className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-12 pb-6">
         {isReposError ? (
           <ErrorState onRetry={() => refetchRepos()} isRetrying={isReposFetching} />
         ) : isReposLoading ? (
           <DashboardSkeleton />
         ) : (
-          <div className="space-y-12">
-            <OverviewCards repos={repos || []} />
+          <OverviewCards repos={repos || []} />
+        )}
+      </section>
 
-            {/* Codebase Composition & Language Telemetry */}
-            <LanguageDistributionCard
-              data={languageOverview ?? null}
-              loading={isLanguagesLoading}
-            />
+      {/* ── Radiant Transition Horizon into Constellation Grid ── */}
+      {!isReposError && !isReposLoading && (
+        <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 my-10 select-none">
+          <div className="relative flex items-center justify-center">
+            {/* Ambient radiant blur glow */}
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-3/4 max-w-3xl h-28 bg-gradient-to-r from-sky-500/10 via-cyan-400/20 to-indigo-500/10 blur-3xl pointer-events-none" />
+            {/* Precision glowing laser beam */}
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+            {/* Pulsing telemetry constellation badge */}
+            <div className="absolute px-4 py-1.5 rounded-full bg-zinc-900/90 border border-cyan-500/30 text-[11px] font-mono tracking-widest text-cyan-300 uppercase shadow-[0_0_24px_rgba(56,189,248,0.25)] flex items-center gap-2 backdrop-blur-xl">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+              </span>
+              <span>Constellation Telemetry Mesh</span>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* 52-Week Contribution Cadence & Streak Analysis */}
-            <ContributionHeatmap
-              calendar={contributionCalendar ?? null}
-              profile={userProfile ?? null}
-              isLoading={isCalendarLoading || isProfileLoading}
-            />
-
-            {/* Spacious De-Cluttered Commit Analytics Grid */}
-            <div className="space-y-6">
+      {/* ── Constellation Grid Background: Codebase Composition all the way down ── */}
+      {!isReposError && !isReposLoading && (
+        <ConstellationGrid className="relative w-full overflow-hidden bg-zinc-950">
+          <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-6 pb-20 space-y-20">
+            {/* 2. Codebase Composition & Language Telemetry */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-4"
+            >
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Codebase Composition
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Byte-level volume telemetry and language distribution across repositories
+                </p>
+              </div>
+              <LanguageDistributionCard
+                data={languageOverview ?? null}
+                loading={isLanguagesLoading}
+              />
+            </motion.section>
+
+            {/* 3. 52-Week Contribution Cadence & Streak Analysis */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-4"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Contribution Cadence
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  52-week activity stream and streak metrics synchronized via GitHub GraphQL
+                </p>
+              </div>
+              <ContributionHeatmap
+                calendar={contributionCalendar ?? null}
+                profile={userProfile ?? null}
+                isLoading={isCalendarLoading || isProfileLoading}
+              />
+            </motion.section>
+
+            {/* 4. Engineering Velocity: Pull Requests & Issue Resolution */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-4"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Engineering Velocity
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Pull request lifecycle, merge efficiency, and issue resolution metrics
+                </p>
+              </div>
+              <PrIssueCard
+                prSummary={prSummary ?? null}
+                issueSummary={issueSummary ?? null}
+                isLoading={isPrLoading || isIssueLoading}
+              />
+            </motion.section>
+
+            {/* 5. Commit Velocity & Distribution */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                   Commit Velocity & Distribution
                 </h2>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+                <p className="text-sm text-zinc-400 mt-1">
                   Temporal productivity rhythms and weekly cadence analyzed across your repositories
                 </p>
               </div>
@@ -347,25 +380,55 @@ export default function Home() {
                   isLoading={isHourLoading}
                 />
               </div>
-            </div>
+            </motion.section>
 
-            {/* Recent Commits Feed */}
-            <RecentCommitsList
-              commits={recentCommits}
-              isLoading={isRecentCommitsLoading}
-            />
+            {/* 6. Recent Commits Feed */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-4"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Activity Feed
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Recent push events and commit log history
+                </p>
+              </div>
+              <RecentCommitsList
+                commits={recentCommits}
+                isLoading={isRecentCommitsLoading}
+              />
+            </motion.section>
 
-            {/* Repositories Explorer */}
-            <RepoList repos={repos || []} languagesByRepo={languagesByRepo} />
-          </div>
-        )}
-      </main>
+            {/* 7. Repositories Explorer */}
+            <motion.section
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-4"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Repositories Explorer
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Filter, search, and inspect individual repository metrics
+                </p>
+              </div>
+              <RepoList repos={repos || []} languagesByRepo={languagesByRepo} />
+            </motion.section>
+          </main>
 
-      <footer className="border-t border-zinc-800/60 py-8 text-center text-xs text-zinc-500">
-        <p>GitHub Analytics Dashboard &middot; Spring Boot + Next.js &middot; Personal Telemetry</p>
-      </footer>
+          <footer className="border-t border-zinc-800/80 py-12 text-center text-xs text-zinc-500 font-mono">
+            <p>GitHub Analytics Dashboard &middot; Spring Boot + Next.js &middot; Personal Telemetry Engine</p>
+          </footer>
+        </ConstellationGrid>
+      )}
     </div>
   );
 }
-
-
