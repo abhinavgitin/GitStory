@@ -121,7 +121,6 @@ function formatRelativeTime(dateString: string | null | undefined): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/* ─────────── Prisma Hero Props ─────────── */
 export interface PrismaHeroProps {
   title?: string;
   subtitle?: string;
@@ -132,6 +131,8 @@ export interface PrismaHeroProps {
   username?: string;
   onStatusChange?: (status: RefreshStatus | undefined) => void;
   showIntegratedNav?: boolean;
+  children?: React.ReactNode;
+  className?: string;
 }
 
 const defaultStats = [
@@ -150,9 +151,11 @@ export const PrismaHero = ({
   username,
   onStatusChange,
   showIntegratedNav = false,
+  children,
+  className,
 }: PrismaHeroProps) => {
   return (
-    <section className="relative w-full min-h-[90vh] md:min-h-screen flex flex-col justify-between overflow-hidden bg-zinc-950">
+    <section className={className || "relative w-full min-h-[90vh] md:min-h-screen flex flex-col justify-between overflow-hidden bg-zinc-950"}>
       {/* Background video */}
       <video
         autoPlay
@@ -195,12 +198,12 @@ export const PrismaHero = ({
             </div>
             <div>
               <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                <span>GitHub Analytics</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  Telemetry
+                <span>GitStory</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold tracking-wider">
+                  BETA
                 </span>
               </h2>
-              <p className="text-[11px] text-zinc-400 font-medium">Public Developer Intelligence</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Read any developer&apos;s commits</p>
             </div>
           </a>
 
@@ -215,91 +218,94 @@ export const PrismaHero = ({
 
             {username ? (
               <RefreshButton username={username} onStatusChange={onStatusChange} />
-            ) : (
+            ) : !children ? (
               <a
                 href="#search-section"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-sm transition-all duration-150 active:scale-[0.97]"
               >
                 Search User
               </a>
-            )}
+            ) : null}
           </div>
         </motion.div>
       </header>
 
       {/* ── Main Hero Content Container (Proper Document Flow) ── */}
-      <div className="relative z-20 max-w-6xl w-full mx-auto px-4 sm:px-6 md:px-8 pt-12 pb-8 sm:pb-12 flex flex-col justify-end flex-1">
-        
-        {/* Tier 1: Metrics tiles, Pill tag, Description & CTA (Positioned COMPLETELY ABOVE Hero Title) */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8 lg:mb-10">
-          
-          {/* Left: Codebase Intelligence Pill tag & Subtitle */}
-          <div className="max-w-xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-zinc-300 font-medium shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Personal Codebase Intelligence</span>
-            </div>
-            <motion.p
-              initial={{ y: 15, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed"
-            >
-              {subtitle}
-            </motion.p>
-          </div>
-
-          {/* Right: Liquid Glass Metrics Tiles & CTA */}
-          <div className="flex flex-wrap items-center gap-3">
-            {stats.map((stat, idx) => (
-              <motion.div
-                key={stat.label}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.35 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                className="relative px-4 py-2 rounded-2xl overflow-hidden shadow-lg bg-zinc-900/70 border border-white/[0.12] backdrop-blur-xl"
-                style={{
-                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4)',
-                }}
+      {children ? (
+        <div className="relative z-20 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col justify-center items-center">
+          {children}
+        </div>
+      ) : (
+        <div className="relative z-20 max-w-6xl w-full mx-auto px-4 sm:px-6 md:px-8 pt-12 pb-8 sm:pb-12 flex flex-col justify-end flex-1">
+          {/* Tier 1: Metrics tiles, Pill tag, Description & CTA (Positioned COMPLETELY ABOVE Hero Title) */}
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8 lg:mb-10">
+            {/* Left: Codebase Intelligence Pill tag & Subtitle */}
+            <div className="max-w-xl space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-zinc-300 font-medium shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Personal Codebase Intelligence</span>
+              </div>
+              <motion.p
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed"
               >
-                {/* Specular corner highlight */}
-                <div className="pointer-events-none absolute top-0 left-0 w-8 h-8 bg-gradient-to-br from-white/15 to-transparent rounded-tl-2xl" />
-                <div className="flex flex-col">
-                  <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
-                    {stat.value}
-                  </span>
-                  <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
-                </div>
-              </motion.div>
-            ))}
+                {subtitle}
+              </motion.p>
+            </div>
 
-            {/* Apple Motion CTA Button */}
-            <motion.a
-              href={ctaHref}
-              initial={{ y: 15, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 shadow-[0_4px_32px_rgba(255,255,255,0.22)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
+            {/* Right: Liquid Glass Metrics Tiles & CTA */}
+            <div className="flex flex-wrap items-center gap-3">
+              {stats.map((stat, idx) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.35 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative px-4 py-2 rounded-2xl overflow-hidden shadow-lg bg-zinc-900/70 border border-white/[0.12] backdrop-blur-xl"
+                  style={{
+                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4)',
+                  }}
+                >
+                  {/* Specular corner highlight */}
+                  <div className="pointer-events-none absolute top-0 left-0 w-8 h-8 bg-gradient-to-br from-white/15 to-transparent rounded-tl-2xl" />
+                  <div className="flex flex-col">
+                    <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
+                      {stat.value}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
+                  </div>
+                </motion.div>
+              ))}
+
+              {/* Apple Motion CTA Button */}
+              <motion.a
+                href={ctaHref}
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 shadow-[0_4px_32px_rgba(255,255,255,0.22)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
+              >
+                <span>{ctaText}</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110 shadow-sm">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </motion.a>
+            </div>
+          </div>
+
+          {/* Tier 2: Giant Display Typography (Clear Bounding Box, No Overlap) */}
+          <div className="w-full pt-4 border-t border-white/[0.08]">
+            <h1
+              className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
+              style={{ color: "#F4F4F5" }}
             >
-              <span>{ctaText}</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110 shadow-sm">
-                <ArrowRight className="h-4 w-4" />
-              </span>
-            </motion.a>
+              <WordsPullUp text={title} showAsterisk />
+            </h1>
           </div>
         </div>
-
-        {/* Tier 2: Giant Display Typography (Clear Bounding Box, No Overlap) */}
-        <div className="w-full pt-4 border-t border-white/[0.08]">
-          <h1
-            className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
-            style={{ color: "#F4F4F5" }}
-          >
-            <WordsPullUp text={title} showAsterisk />
-          </h1>
-        </div>
-
-      </div>
+      )}
     </section>
   );
 };

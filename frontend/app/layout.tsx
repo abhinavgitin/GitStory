@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'GitHub Analytics | Public Developer Intelligence',
-  description: 'Public repository telemetry and commit analytics powered by Spring Boot and Next.js',
+  title: 'GitStory',
+  description: 'Public GitHub commit and activity analytics for any username.',
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

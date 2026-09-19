@@ -258,21 +258,26 @@ export default function UserDashboardPage({
   // Invalid Username Guard
   if (!isValid) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
-          <AlertTriangle className="w-7 h-7" />
+      <div className="relative min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 text-center overflow-x-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <ConstellationGrid className="w-full h-full" />
         </div>
-        <h1 className="text-xl font-bold text-white mb-2">Invalid GitHub Username</h1>
-        <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-          &quot;{rawUsername}&quot; does not conform to GitHub&apos;s username requirements (1–39 alphanumeric characters with single hyphens).
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Search</span>
-        </Link>
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
+            <AlertTriangle className="w-7 h-7" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-2">Invalid GitHub Username</h1>
+          <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
+            &quot;{rawUsername}&quot; does not conform to GitHub&apos;s username requirements (1–39 alphanumeric characters with single hyphens).
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Search</span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -280,8 +285,13 @@ export default function UserDashboardPage({
   // State 6: Backend Unreachable
   if (isProfileError && profileError?.message === 'BACKEND_UNREACHABLE') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-6">
-        <ErrorState onRetry={() => refetchProfile()} isRetrying={isProfileFetching} />
+      <div className="relative min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-center items-center p-6 overflow-x-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <ConstellationGrid className="w-full h-full" />
+        </div>
+        <div className="relative z-10">
+          <ErrorState onRetry={() => refetchProfile()} isRetrying={isProfileFetching} />
+        </div>
       </div>
     );
   }
@@ -289,28 +299,43 @@ export default function UserDashboardPage({
   // State 2: User Not Found on GitHub (404)
   if (isProfileError && profileError?.message === 'USER_NOT_FOUND') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4 shadow-lg">
-          <UserX className="w-8 h-8 text-rose-400" />
+      <div className="relative min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 text-center overflow-x-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <ConstellationGrid className="w-full h-full" />
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">User Not Found on GitHub</h1>
-        <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-          Could not locate any public GitHub user account with the handle{' '}
-          <strong className="text-zinc-200 font-mono">@{normalizedUsername}</strong>.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Search Another User</span>
-        </Link>
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4 shadow-lg">
+            <UserX className="w-8 h-8 text-rose-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">User Not Found on GitHub</h1>
+          <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
+            Could not locate any public GitHub user account with the handle{' '}
+            <strong className="text-zinc-200 font-mono">@{normalizedUsername}</strong>.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Search Another User</span>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 text-zinc-100 selection:bg-zinc-800 selection:text-zinc-100">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="relative min-h-screen bg-zinc-950 text-zinc-100 selection:bg-zinc-800 selection:text-zinc-100 overflow-x-hidden"
+    >
+      {/* ── Fixed 100% Full-Page Background Constellation Grid ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <ConstellationGrid className="w-full h-full" />
+      </div>
+
       {/* ── Fixed Floating Apple Liquid Glass Header ── */}
       <header className="sticky top-0 z-40 w-full px-4 sm:px-6 lg:px-8 pt-3 pb-2 pointer-events-none">
         <div
@@ -371,11 +396,6 @@ export default function UserDashboardPage({
           </div>
         </div>
       </header>
-
-      {/* ── Background Constellation Grid ── */}
-      <div className="absolute inset-0 pointer-events-none opacity-30">
-        <ConstellationGrid />
-      </div>
 
       {/* ── Main Container ── */}
       <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20">
@@ -596,6 +616,6 @@ export default function UserDashboardPage({
           </div>
         )}
       </main>
-    </div>
+    </motion.div>
   );
 }

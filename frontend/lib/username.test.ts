@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isValidGitHubUsername, normalizeUsername } from './username.ts';
+import { isValidGitHubUsername, normalizeUsername, cleanUsername } from './username.ts';
 
 describe('isValidGitHubUsername', () => {
   it('accepts valid usernames', () => {
@@ -69,8 +69,17 @@ describe('isValidGitHubUsername', () => {
 
 describe('normalizeUsername', () => {
   it('lowercases and trims usernames', () => {
-    assert.strictEqual(normalizeUsername('AbhinavGitin'), 'abhinavgiting'.slice(0, 12));
+    assert.strictEqual(normalizeUsername('AbhinavGitin'), 'abhinavgitin');
     assert.strictEqual(normalizeUsername('  OctoCat  '), 'octocat');
     assert.strictEqual(normalizeUsername('USER-123'), 'user-123');
+  });
+});
+
+describe('cleanUsername', () => {
+  it('trims, strips leading @ symbol, and lowercases', () => {
+    assert.strictEqual(cleanUsername('@abhinavgitin'), 'abhinavgitin');
+    assert.strictEqual(cleanUsername('@@octocat'), 'octocat');
+    assert.strictEqual(cleanUsername('  @OctoCat  '), 'octocat');
+    assert.strictEqual(cleanUsername('abhinavgitin'), 'abhinavgitin');
   });
 });

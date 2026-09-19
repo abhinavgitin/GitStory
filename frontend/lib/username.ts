@@ -9,3 +9,7 @@ export function isValidGitHubUsername(username: string | null | undefined): bool
 export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();
 }
+
+export function cleanUsername(raw: string): string {
+  return raw.trim().replace(/^@+/, '').toLowerCase();
+}
