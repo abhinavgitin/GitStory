@@ -10,9 +10,7 @@ import { motion } from 'framer-motion';
 
 const SAMPLE_USERS = [
   { username: 'abhinavgitin', label: 'Abhinav Gitin', badge: 'Featured' },
-  { username: 'torvalds', label: 'Linus Torvalds', badge: 'Linux' },
-  { username: 'shadcn', label: 'shadcn', badge: 'UI' },
-  { username: 'gaearon', label: 'Dan Abramov', badge: 'React' },
+  { username: 'octocat', label: 'The Octocat', badge: 'GitHub Mascot' },
 ];
 
 export default function LandingPage() {
@@ -120,7 +118,7 @@ export default function LandingPage() {
                     if (errorMsg) setErrorMsg(null);
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="e.g. abhinavgitin, torvalds..."
+                  placeholder="e.g. abhinavgitin, octocat..."
                   autoComplete="off"
                   spellCheck="false"
                   className="w-full min-h-[52px] bg-zinc-950/80 text-white placeholder-zinc-500 font-mono text-sm sm:text-base rounded-2xl pl-12 pr-4 py-3 border border-zinc-800/90 focus:outline-none focus:border-zinc-500 transition-colors shadow-inner"
