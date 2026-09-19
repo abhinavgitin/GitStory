@@ -1,7 +1,9 @@
 package com.analytics.github.client;
 
 import com.analytics.github.dto.GitHubRepoResponse;
+import com.analytics.github.dto.GitHubUserProfileResponse;
 import com.analytics.github.exception.GitHubRateLimitException;
+import com.analytics.github.exception.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -34,15 +36,52 @@ class GitHubApiClientTest {
     }
 
     @Test
-    void fetchAllUserRepositories_singlePage() {
+    void fetchUserProfile_success() {
+        String json = """
+            {
+              "login": "testuser",
+              "id": 12345,
+              "name": "Test User",
+              "avatar_url": "https://avatars.githubusercontent.com/u/12345"
+            }
+            """;
+
+        server.expect(requestTo("https://api.github.com/users/testuser"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+        GitHubUserProfileResponse profile = client.fetchUserProfile("testuser");
+
+        server.verify();
+        assertThat(profile.login()).isEqualTo("testuser");
+        assertThat(profile.id()).isEqualTo(12345L);
+        assertThat(profile.name()).isEqualTo("Test User");
+        assertThat(profile.avatarUrl()).isEqualTo("https://avatars.githubusercontent.com/u/12345");
+    }
+
+    @Test
+    void fetchUserProfile_notFound_throwsUserNotFoundException() {
+        server.expect(requestTo("https://api.github.com/users/nonexistentuser"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        assertThatThrownBy(() -> client.fetchUserProfile("nonexistentuser"))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessageContaining("User 'nonexistentuser' not found on GitHub");
+
+        server.verify();
+    }
+
+    @Test
+    void fetchPublicUserRepositories_singlePage() {
         String json = """
             [
               {
                 "id": 101,
                 "name": "repo-one",
-                "full_name": "user/repo-one",
+                "full_name": "testuser/repo-one",
                 "description": "First test repo",
-                "html_url": "https://github.com/user/repo-one",
+                "html_url": "https://github.com/testuser/repo-one",
                 "private": false,
                 "fork": false,
                 "default_branch": "main",
@@ -61,18 +100,18 @@ class GitHubApiClientTest {
         headers.set("X-RateLimit-Remaining", "4999");
         headers.set("X-RateLimit-Reset", "1700000000");
 
-        server.expect(requestTo("https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=1&sort=updated"))
+        server.expect(requestTo("https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=1&sort=pushed"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(json, MediaType.APPLICATION_JSON).headers(headers));
 
-        List<GitHubRepoResponse> repos = client.fetchAllUserRepositories();
+        List<GitHubRepoResponse> repos = client.fetchPublicUserRepositories("testuser");
 
         server.verify();
         assertThat(repos).hasSize(1);
         GitHubRepoResponse repo = repos.getFirst();
         assertThat(repo.id()).isEqualTo(101L);
         assertThat(repo.name()).isEqualTo("repo-one");
-        assertThat(repo.fullName()).isEqualTo("user/repo-one");
+        assertThat(repo.fullName()).isEqualTo("testuser/repo-one");
         assertThat(repo.privateRepo()).isFalse();
         assertThat(repo.fork()).isFalse();
         assertThat(repo.language()).isEqualTo("Java");
@@ -80,13 +119,13 @@ class GitHubApiClientTest {
     }
 
     @Test
-    void fetchAllUserRepositories_multiplePagesViaLinkHeader() {
+    void fetchPublicUserRepositories_multiplePagesViaLinkHeader() {
         String page1Json = """
             [
               {
                 "id": 101,
                 "name": "repo-one",
-                "full_name": "user/repo-one",
+                "full_name": "testuser/repo-one",
                 "private": false,
                 "fork": false,
                 "stargazers_count": 10
@@ -98,8 +137,8 @@ class GitHubApiClientTest {
               {
                 "id": 102,
                 "name": "repo-two",
-                "full_name": "user/repo-two",
-                "private": true,
+                "full_name": "testuser/repo-two",
+                "private": false,
                 "fork": false,
                 "stargazers_count": 20
               }
@@ -107,41 +146,40 @@ class GitHubApiClientTest {
             """;
 
         HttpHeaders page1Headers = new HttpHeaders();
-        page1Headers.set(HttpHeaders.LINK, "<https://api.github.com/user/repos?page=2>; rel=\"next\"");
+        page1Headers.set(HttpHeaders.LINK, "<https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=2&sort=pushed>; rel=\"next\"");
         page1Headers.set("X-RateLimit-Remaining", "4500");
 
         HttpHeaders page2Headers = new HttpHeaders();
         page2Headers.set("X-RateLimit-Remaining", "4499");
 
-        server.expect(requestTo("https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=1&sort=updated"))
+        server.expect(requestTo("https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=1&sort=pushed"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(page1Json, MediaType.APPLICATION_JSON).headers(page1Headers));
 
-        server.expect(requestTo("https://api.github.com/user/repos?page=2"))
+        server.expect(requestTo("https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=2&sort=pushed"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(page2Json, MediaType.APPLICATION_JSON).headers(page2Headers));
 
-        List<GitHubRepoResponse> repos = client.fetchAllUserRepositories();
+        List<GitHubRepoResponse> repos = client.fetchPublicUserRepositories("testuser");
 
         server.verify();
         assertThat(repos).hasSize(2);
         assertThat(repos.get(0).name()).isEqualTo("repo-one");
         assertThat(repos.get(1).name()).isEqualTo("repo-two");
-        assertThat(repos.get(1).privateRepo()).isTrue();
     }
 
     @Test
-    void fetchAllUserRepositories_rateLimitRemainingLow_throwsException() {
+    void fetchPublicUserRepositories_rateLimitRemainingLow_throwsException() {
         String json = "[]";
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RateLimit-Remaining", "25");
         headers.set("X-RateLimit-Reset", "1700000000");
 
-        server.expect(requestTo("https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=1&sort=updated"))
+        server.expect(requestTo("https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=1&sort=pushed"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(json, MediaType.APPLICATION_JSON).headers(headers));
 
-        assertThatThrownBy(() -> client.fetchAllUserRepositories())
+        assertThatThrownBy(() -> client.fetchPublicUserRepositories("testuser"))
                 .isInstanceOf(GitHubRateLimitException.class)
                 .hasMessageContaining("GitHub API rate limit running critically low (25 remaining)");
 
@@ -149,15 +187,15 @@ class GitHubApiClientTest {
     }
 
     @Test
-    void fetchAllUserRepositories_http429RateLimit_throwsExceptionWithRetryAfter() {
+    void fetchPublicUserRepositories_http429RateLimit_throwsExceptionWithRetryAfter() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Retry-After", "60");
 
-        server.expect(requestTo("https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=1&sort=updated"))
+        server.expect(requestTo("https://api.github.com/users/testuser/repos?type=owner&per_page=100&page=1&sort=pushed"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).headers(headers));
 
-        assertThatThrownBy(() -> client.fetchAllUserRepositories())
+        assertThatThrownBy(() -> client.fetchPublicUserRepositories("testuser"))
                 .isInstanceOf(GitHubRateLimitException.class)
                 .hasMessageContaining("GitHub API rate limit exceeded (HTTP 429)")
                 .hasMessageContaining("Retry-After: 60 seconds");

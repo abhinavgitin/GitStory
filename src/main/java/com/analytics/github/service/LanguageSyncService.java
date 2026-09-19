@@ -46,7 +46,8 @@ public class LanguageSyncService {
             try {
                 Map<String, Long> languages = gitHubApiClient.fetchLanguagesForRepo(owner, repoName);
                 log.info("Fetched {} languages for {}: {}", languages.size(), fullName, languages.keySet());
-                updatedRepositories.add(repo.withLanguages(languages));
+                // Languages map was removed from RepositoryDocument for Phase 6a; will be stored in Phase 6c-1
+                updatedRepositories.add(repo);
             } catch (Exception ex) {
                 log.warn("Soft failure fetching languages for {}: {}. Retaining existing language data.",
                         fullName, ex.getMessage());

@@ -23,7 +23,6 @@ class GitHubPropertiesValidationTest {
     @Test
     void startupFailsWhenGitHubTokenIsMissing() {
         contextRunner
-                .withPropertyValues("github.username=abhinav")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
@@ -36,14 +35,12 @@ class GitHubPropertiesValidationTest {
     void startupSucceedsWhenRequiredPropertiesArePresent() {
         contextRunner
                 .withPropertyValues(
-                        "github.token=dummy-token",
-                        "github.username=abhinav"
+                        "github.token=dummy-token"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     GitHubProperties properties = context.getBean(GitHubProperties.class);
                     assertThat(properties.token()).isEqualTo("dummy-token");
-                    assertThat(properties.username()).isEqualTo("abhinav");
                     assertThat(properties.baseUrl()).isEqualTo("https://api.github.com");
                     assertThat(properties.toString()).doesNotContain("dummy-token");
                     assertThat(properties.toString()).contains("******");

@@ -1,25 +1,30 @@
 package com.analytics.github.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Map;
 
 /**
- * MongoDB document entity representing a stored repository.
- * Note: Deleted GitHub repos stay in Mongo for now; reconciliation/soft-deletion will be considered in future phases.
+ * MongoDB document entity representing a stored repository under a specific user.
+ *
+ * Indexed for performance:
+ * - @CompoundIndex user_pushed_idx: { username: 1, githubPushedAt: -1 } for listing user repos by recency.
+ * - @CompoundIndex user_repo_idx: { username: 1, repoId: 1 } unique constraint preventing duplicates.
  */
 @Document(collection = "repositories")
+@CompoundIndex(name = "user_pushed_idx", def = "{'username': 1, 'githubPushedAt': -1}")
+@CompoundIndex(name = "user_repo_idx", def = "{'username': 1, 'repoId': 1}", unique = true)
 public record RepositoryDocument(
     @Id
-    Long id,
+    String id,
+    String username,
+    Long repoId,
     String name,
     String fullName,
     String description,
     String htmlUrl,
-    boolean privateRepo,
     boolean fork,
     String defaultBranch,
     String language,
@@ -30,28 +35,17 @@ public record RepositoryDocument(
     Instant githubUpdatedAt,
     Instant githubPushedAt,
     Instant syncedAt,
-    Instant lastCommitSyncAt,
-    Map<String, Long> languages
+    Instant lastCommitSyncAt
 ) {
-    public RepositoryDocument {
-        if (languages == null) {
-            languages = Collections.emptyMap();
-        }
+    public static String buildId(String username, Long repoId) {
+        return username + ":" + repoId;
     }
 
     public RepositoryDocument withLastCommitSyncAt(Instant lastCommitSyncAt) {
         return new RepositoryDocument(
-            id, name, fullName, description, htmlUrl, privateRepo, fork, defaultBranch,
+            id, username, repoId, name, fullName, description, htmlUrl, fork, defaultBranch,
             language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
-            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages
-        );
-    }
-
-    public RepositoryDocument withLanguages(Map<String, Long> languages) {
-        return new RepositoryDocument(
-            id, name, fullName, description, htmlUrl, privateRepo, fork, defaultBranch,
-            language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
-            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt
         );
     }
 }

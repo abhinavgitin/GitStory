@@ -11,13 +11,15 @@ import java.util.Optional;
 @Repository
 public interface CommitMongoRepository extends MongoRepository<CommitDocument, String> {
 
-    Optional<CommitDocument> findTopByRepoIdOrderByAuthorDateDesc(Long repoId);
+    Optional<CommitDocument> findTopByUsernameAndRepoIdOrderByAuthorDateDesc(String username, Long repoId);
 
-    List<CommitDocument> findAllByOrderByAuthorDateDesc(Pageable pageable);
+    List<CommitDocument> findAllByUsernameOrderByAuthorDateDesc(String username, Pageable pageable);
 
-    long count();
+    long countByUsername(String username);
 
-    Optional<CommitDocument> findTopByOrderByAuthorDateAsc();
+    Optional<CommitDocument> findTopByUsernameOrderByAuthorDateAsc(String username);
 
-    Optional<CommitDocument> findTopByOrderByAuthorDateDesc();
+    Optional<CommitDocument> findTopByUsernameOrderByAuthorDateDesc(String username);
+
+    void deleteByUsername(String username);
 }

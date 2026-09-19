@@ -15,7 +15,6 @@ spring:
 
 github:
   token: ${GITHUB_TOKEN}
-  username: ${GITHUB_USERNAME}
   base-url: https://api.github.com
 
 refresh:
@@ -23,6 +22,12 @@ refresh:
 
 app:
   timezone: Asia/Kolkata
+  refresh:
+    cooldown-minutes: 15
+  limits:
+    max-repos-per-user: 50
+    commit-history-months: 12
+    max-concurrent-refreshes: 2
 
 management:
   endpoints:

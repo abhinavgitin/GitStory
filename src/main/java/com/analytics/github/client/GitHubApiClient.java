@@ -27,13 +27,13 @@ import java.util.Map;
  * Client component responsible for fetching repository and commit data from the GitHub REST API,
  * handling Link-header pagination, empty-repository handling, and enforcing rate limit protections.
  */
+import com.analytics.github.exception.UserNotFoundException;
+
 @Component
 public class GitHubApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GitHubApiClient.class);
     private static final int RATE_LIMIT_THRESHOLD = 50;
-    private static final String INITIAL_REPOS_URI =
-            "/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=1&sort=updated";
 
     private final RestClient restClient;
 
@@ -41,16 +41,31 @@ public class GitHubApiClient {
         this.restClient = gitHubRestClient;
     }
 
-    public List<GitHubRepoResponse> fetchAllUserRepositories() {
+    public GitHubUserProfileResponse fetchUserProfile(String username) {
+        log.info("Fetching public GitHub user profile for username: {}", username);
+        try {
+            return restClient.get()
+                    .uri("/users/{username}", username)
+                    .retrieve()
+                    .onStatus(status -> status.value() == 404, (req, res) -> {
+                        throw new UserNotFoundException(username);
+                    })
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
+                    .body(GitHubUserProfileResponse.class);
+        } catch (HttpClientErrorException.NotFound nf) {
+            throw new UserNotFoundException(username);
+        }
+    }
+
+    public List<GitHubRepoResponse> fetchPublicUserRepositories(String username) {
         List<GitHubRepoResponse> allRepositories = new ArrayList<>();
-        String nextUri = INITIAL_REPOS_URI;
+        String nextUri = "/users/" + username + "/repos?type=owner&per_page=100&page=1&sort=pushed";
 
         while (nextUri != null) {
-            log.info("Fetching repository page from GitHub: {}", sanitizeUri(nextUri));
+            log.info("Fetching public repository page for {}: {}", username, sanitizeUri(nextUri));
 
             ResponseEntity<List<GitHubRepoResponse>> response = executeGetRepositories(nextUri);
             HttpHeaders headers = response.getHeaders();
-
             checkRateLimit(headers);
 
             List<GitHubRepoResponse> pageItems = response.getBody();
@@ -61,7 +76,7 @@ public class GitHubApiClient {
             nextUri = extractNextLink(headers);
         }
 
-        log.info("Finished fetching repositories. Total retrieved: {}", allRepositories.size());
+        log.info("Finished fetching public repositories for {}. Total retrieved: {}", username, allRepositories.size());
         return Collections.unmodifiableList(allRepositories);
     }
 

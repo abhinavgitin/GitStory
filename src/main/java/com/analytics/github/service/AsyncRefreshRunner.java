@@ -9,64 +9,51 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 
 /**
- * Executes the repository synchronization task on a background worker thread.
- * Heavy traffic snapshots, releases, and security alert calls have been excluded
- * to ensure rapid execution and zero unnecessary load on GitHub API rate limits.
+ * Executes the per-user synchronization pipeline on a background worker thread.
+ * Steps: PROFILE -> REPOS -> COMMITS.
+ * Guaranteed to decrement activeRefreshesCount in a finally block so the counter is never leaked.
  */
 @Service
 public class AsyncRefreshRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncRefreshRunner.class);
 
+    private final UserSyncService userSyncService;
     private final RepositorySyncService repositorySyncService;
     private final CommitSyncService commitSyncService;
-    private final LanguageSyncService languageSyncService;
-    private final ProfileSyncService profileSyncService;
-    private final PrIssueSyncService prIssueSyncService;
 
     public AsyncRefreshRunner(
+        UserSyncService userSyncService,
         RepositorySyncService repositorySyncService,
-        CommitSyncService commitSyncService,
-        LanguageSyncService languageSyncService,
-        ProfileSyncService profileSyncService,
-        PrIssueSyncService prIssueSyncService
+        CommitSyncService commitSyncService
     ) {
+        this.userSyncService = userSyncService;
         this.repositorySyncService = repositorySyncService;
         this.commitSyncService = commitSyncService;
-        this.languageSyncService = languageSyncService;
-        this.profileSyncService = profileSyncService;
-        this.prIssueSyncService = prIssueSyncService;
     }
 
     @Async(AsyncConfig.REFRESH_EXECUTOR)
-    public void runAsyncRefresh(Instant startedAt, Instant previousLastSyncedAt, RefreshManager manager) {
+    public void runAsyncRefresh(String username, Instant startedAt, Instant previousLastSyncedAt, RefreshManager manager) {
         try {
-            log.info("Worker thread starting background sync pipeline...");
+            log.info("Worker thread starting background sync pipeline for user: {}", username);
 
-            // Step 1: Repositories
-            manager.updateStep("REPOS");
-            var repos = repositorySyncService.syncRepositories();
+            // Step 1: User Profile (fails fast with 404 if user not on GitHub)
+            manager.updateStep(username, "PROFILE");
+            userSyncService.syncUser(username);
 
-            // Step 2: Commits
-            manager.updateStep("COMMITS");
-            var commitMetrics = commitSyncService.syncAllCommits(repos);
+            // Step 2: Public Repositories (caps at max-repos, skips forks)
+            manager.updateStep(username, "REPOS");
+            var repos = repositorySyncService.syncRepositories(username);
 
-            // Step 3: Languages
-            manager.updateStep("LANGUAGES");
-            var updatedRepos = languageSyncService.syncAllLanguages(repos);
-
-            // Step 4: User Profile & Contribution Calendar
-            manager.updateStep("PROFILE");
-            var profile = profileSyncService.syncUserProfile();
-
-            // Step 5: Pull Requests & Issues
-            manager.updateStep("PRS_ISSUES");
-            prIssueSyncService.syncAll(repos);
+            // Step 3: Commits (author=username, capped at 12 months on first run, incremental since)
+            manager.updateStep(username, "COMMITS");
+            var commitMetrics = commitSyncService.syncAllCommits(username, repos);
 
             Instant finishedAt = Instant.now();
             Instant syncedAt = Instant.now();
 
             manager.onRefreshSuccess(
+                    username,
                     startedAt,
                     finishedAt,
                     syncedAt,
@@ -76,12 +63,13 @@ public class AsyncRefreshRunner {
                     commitMetrics.commitsSynced()
             );
         } catch (Exception ex) {
-            log.error("Background refresh encountered an error: {}", ex.getMessage(), ex);
+            log.error("Background refresh encountered an error for user {}: {}", username, ex.getMessage(), ex);
             Instant finishedAt = Instant.now();
             String cleanError = sanitizeErrorMessage(ex);
-            manager.onRefreshFailure(startedAt, finishedAt, previousLastSyncedAt, cleanError);
+            manager.onRefreshFailure(username, startedAt, finishedAt, previousLastSyncedAt, cleanError);
         } finally {
-            manager.releaseRunningFlag();
+            // Decrement activeRefreshesCount in finally so leaked counter can NEVER block refreshes
+            manager.decrementActiveRefreshesCount();
         }
     }
 
@@ -91,7 +79,7 @@ public class AsyncRefreshRunner {
             return "Synchronization encountered an error";
         }
 
-        // Strip any potential tokens or URI credentials
+        // Strip any potential tokens or credentials
         String sanitized = msg.replaceAll("ghp_[a-zA-Z0-9]+", "******")
                               .replaceAll("Bearer\\s+[a-zA-Z0-9._-]+", "Bearer ******");
 

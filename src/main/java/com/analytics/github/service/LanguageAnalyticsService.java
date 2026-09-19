@@ -47,7 +47,7 @@ public class LanguageAnalyticsService {
         long grandTotalBytes = 0;
 
         for (RepositoryDocument repo : repos) {
-            Map<String, Long> repoLangs = repo.languages() != null ? repo.languages() : Collections.emptyMap();
+            Map<String, Long> repoLangs = Collections.emptyMap();
             long repoTotal = 0;
             List<LanguageStatItem> repoItems = new ArrayList<>();
 
@@ -67,7 +67,7 @@ public class LanguageAnalyticsService {
             }
 
             repoItems.sort(Comparator.comparingLong(LanguageStatItem::bytes).reversed());
-            repoBreakdown.add(new RepoLanguageResponse(repo.id(), repo.name(), repoTotal, repoItems));
+            repoBreakdown.add(new RepoLanguageResponse(repo.repoId(), repo.name(), repoTotal, repoItems));
         }
 
         List<LanguageStatItem> globalItems = new ArrayList<>();

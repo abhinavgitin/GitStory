@@ -1,7 +1,7 @@
 package com.analytics.github.service;
 
 import com.analytics.github.client.GitHubApiClient;
-import com.analytics.github.config.GitHubProperties;
+import com.analytics.github.config.AppProperties;
 import com.analytics.github.dto.GitHubCommitResponse;
 import com.analytics.github.model.CommitDocument;
 import com.analytics.github.model.RepositoryDocument;
@@ -17,80 +17,79 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service responsible for synchronizing repository commits from GitHub into MongoDB Atlas.
+ * Service responsible for synchronizing repository commits from GitHub into MongoDB Atlas per user.
  * Applies first-run 12-month capping, incremental sync via lastCommitSyncAt,
- * first-line commit message extraction, and soft-failure isolation.
+ * author={username} filtering, first-line commit message extraction, and soft-failure isolation.
  */
 @Service
 public class CommitSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(CommitSyncService.class);
-    private static final int FIRST_RUN_HISTORY_DAYS = 365;
 
     private final GitHubApiClient gitHubApiClient;
-    private final GitHubProperties gitHubProperties;
+    private final AppProperties appProperties;
     private final CommitMongoRepository commitMongoRepository;
     private final RepositoryMongoRepository repositoryMongoRepository;
 
     public CommitSyncService(
         GitHubApiClient gitHubApiClient,
-        GitHubProperties gitHubProperties,
+        AppProperties appProperties,
         CommitMongoRepository commitMongoRepository,
         RepositoryMongoRepository repositoryMongoRepository
     ) {
         this.gitHubApiClient = gitHubApiClient;
-        this.gitHubProperties = gitHubProperties;
+        this.appProperties = appProperties;
         this.commitMongoRepository = commitMongoRepository;
         this.repositoryMongoRepository = repositoryMongoRepository;
     }
 
     public record CommitSyncMetrics(int commitsSynced, int reposSkipped, int reposFailed) {}
 
-    public CommitSyncMetrics syncAllCommits(List<RepositoryDocument> repositories) {
+    public CommitSyncMetrics syncAllCommits(String username, List<RepositoryDocument> repositories) {
         int totalCommitsSynced = 0;
         int reposSkipped = 0;
         int reposFailed = 0;
 
         for (RepositoryDocument repo : repositories) {
             try {
-                int count = syncCommitsForRepo(repo);
+                int count = syncCommitsForRepo(username, repo);
                 if (count == 0 && repo.fork()) {
                     reposSkipped++;
                 }
                 totalCommitsSynced += count;
             } catch (Exception e) {
-                log.error("Soft failure: Error synchronizing commits for repo {}. Continuing with remaining repos.", repo.name(), e);
+                log.error("Soft failure: Error synchronizing commits for user {} on repo {}. Continuing with remaining repos.",
+                        username, repo.name(), e);
                 reposFailed++;
             }
         }
 
-        log.info("Finished commit sync pass. Commits synced: {}, Repos skipped: {}, Repos failed: {}",
-                totalCommitsSynced, reposSkipped, reposFailed);
+        log.info("Finished commit sync pass for user {}. Commits synced: {}, Repos skipped: {}, Repos failed: {}",
+                username, totalCommitsSynced, reposSkipped, reposFailed);
         return new CommitSyncMetrics(totalCommitsSynced, reposSkipped, reposFailed);
     }
 
-    private int syncCommitsForRepo(RepositoryDocument repo) {
-        Instant since = resolveSinceTimestamp(repo);
-        String owner = resolveOwner(repo);
+    private int syncCommitsForRepo(String username, RepositoryDocument repo) {
+        Instant since = resolveSinceTimestamp(username, repo);
+        String owner = resolveOwner(username, repo);
 
-        log.info("Syncing commits for {}/{} with since={}", owner, repo.name(), since);
+        log.info("Syncing commits for {}/{} (user={}) with since={}", owner, repo.name(), username, since);
 
         List<GitHubCommitResponse> commits = gitHubApiClient.fetchCommitsForRepo(
                 owner,
                 repo.name(),
-                gitHubProperties.username(),
+                username,
                 since
         );
 
         if (commits.isEmpty()) {
-            // Update lastCommitSyncAt even if no new commits arrived
             repositoryMongoRepository.save(repo.withLastCommitSyncAt(Instant.now()));
             return 0;
         }
 
         Instant syncTimestamp = Instant.now();
         List<CommitDocument> documents = commits.stream()
-                .map(c -> toDocument(c, repo, syncTimestamp))
+                .map(c -> toDocument(username, c, repo, syncTimestamp))
                 .toList();
 
         commitMongoRepository.saveAll(documents);
@@ -99,33 +98,33 @@ public class CommitSyncService {
         return documents.size();
     }
 
-    private Instant resolveSinceTimestamp(RepositoryDocument repo) {
+    private Instant resolveSinceTimestamp(String username, RepositoryDocument repo) {
         if (repo.lastCommitSyncAt() != null) {
             return repo.lastCommitSyncAt().plusMillis(1);
         }
 
-        Optional<CommitDocument> latestCommit = commitMongoRepository.findTopByRepoIdOrderByAuthorDateDesc(repo.id());
+        Optional<CommitDocument> latestCommit = commitMongoRepository
+                .findTopByUsernameAndRepoIdOrderByAuthorDateDesc(username, repo.repoId());
         if (latestCommit.isPresent()) {
             return latestCommit.get().authorDate().plusMillis(1);
         }
 
-        // First run cap: last 12 months
-        return Instant.now().minus(FIRST_RUN_HISTORY_DAYS, ChronoUnit.DAYS);
+        int months = appProperties.limits().commitHistoryMonths();
+        return Instant.now().minus(months * 30L, ChronoUnit.DAYS);
     }
 
-    private String resolveOwner(RepositoryDocument repo) {
+    private String resolveOwner(String username, RepositoryDocument repo) {
         if (repo.fullName() != null && repo.fullName().contains("/")) {
             return repo.fullName().split("/")[0];
         }
-        return gitHubProperties.username();
+        return username;
     }
 
-    private CommitDocument toDocument(GitHubCommitResponse response, RepositoryDocument repo, Instant syncTimestamp) {
+    private CommitDocument toDocument(String username, GitHubCommitResponse response, RepositoryDocument repo, Instant syncTimestamp) {
         String fullMessage = response.commit() != null && response.commit().message() != null
                 ? response.commit().message()
                 : "";
 
-        // Store only the first line of the commit message
         String firstLineMessage = fullMessage.split("\\r?\\n")[0].trim();
         if (firstLineMessage.isEmpty()) {
             firstLineMessage = "(no commit message)";
@@ -137,20 +136,17 @@ public class CommitSyncService {
 
         String authorName = response.commit() != null && response.commit().author() != null
                 ? response.commit().author().name()
-                : gitHubProperties.username();
-
-        String authorEmail = response.commit() != null && response.commit().author() != null
-                ? response.commit().author().email()
-                : "";
+                : username;
 
         return new CommitDocument(
+                CommitDocument.buildId(username, response.sha()),
+                username,
                 response.sha(),
-                repo.id(),
+                repo.repoId(),
                 repo.name(),
                 firstLineMessage,
                 authorDate,
                 authorName,
-                authorEmail,
                 response.htmlUrl(),
                 syncTimestamp
         );

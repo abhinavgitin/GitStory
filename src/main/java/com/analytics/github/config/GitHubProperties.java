@@ -11,9 +11,6 @@ public record GitHubProperties(
     @NotBlank(message = "GITHUB_TOKEN is missing in .env")
     String token,
 
-    @NotBlank(message = "GITHUB_USERNAME is missing in .env")
-    String username,
-
     @DefaultValue("https://api.github.com")
     String baseUrl
 ) {
@@ -26,7 +23,6 @@ public record GitHubProperties(
     @Override
     public String toString() {
         return "GitHubProperties[token=" + (token != null && !token.isBlank() ? "******" : "null")
-                + ", username=" + username
                 + ", baseUrl=" + baseUrl + "]";
     }
 }

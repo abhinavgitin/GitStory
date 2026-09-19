@@ -1,7 +1,10 @@
 package com.analytics.github.service;
 
+import com.analytics.github.config.AppProperties;
 import com.analytics.github.dto.RefreshStatusResponse;
+import com.analytics.github.exception.ConcurrencyLimitExceededException;
 import com.analytics.github.exception.RefreshConflictException;
+import com.analytics.github.exception.RefreshCooldownException;
 import com.analytics.github.model.RefreshState;
 import com.analytics.github.model.SyncMetadataDocument;
 import com.analytics.github.repository.SyncMetadataMongoRepository;
@@ -9,6 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -16,135 +22,171 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class RefreshManagerTest {
 
     private SyncMetadataMongoRepository metadataRepository;
     private AsyncRefreshRunner asyncRunner;
+    private AppProperties appProperties;
+    private MongoTemplate mongoTemplate;
+    private UsernameValidator usernameValidator;
     private RefreshManager refreshManager;
+
+    private static final String USERNAME = "testuser";
 
     @BeforeEach
     void setUp() {
         metadataRepository = mock(SyncMetadataMongoRepository.class);
         asyncRunner = mock(AsyncRefreshRunner.class);
-        refreshManager = new RefreshManager(metadataRepository, asyncRunner);
-    }
+        mongoTemplate = mock(MongoTemplate.class);
+        usernameValidator = new UsernameValidator();
 
-    @Test
-    void init_loadsPreviousLastSyncedAtFromMongo() {
-        Instant previousSync = Instant.parse("2026-09-19T10:00:00Z");
-        when(metadataRepository.findById(RefreshManager.METADATA_ID))
-                .thenReturn(Optional.of(new SyncMetadataDocument(
-                        RefreshManager.METADATA_ID,
-                        previousSync,
-                        previousSync,
-                        RefreshState.SUCCESS,
-                        5,
-                        null
-                )));
+        appProperties = new AppProperties(
+                "Asia/Kolkata",
+                new AppProperties.Refresh(15),
+                new AppProperties.Limits(50, 12, 2)
+        );
 
-        refreshManager.init();
-
-        RefreshStatusResponse status = refreshManager.getStatus();
-        assertThat(status.state()).isEqualTo(RefreshState.IDLE);
-        assertThat(status.lastSyncedAt()).isEqualTo(previousSync);
+        refreshManager = new RefreshManager(
+                metadataRepository,
+                mongoTemplate,
+                appProperties,
+                usernameValidator,
+                asyncRunner
+        );
     }
 
     @Test
     void startRefresh_transitionsToRunningAndTriggersWorker() {
-        refreshManager.init();
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
+                .thenReturn(new SyncMetadataDocument(
+                        USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
+                ));
 
-        RefreshStatusResponse response = refreshManager.startRefresh();
+        RefreshStatusResponse response = refreshManager.startRefresh(USERNAME);
 
         assertThat(response.state()).isEqualTo(RefreshState.RUNNING);
         assertThat(response.startedAt()).isNotNull();
-        verify(asyncRunner, times(1)).runAsyncRefresh(any(), any(), eq(refreshManager));
+        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(1);
+
+        verify(asyncRunner, times(1)).runAsyncRefresh(eq(USERNAME), any(), any(), eq(refreshManager));
     }
 
     @Test
-    void startRefresh_concurrentAttemptThrowsConflictException() {
-        refreshManager.init();
-        refreshManager.startRefresh();
+    void startRefresh_cooldownActive_throwsRefreshCooldownException() {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
+                .thenReturn(null);
 
-        assertThatThrownBy(() -> refreshManager.startRefresh())
+        Instant recentStart = Instant.now().minusSeconds(120);
+        when(metadataRepository.findById(USERNAME))
+                .thenReturn(Optional.of(new SyncMetadataDocument(
+                        USERNAME, recentStart, recentStart, RefreshState.SUCCESS, 5, 0, 0, 10, null
+                )));
+
+        assertThatThrownBy(() -> refreshManager.startRefresh(USERNAME))
+                .isInstanceOf(RefreshCooldownException.class)
+                .hasMessageContaining("cooldown in effect");
+
+        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(0);
+        verifyNoInteractions(asyncRunner);
+    }
+
+    @Test
+    void startRefresh_concurrentAttemptForSameUser_throwsConflictException() {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
+                .thenReturn(new SyncMetadataDocument(
+                        USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
+                ));
+
+        refreshManager.startRefresh(USERNAME);
+
+        assertThatThrownBy(() -> refreshManager.startRefresh(USERNAME))
                 .isInstanceOf(RefreshConflictException.class)
-                .hasMessageContaining("A refresh is already in progress");
+                .hasMessageContaining("already running for user testuser");
     }
 
     @Test
-    void startRefresh_whenExecutorRejectsTask_releasesRunningFlag() {
-        refreshManager.init();
-        doThrow(new TaskRejectedException("Thread pool full"))
-                .when(asyncRunner).runAsyncRefresh(any(), any(), any());
+    void startRefresh_whenGlobalCapExceeded_throwsConcurrencyLimitExceededException() {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
+                .thenReturn(new SyncMetadataDocument(
+                        USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
+                ));
 
-        assertThatThrownBy(() -> refreshManager.startRefresh())
+        refreshManager.startRefresh("user1");
+        refreshManager.startRefresh("user2");
+
+        assertThatThrownBy(() -> refreshManager.startRefresh("user3"))
+                .isInstanceOf(ConcurrencyLimitExceededException.class)
+                .hasMessageContaining("Maximum concurrent refreshes reached (2)");
+    }
+
+    @Test
+    void startRefresh_whenExecutorRejectsTask_decrementsActiveCountAndSetsFailed() {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
+                .thenReturn(new SyncMetadataDocument(
+                        USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
+                ));
+
+        doThrow(new TaskRejectedException("Thread pool full"))
+                .when(asyncRunner).runAsyncRefresh(any(), any(), any(), any());
+
+        assertThatThrownBy(() -> refreshManager.startRefresh(USERNAME))
                 .isInstanceOf(RefreshConflictException.class)
                 .hasMessageContaining("Refresh capacity exceeded");
 
-        // The running flag must be released so subsequent requests are not blocked
-        RefreshStatusResponse status = refreshManager.getStatus();
-        assertThat(status.state()).isEqualTo(RefreshState.FAILED);
-        assertThat(status.errorMessage()).contains("Executor queue full");
+        // Counter must be decremented on rejection so it doesn't leak!
+        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(0);
 
-        // Verify that another refresh can now be initiated instead of being permanently stuck on RUNNING
-        reset(asyncRunner);
-        RefreshStatusResponse retryResponse = refreshManager.startRefresh();
-        assertThat(retryResponse.state()).isEqualTo(RefreshState.RUNNING);
+        RefreshStatusResponse status = refreshManager.getStatus(USERNAME);
+        assertThat(status.state()).isEqualTo(RefreshState.FAILED);
+        assertThat(status.errorMessage()).contains("task rejected");
     }
 
     @Test
-    void onRefreshSuccess_updatesLastSyncedAtAndPersistsToMongo() {
-        Instant initialSync = Instant.parse("2026-09-19T08:00:00Z");
-        when(metadataRepository.findById(RefreshManager.METADATA_ID))
-                .thenReturn(Optional.of(new SyncMetadataDocument(
-                        RefreshManager.METADATA_ID, initialSync, initialSync, RefreshState.SUCCESS, 2, null
-                )));
-        refreshManager.init();
+    void onRefreshSuccess_updatesStateAndPersistsToMongo() {
+        Instant startedAt = Instant.parse("2026-09-20T00:00:00Z");
+        Instant finishedAt = Instant.parse("2026-09-20T00:00:05Z");
+        Instant syncedAt = Instant.parse("2026-09-20T00:00:05Z");
 
-        Instant startedAt = Instant.parse("2026-09-19T12:00:00Z");
-        Instant finishedAt = Instant.parse("2026-09-19T12:00:05Z");
-        Instant newSync = Instant.parse("2026-09-19T12:00:05Z");
+        refreshManager.onRefreshSuccess(USERNAME, startedAt, finishedAt, syncedAt, 5, 1, 0, 42);
 
-        refreshManager.onRefreshSuccess(startedAt, finishedAt, newSync, 9);
-
-        RefreshStatusResponse status = refreshManager.getStatus();
+        RefreshStatusResponse status = refreshManager.getStatus(USERNAME);
         assertThat(status.state()).isEqualTo(RefreshState.SUCCESS);
-        assertThat(status.lastSyncedAt()).isEqualTo(newSync);
-        assertThat(status.reposSynced()).isEqualTo(9);
+        assertThat(status.lastSyncedAt()).isEqualTo(syncedAt);
+        assertThat(status.reposSynced()).isEqualTo(5);
+        assertThat(status.commitsSynced()).isEqualTo(42);
 
         ArgumentCaptor<SyncMetadataDocument> captor = ArgumentCaptor.forClass(SyncMetadataDocument.class);
         verify(metadataRepository).save(captor.capture());
-        SyncMetadataDocument savedDoc = captor.getValue();
-        assertThat(savedDoc.lastSyncedAt()).isEqualTo(newSync);
-        assertThat(savedDoc.lastResult()).isEqualTo(RefreshState.SUCCESS);
-        assertThat(savedDoc.reposSynced()).isEqualTo(9);
+        SyncMetadataDocument saved = captor.getValue();
+        assertThat(saved.username()).isEqualTo(USERNAME);
+        assertThat(saved.lastSyncedAt()).isEqualTo(syncedAt);
+        assertThat(saved.lastResult()).isEqualTo(RefreshState.SUCCESS);
+        assertThat(saved.reposSynced()).isEqualTo(5);
+        assertThat(saved.commitsSynced()).isEqualTo(42);
     }
 
     @Test
-    void onRefreshFailure_preservesPreviousLastSyncedAt() {
-        Instant initialSync = Instant.parse("2026-09-19T08:00:00Z");
-        when(metadataRepository.findById(RefreshManager.METADATA_ID))
-                .thenReturn(Optional.of(new SyncMetadataDocument(
-                        RefreshManager.METADATA_ID, initialSync, initialSync, RefreshState.SUCCESS, 2, null
-                )));
-        refreshManager.init();
+    void onRefreshFailure_preservesPreviousLastSyncedAtAndStoresStartedAt() {
+        Instant previousSync = Instant.parse("2026-09-19T10:00:00Z");
+        Instant startedAt = Instant.parse("2026-09-20T00:00:00Z");
+        Instant finishedAt = Instant.parse("2026-09-20T00:00:02Z");
 
-        Instant startedAt = Instant.parse("2026-09-19T12:00:00Z");
-        Instant finishedAt = Instant.parse("2026-09-19T12:00:02Z");
+        refreshManager.onRefreshFailure(USERNAME, startedAt, finishedAt, previousSync, "Rate limit reached");
 
-        refreshManager.onRefreshFailure(startedAt, finishedAt, initialSync, "GitHub rate limit exceeded");
-
-        RefreshStatusResponse status = refreshManager.getStatus();
+        RefreshStatusResponse status = refreshManager.getStatus(USERNAME);
         assertThat(status.state()).isEqualTo(RefreshState.FAILED);
-        // Crucial requirement: lastSyncedAt must NOT be overwritten on failure
-        assertThat(status.lastSyncedAt()).isEqualTo(initialSync);
-        assertThat(status.errorMessage()).isEqualTo("GitHub rate limit exceeded");
+        assertThat(status.lastSyncedAt()).isEqualTo(previousSync);
+        assertThat(status.errorMessage()).isEqualTo("Rate limit reached");
 
         ArgumentCaptor<SyncMetadataDocument> captor = ArgumentCaptor.forClass(SyncMetadataDocument.class);
         verify(metadataRepository).save(captor.capture());
-        SyncMetadataDocument savedDoc = captor.getValue();
-        assertThat(savedDoc.lastSyncedAt()).isEqualTo(initialSync);
-        assertThat(savedDoc.lastResult()).isEqualTo(RefreshState.FAILED);
+        SyncMetadataDocument saved = captor.getValue();
+        assertThat(saved.username()).isEqualTo(USERNAME);
+        assertThat(saved.lastSyncedAt()).isEqualTo(previousSync);
+        assertThat(saved.lastRefreshStartedAt()).isEqualTo(startedAt);
+        assertThat(saved.lastResult()).isEqualTo(RefreshState.FAILED);
     }
 }

@@ -11,6 +11,8 @@ import org.bson.Document;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -18,7 +20,7 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 /**
- * Service providing read-only commit analytics computed via MongoDB aggregations.
+ * Service providing read-only commit analytics computed via MongoDB aggregations per user.
  * Evaluates date-based metrics using the configured local timezone (app.timezone).
  */
 @Service
@@ -38,16 +40,18 @@ public class CommitAnalyticsService {
         this.appProperties = appProperties;
     }
 
-    public CommitSummaryResponse getCommitSummary() {
-        long totalCommits = commitMongoRepository.count();
+    public CommitSummaryResponse getCommitSummary(String username) {
+        long totalCommits = commitMongoRepository.countByUsername(username);
 
-        Optional<CommitDocument> earliest = commitMongoRepository.findTopByOrderByAuthorDateAsc();
-        Optional<CommitDocument> latest = commitMongoRepository.findTopByOrderByAuthorDateDesc();
+        Optional<CommitDocument> earliest = commitMongoRepository.findTopByUsernameOrderByAuthorDateAsc(username);
+        Optional<CommitDocument> latest = commitMongoRepository.findTopByUsernameOrderByAuthorDateDesc(username);
 
-        List<Long> distinctRepos = mongoTemplate.query(CommitDocument.class)
-                .distinct("repoId")
-                .as(Long.class)
-                .all();
+        List<Long> distinctRepos = mongoTemplate.findDistinct(
+                Query.query(Criteria.where("username").is(username)),
+                "repoId",
+                CommitDocument.class,
+                Long.class
+        );
 
         return new CommitSummaryResponse(
                 totalCommits,
@@ -57,16 +61,17 @@ public class CommitAnalyticsService {
         );
     }
 
-    public List<CommitHourStatsResponse> getCommitsByHour() {
+    public List<CommitHourStatsResponse> getCommitsByHour(String username) {
         String tz = appProperties.timezone();
 
+        Document matchDoc = new Document("$match", new Document("username", username));
         Document projectDoc = new Document("$project", new Document("hour",
                 new Document("$hour", new Document("date", "$authorDate").append("timezone", tz))));
         Document groupDoc = new Document("$group", new Document("_id", "$hour")
                 .append("count", new Document("$sum", 1)));
         Document sortDoc = new Document("$sort", new Document("_id", 1));
 
-        List<Document> pipeline = List.of(projectDoc, groupDoc, sortDoc);
+        List<Document> pipeline = List.of(matchDoc, projectDoc, groupDoc, sortDoc);
         List<Document> results = mongoTemplate.getCollection("commits")
                 .aggregate(pipeline)
                 .into(new ArrayList<>());
@@ -88,16 +93,17 @@ public class CommitAnalyticsService {
         return stats;
     }
 
-    public List<CommitWeekdayStatsResponse> getCommitsByWeekday() {
+    public List<CommitWeekdayStatsResponse> getCommitsByWeekday(String username) {
         String tz = appProperties.timezone();
 
+        Document matchDoc = new Document("$match", new Document("username", username));
         Document projectDoc = new Document("$project", new Document("dayOfWeek",
                 new Document("$isoDayOfWeek", new Document("date", "$authorDate").append("timezone", tz))));
         Document groupDoc = new Document("$group", new Document("_id", "$dayOfWeek")
                 .append("count", new Document("$sum", 1)));
         Document sortDoc = new Document("$sort", new Document("_id", 1));
 
-        List<Document> pipeline = List.of(projectDoc, groupDoc, sortDoc);
+        List<Document> pipeline = List.of(matchDoc, projectDoc, groupDoc, sortDoc);
         List<Document> results = mongoTemplate.getCollection("commits")
                 .aggregate(pipeline)
                 .into(new ArrayList<>());
@@ -121,11 +127,11 @@ public class CommitAnalyticsService {
         return stats;
     }
 
-    public List<RecentCommitResponse> getRecentCommits(int limit) {
+    public List<RecentCommitResponse> getRecentCommits(String username, int limit) {
         int effectiveLimit = Math.max(1, Math.min(limit, 50));
         PageRequest pageRequest = PageRequest.of(0, effectiveLimit, Sort.by(Sort.Direction.DESC, "authorDate"));
 
-        return commitMongoRepository.findAllByOrderByAuthorDateDesc(pageRequest)
+        return commitMongoRepository.findAllByUsernameOrderByAuthorDateDesc(username, pageRequest)
                 .stream()
                 .map(c -> new RecentCommitResponse(
                         c.sha(),

@@ -51,8 +51,8 @@ public class PrIssueSyncService {
                 String owner = parts[0];
                 String repoName = parts[1];
 
-                prCount += syncPullRequests(repo.id(), repo.name(), owner, repoName);
-                issueCount += syncIssues(repo.id(), repo.name(), owner, repoName);
+                prCount += syncPullRequests(repo.repoId(), repo.name(), owner, repoName);
+                issueCount += syncIssues(repo.repoId(), repo.name(), owner, repoName);
             } catch (Exception ex) {
                 failures++;
                 log.warn("Failed to sync PR/Issue for {}: {}", repo.fullName(), ex.getMessage());

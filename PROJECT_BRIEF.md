@@ -56,14 +56,15 @@ Goals of the project:
 
 ## 3. Phases (strict order, one at a time)
 
-| Phase | What                                                        | Status   |
-|-------|-------------------------------------------------------------|----------|
-| 1     | Foundation and env setup                                    | DONE     |
-| 2     | GitHub client, fetch my repos, store in Mongo               | DONE     |
-| 3     | Refresh endpoint, background job, status endpoint           | DONE     |
-| 4     | Frontend v1 (Next.js)                                       | DONE     |
-| 5     | Analytics endpoints and matching charts                     | ACTIVE   |
-| 6     | Polish: tests, README, deploy                               | LOCKED   |
+| Phase | What                                                    | Status |
+|-------|---------------------------------------------------------|--------|
+| 1-4   | Foundation, repos, refresh, frontend v1                 | DONE   |
+| 5a    | Commits per repo                                        | DONE   |
+| 6a    | Multi-user data model and per-user backend              | DONE   |
+| 6b    | Frontend: landing page and per-user dashboard           | ACTIVE |
+| 6c    | More public data (languages, profile, PRs, and more)    | LOCKED |
+| 6d    | Polish, tests, README                                   | LOCKED |
+| 7     | Deploy (NOT part of this brief)                         | LATER  |
 
 RULES:
 
