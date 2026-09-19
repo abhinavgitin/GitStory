@@ -12,6 +12,8 @@ import {
   RecentCommit,
   LanguageOverviewResponse,
   RepoLanguageResponse,
+  UserProfile,
+  ContributionCalendar,
 } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { OverviewCards } from '@/components/OverviewCards';
@@ -22,6 +24,7 @@ import { CommitHourChart } from '@/components/CommitHourChart';
 import { CommitWeekdayChart } from '@/components/CommitWeekdayChart';
 import { RecentCommitsList } from '@/components/RecentCommitsList';
 import { LanguageDistributionCard } from '@/components/LanguageDistributionCard';
+import { ContributionHeatmap } from '@/components/ContributionHeatmap';
 import ConstellationGrid from '@/components/ui/constellation-grid';
 import { WordsPullUp } from '@/components/ui/prisma-hero';
 import { ArrowRight, GitCommit, GitFork, Moon, Sparkles } from 'lucide-react';
@@ -149,6 +152,32 @@ export default function Home() {
     retry: 1,
   });
 
+  const {
+    data: userProfile,
+    isLoading: isProfileLoading,
+  } = useQuery<UserProfile>({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/profile');
+      if (!res.ok) throw new Error('Failed to fetch profile');
+      return res.json();
+    },
+    retry: 1,
+  });
+
+  const {
+    data: contributionCalendar,
+    isLoading: isCalendarLoading,
+  } = useQuery<ContributionCalendar>({
+    queryKey: ['contributionCalendar'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/contributions');
+      if (!res.ok) throw new Error('Failed to fetch contributions');
+      return res.json();
+    },
+    retry: 1,
+  });
+
   const languagesByRepo = useMemo(() => {
     const map: Record<number, RepoLanguageResponse> = {};
     if (languageOverview?.repoBreakdown) {
@@ -172,15 +201,13 @@ export default function Home() {
           className="relative w-full min-h-[55vh] md:min-h-[65vh] overflow-hidden select-none bg-zinc-950 flex flex-col justify-center items-center"
         >
           <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center flex flex-col items-center pointer-events-auto">
-            <motion.div
+            {/* <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] text-xs text-zinc-300 font-medium mb-6"
             >
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-              <span>Personal Engineering Intelligence</span>
-            </motion.div>
+            </motion.div> */}
 
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-zinc-100 leading-[0.95] mb-6">
               <WordsPullUp text="Codebase Telemetry" showAsterisk />
@@ -281,6 +308,13 @@ export default function Home() {
             <LanguageDistributionCard
               data={languageOverview ?? null}
               loading={isLanguagesLoading}
+            />
+
+            {/* 52-Week Contribution Cadence & Streak Analysis */}
+            <ContributionHeatmap
+              calendar={contributionCalendar ?? null}
+              profile={userProfile ?? null}
+              isLoading={isCalendarLoading || isProfileLoading}
             />
 
             {/* Spacious De-Cluttered Commit Analytics Grid */}
