@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import {
   Repository,
   RefreshStatus,
@@ -23,7 +24,7 @@ import { RecentCommitsList } from '@/components/RecentCommitsList';
 import { LanguageDistributionCard } from '@/components/LanguageDistributionCard';
 import ConstellationGrid from '@/components/ui/constellation-grid';
 import { WordsPullUp } from '@/components/ui/prisma-hero';
-import { ArrowDown, GitCommit, GitFork, Moon, Sparkles } from 'lucide-react';
+import { ArrowRight, GitCommit, GitFork, Moon, Sparkles } from 'lucide-react';
 
 function DashboardSkeleton() {
   return (
@@ -171,66 +172,97 @@ export default function Home() {
           className="relative w-full min-h-[55vh] md:min-h-[65vh] overflow-hidden select-none bg-zinc-950 flex flex-col justify-center items-center"
         >
           <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center flex flex-col items-center pointer-events-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] text-xs text-zinc-300 font-medium mb-6">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] text-xs text-zinc-300 font-medium mb-6"
+            >
               <Sparkles className="w-3.5 h-3.5 text-sky-400" />
               <span>Personal Engineering Intelligence</span>
-            </div>
+            </motion.div>
 
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-zinc-100 leading-[0.95] mb-6">
               <WordsPullUp text="Codebase Telemetry" showAsterisk />
             </h1>
 
-            <p className="max-w-2xl text-sm sm:text-base md:text-lg text-zinc-400 font-normal leading-relaxed mb-8">
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="max-w-2xl text-sm sm:text-base md:text-lg text-zinc-400 font-normal leading-relaxed mb-8"
+            >
               Live commit distribution, velocity patterns, and repository telemetry mapped in real time across your GitHub ecosystem.
-            </p>
+            </motion.p>
 
-            {/* Hero Live Stat Ribbon */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl mb-8">
-              <div className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 mb-1">
-                  <GitCommit className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Total Commits</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-zinc-100 font-mono">
-                  {totalCommits}
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 mb-1">
-                  <GitFork className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Repositories</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-zinc-100 font-mono">
-                  {activeReposCount}
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-xs text-zinc-400 mb-1">Timezone</div>
-                <div className="text-sm sm:text-base font-semibold text-zinc-200 font-mono mt-1">
-                  Asia/Kolkata
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm">
-                <div className="flex items-center justify-center gap-1 text-xs text-zinc-400 mb-1">
-                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Cadence</span>
-                </div>
-                <div className="text-sm sm:text-base font-semibold text-indigo-300 mt-1">
-                  Night Owl
-                </div>
-              </div>
+            {/* Hero Live Stat Ribbon with Staggered Entrance */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl mb-9">
+              {[
+                {
+                  label: 'Total Commits',
+                  value: totalCommits,
+                  icon: <GitCommit className="w-3.5 h-3.5 text-blue-400" />,
+                  isMono: true,
+                },
+                {
+                  label: 'Repositories',
+                  value: activeReposCount,
+                  icon: <GitFork className="w-3.5 h-3.5 text-emerald-400" />,
+                  isMono: true,
+                },
+                {
+                  label: 'Timezone',
+                  value: 'Asia/Kolkata',
+                  icon: null,
+                  isMono: true,
+                },
+                {
+                  label: 'Cadence',
+                  value: 'Night Owl',
+                  icon: <Moon className="w-3.5 h-3.5 text-indigo-400" />,
+                  isMono: false,
+                  valueClass: 'text-indigo-300',
+                },
+              ].map((item, index) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{
+                    duration: 0.7,
+                    delay: 0.55 + index * 0.08,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="bg-zinc-900/70 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-4 backdrop-blur-sm"
+                >
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 mb-1">
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </div>
+                  <div
+                    className={`text-xl sm:text-2xl font-bold text-zinc-100 ${
+                      item.isMono ? 'font-mono tabular-nums' : ''
+                    } ${item.valueClass ?? ''}`}
+                  >
+                    {item.value}
+                  </div>
+                </motion.div>
+              ))}
             </div>
 
-            <a
+            {/* Prisma Magnetic Action Button */}
+            <motion.a
               href="#analytics"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-zinc-100 hover:bg-white text-zinc-900 text-xs sm:text-sm font-semibold shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_4px_rgba(0,0,0,0.3)] transition-all duration-150 active:scale-[0.97] cursor-pointer"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.85, ease: [0.16, 1, 0.3, 1] }}
+              className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-1.5 pl-6 pr-1.5 text-xs sm:text-sm font-semibold text-zinc-950 shadow-[0_4px_24px_rgba(255,255,255,0.18)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
             >
               <span>Explore Analytics</span>
-              <ArrowDown className="w-4 h-4" />
-            </a>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110">
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </motion.a>
           </div>
         </ConstellationGrid>
       </section>
