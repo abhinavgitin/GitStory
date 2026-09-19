@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: github-analytics
+  profiles:
+    default: dev
+  config:
+    import: optional:file:.env[.properties]
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: github-analytics
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: github-analytics
+
+github:
+  token: ${GITHUB_TOKEN}
+  username: ${GITHUB_USERNAME}
+  base-url: https://api.github.com
+
+refresh:
+  secret: ${REFRESH_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
