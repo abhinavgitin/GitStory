@@ -18,7 +18,7 @@ function formatDate(dateStr: string | null): string {
 export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps) {
   if (isLoading) {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 animate-pulse motion-reduce:animate-none h-44" />
+      <div className="bg-zinc-900/60 border border-zinc-800/80 border-t-zinc-700/60 rounded-2xl p-5 animate-pulse motion-reduce:animate-none h-48" />
     );
   }
 
@@ -28,7 +28,7 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
   const latest = formatDate(summary?.latestCommitDate ?? null);
 
   return (
-    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-700/80 transition-colors duration-200">
+    <div className="bg-zinc-900/60 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-700/80 transition-colors duration-200">
       <div>
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
@@ -39,19 +39,32 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
           </div>
         </div>
 
-        <div className="flex items-baseline gap-4 mb-3">
-          <div className="text-3xl font-semibold text-zinc-100 tracking-tight">
-            {total}
+        {total === 0 ? (
+          <div className="py-2 mb-3">
+            <div className="text-2xl font-semibold text-zinc-300 tracking-tight leading-none mb-1.5">
+              No Commits Yet
+            </div>
+            <p className="text-xs text-zinc-500">
+              Click Refresh Data to ingest commits from GitHub.
+            </p>
           </div>
-          <span className="text-xs text-zinc-400">
-            across <strong className="text-zinc-200">{activeRepos}</strong> repositories
-          </span>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-4 mb-3">
+              <div className="text-3xl font-semibold text-zinc-100 tracking-tight leading-none">
+                {total}
+              </div>
+              <span className="text-xs text-zinc-400">
+                across <strong className="text-zinc-200">{activeRepos}</strong> repositories
+              </span>
+            </div>
 
-        <div className="flex items-center gap-2 text-xs text-zinc-400 mb-4">
-          <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-          <span>{earliest} &mdash; {latest}</span>
-        </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-400 mb-4">
+              <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+              <span>{earliest} &mdash; {latest}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-start gap-1.5 pt-3 border-t border-zinc-800/60 text-[11px] text-zinc-500 leading-tight">
@@ -61,3 +74,4 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
     </div>
   );
 }
+

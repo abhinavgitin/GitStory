@@ -19,13 +19,16 @@ public class AsyncRefreshRunner {
 
     private final RepositorySyncService repositorySyncService;
     private final CommitSyncService commitSyncService;
+    private final LanguageSyncService languageSyncService;
 
     public AsyncRefreshRunner(
         RepositorySyncService repositorySyncService,
-        CommitSyncService commitSyncService
+        CommitSyncService commitSyncService,
+        LanguageSyncService languageSyncService
     ) {
         this.repositorySyncService = repositorySyncService;
         this.commitSyncService = commitSyncService;
+        this.languageSyncService = languageSyncService;
     }
 
     @Async(AsyncConfig.REFRESH_EXECUTOR)
@@ -41,8 +44,13 @@ public class AsyncRefreshRunner {
             manager.updateStep("COMMITS");
             var commitMetrics = commitSyncService.syncAllCommits(repos);
 
+            // Step 3: Languages
+            manager.updateStep("LANGUAGES");
+            var updatedRepos = languageSyncService.syncAllLanguages(repos);
+
             Instant finishedAt = Instant.now();
             Instant syncedAt = Instant.now();
+
 
             manager.onRefreshSuccess(
                     startedAt,

@@ -14,7 +14,7 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 animate-pulse motion-reduce:animate-none h-44" />
+      <div className="bg-zinc-900/60 border border-zinc-800/80 border-t-zinc-700/60 rounded-2xl p-5 animate-pulse motion-reduce:animate-none h-48" />
     );
   }
 
@@ -31,23 +31,23 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
   const isNightOwl = nightCommits > dayCommits;
 
   return (
-    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-700/80 transition-colors duration-200">
+    <div className="bg-zinc-900/60 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-700/80 transition-colors duration-200">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
             24-Hour Productivity
           </span>
-          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-mono">
+          <span className="text-[10px] bg-zinc-800/90 text-zinc-400 px-1.5 py-0.5 rounded font-mono border border-zinc-700/50">
             Asia/Kolkata
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs text-zinc-400">
           {isNightOwl ? (
-            <span className="inline-flex items-center gap-1 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 text-[11px]">
+            <span className="inline-flex items-center gap-1 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 text-[11px] font-medium">
               <Moon className="w-3 h-3" /> Night Owl
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 text-[11px]">
+            <span className="inline-flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 text-[11px] font-medium">
               <Sun className="w-3 h-3" /> Day Focus
             </span>
           )}
@@ -56,12 +56,17 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
 
       <div className="relative my-2">
         {hovered && (
-          <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-zinc-100 px-2 py-0.5 rounded text-[11px] font-mono border border-zinc-700 shadow-md pointer-events-none transition-opacity duration-150">
+          <div
+            style={{
+              left: `${((hovered.hour + 0.5) / 24) * 100}%`,
+            }}
+            className="absolute -top-7 -translate-x-1/2 bg-zinc-800/95 text-zinc-100 px-2 py-0.5 rounded-md text-[11px] font-mono border border-zinc-700/80 shadow-lg pointer-events-none transition-all duration-100 ease-out whitespace-nowrap z-20"
+          >
             {String(hovered.hour).padStart(2, '0')}:00 &mdash; {hovered.count} {hovered.count === 1 ? 'commit' : 'commits'}
           </div>
         )}
 
-        <div className="h-24 flex items-end gap-1 w-full pt-4">
+        <div className="h-36 flex items-end gap-1.5 w-full pt-4 border-b border-zinc-800/80">
           {data.map((item) => {
             const heightPercent = Math.max((item.count / maxCount) * 100, item.count > 0 ? 8 : 4);
             const isNight = item.hour >= 22 || item.hour <= 5;
@@ -72,7 +77,7 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
             return (
               <div
                 key={item.hour}
-                className="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer"
+                className="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer hover:bg-white/[0.04] rounded-t-sm transition-colors"
                 onMouseEnter={() => setHovered(item)}
                 onMouseLeave={() => setHovered(null)}
               >
@@ -81,7 +86,7 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
                     height: `${heightPercent}%`,
                     backgroundColor: barColor,
                   }}
-                  className="w-full rounded-t-sm transition-all duration-200 motion-reduce:transition-none group-hover:brightness-125"
+                  className="w-full rounded-t-sm transition-all duration-150 motion-reduce:transition-none group-hover:brightness-125 shadow-sm"
                 />
               </div>
             );
@@ -112,3 +117,4 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
     </div>
   );
 }
+

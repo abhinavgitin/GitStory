@@ -27,7 +27,7 @@ function formatRelativeTime(dateString: string): string {
 export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps) {
   if (isLoading) {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 animate-pulse motion-reduce:animate-none space-y-3 mb-8">
+      <div className="bg-zinc-900/50 border border-zinc-800/80 border-t-zinc-700/60 rounded-2xl p-5 animate-pulse motion-reduce:animate-none space-y-3 mb-8">
         <div className="h-5 w-36 bg-zinc-800 rounded" />
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="h-10 bg-zinc-800/50 rounded-lg" />
@@ -39,7 +39,7 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
   const items = commits || [];
 
   return (
-    <section className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 mb-8">
+    <section className="bg-zinc-900/50 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-5 mb-8">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-blue-400">
@@ -59,18 +59,18 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
           No commits recorded yet. Click Refresh Data to sync your repositories.
         </div>
       ) : (
-        <div className="divide-y divide-zinc-800/60">
+        <div className="divide-y divide-zinc-800/70">
           {items.map((commit) => (
             <div
               key={commit.sha}
-              className="py-2.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-zinc-800/20 px-2 -mx-2 rounded-lg transition-colors"
+              className="py-2.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-zinc-800/30 active:scale-[0.995] px-2 -mx-2 rounded-lg transition-all duration-150"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <span className="font-mono text-[11px] bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-700/60 shrink-0">
                   {commit.shortSha}
                 </span>
 
-                <span className="text-xs font-medium text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded text-[11px] shrink-0">
+                <span className="text-xs font-medium text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded text-[11px] shrink-0 border border-zinc-700/30">
                   {commit.repoName}
                 </span>
 
@@ -80,13 +80,13 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
               </div>
 
               <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto text-xs text-zinc-500">
-                <span className="text-[11px]">{formatRelativeTime(commit.authorDate)}</span>
+                <span className="text-[11px] font-mono">{formatRelativeTime(commit.authorDate)}</span>
                 {commit.htmlUrl && (
                   <a
                     href={commit.htmlUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-zinc-500 hover:text-blue-400 transition-colors"
+                    className="p-1.5 -m-1.5 rounded-md text-zinc-500 hover:text-blue-400 hover:bg-zinc-800/60 transition-colors inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-zinc-600"
                     aria-label={`View commit ${commit.shortSha} on GitHub`}
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -100,3 +100,4 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
     </section>
   );
 }
+

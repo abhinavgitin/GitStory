@@ -74,10 +74,10 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
         onClick={() => mutation.mutate()}
         disabled={isRunning}
         aria-label="Refresh repository data"
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-sm ${
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 active:scale-[0.97] cursor-pointer ${
           isRunning
-            ? 'bg-zinc-800/80 text-zinc-400 cursor-not-allowed'
-            : 'bg-zinc-100 hover:bg-white text-zinc-900'
+            ? 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/50 shadow-none cursor-not-allowed'
+            : 'bg-zinc-100 hover:bg-white text-zinc-900 border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.25)]'
         }`}
       >
         <RotateCcw
@@ -90,3 +90,4 @@ export function RefreshButton({ onStatusChange }: RefreshButtonProps) {
     </div>
   );
 }
+

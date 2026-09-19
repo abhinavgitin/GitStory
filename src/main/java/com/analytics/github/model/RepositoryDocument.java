@@ -4,6 +4,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * MongoDB document entity representing a stored repository.
@@ -28,13 +30,29 @@ public record RepositoryDocument(
     Instant githubUpdatedAt,
     Instant githubPushedAt,
     Instant syncedAt,
-    Instant lastCommitSyncAt
+    Instant lastCommitSyncAt,
+    Map<String, Long> languages
 ) {
+    public RepositoryDocument {
+        if (languages == null) {
+            languages = Collections.emptyMap();
+        }
+    }
+
     public RepositoryDocument withLastCommitSyncAt(Instant lastCommitSyncAt) {
         return new RepositoryDocument(
             id, name, fullName, description, htmlUrl, privateRepo, fork, defaultBranch,
             language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
-            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages
+        );
+    }
+
+    public RepositoryDocument withLanguages(Map<String, Long> languages) {
+        return new RepositoryDocument(
+            id, name, fullName, description, htmlUrl, privateRepo, fork, defaultBranch,
+            language, stargazersCount, forksCount, openIssuesCount, githubCreatedAt,
+            githubUpdatedAt, githubPushedAt, syncedAt, lastCommitSyncAt, languages
         );
     }
 }
+

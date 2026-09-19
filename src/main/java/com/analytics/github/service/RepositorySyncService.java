@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,17 +37,21 @@ public class RepositorySyncService {
 
         List<GitHubRepoResponse> fetchedRepos = gitHubApiClient.fetchAllUserRepositories();
 
-        // Preserve existing lastCommitSyncAt values across repository sync passes
+        // Preserve existing lastCommitSyncAt and languages values across repository sync passes
         List<RepositoryDocument> existing = repositoryMongoRepository.findAll();
         Map<Long, Instant> lastCommitSyncMap = new HashMap<>();
+        Map<Long, Map<String, Long>> languagesMap = new HashMap<>();
         for (RepositoryDocument doc : existing) {
             if (doc.lastCommitSyncAt() != null) {
                 lastCommitSyncMap.put(doc.id(), doc.lastCommitSyncAt());
             }
+            if (doc.languages() != null && !doc.languages().isEmpty()) {
+                languagesMap.put(doc.id(), doc.languages());
+            }
         }
 
         List<RepositoryDocument> documents = fetchedRepos.stream()
-                .map(repo -> toDocument(repo, syncedAt, lastCommitSyncMap.get(repo.id())))
+                .map(repo -> toDocument(repo, syncedAt, lastCommitSyncMap.get(repo.id()), languagesMap.get(repo.id())))
                 .toList();
 
         repositoryMongoRepository.saveAll(documents);
@@ -59,7 +64,12 @@ public class RepositorySyncService {
         return repositoryMongoRepository.findAll();
     }
 
-    private RepositoryDocument toDocument(GitHubRepoResponse repo, Instant syncedAt, Instant lastCommitSyncAt) {
+    private RepositoryDocument toDocument(
+            GitHubRepoResponse repo,
+            Instant syncedAt,
+            Instant lastCommitSyncAt,
+            Map<String, Long> languages
+    ) {
         return new RepositoryDocument(
                 repo.id(),
                 repo.name(),
@@ -77,7 +87,9 @@ public class RepositorySyncService {
                 repo.updatedAt(),
                 repo.pushedAt(),
                 syncedAt,
-                lastCommitSyncAt
+                lastCommitSyncAt,
+                languages != null ? languages : Collections.emptyMap()
         );
     }
 }
+

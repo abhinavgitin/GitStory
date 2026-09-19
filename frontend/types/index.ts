@@ -15,6 +15,7 @@ export interface Repository {
   githubUpdatedAt: string;
   githubPushedAt: string;
   syncedAt: string;
+  languages?: Record<string, number>;
 }
 
 export interface RefreshStatus {
@@ -56,4 +57,31 @@ export interface RecentCommit {
   message: string;
   authorDate: string;
   htmlUrl: string;
+}
+
+export interface LanguageStatItem {
+  language: string;
+  name?: string;
+  bytes: number;
+  percentage: number;
+  formattedSize: string;
+  color: string;
+}
+
+export interface RepoLanguageResponse {
+  repoId: number;
+  repoName: string;
+  languages: LanguageStatItem[];
+  primaryLanguage: string | null;
+  totalBytes: number;
+  formattedTotalBytes: string;
+}
+
+export interface LanguageOverviewResponse {
+  totalBytes: number;
+  formattedTotalSize: string;
+  primaryLanguage: string | null;
+  languageCount: number;
+  languages: LanguageStatItem[];
+  repoBreakdown: RepoLanguageResponse[];
 }

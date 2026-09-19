@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Client component responsible for fetching repository and commit data from the GitHub REST API,
@@ -98,6 +99,33 @@ public class GitHubApiClient {
         log.info("Finished fetching commits for {}/{}. Total retrieved: {}", owner, repo, allCommits.size());
         return Collections.unmodifiableList(allCommits);
     }
+
+    public Map<String, Long> fetchLanguagesForRepo(String owner, String repo) {
+        String uri = "/repos/" + owner + "/" + repo + "/languages";
+        log.info("Fetching languages for {}/{}: {}", owner, repo, sanitizeUri(uri));
+
+        try {
+            ResponseEntity<Map<String, Long>> response = restClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .toEntity(new ParameterizedTypeReference<Map<String, Long>>() {});
+
+            checkRateLimit(response.getHeaders());
+
+            Map<String, Long> body = response.getBody();
+            return body != null ? body : Collections.emptyMap();
+        } catch (HttpClientErrorException.Conflict conflictEx) {
+            log.warn("Repository {}/{} is empty (HTTP 409 Conflict). Skipping languages fetch.", owner, repo);
+            return Collections.emptyMap();
+        } catch (HttpClientErrorException.NotFound notFoundEx) {
+            log.warn("Repository {}/{} languages not found (HTTP 404).", owner, repo);
+            return Collections.emptyMap();
+        } catch (Exception ex) {
+            log.warn("Failed to fetch languages for {}/{}: {}", owner, repo, ex.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
 
     private ResponseEntity<List<GitHubRepoResponse>> executeGetRepositories(String uri) {
         RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
