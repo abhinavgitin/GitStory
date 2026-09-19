@@ -150,172 +150,143 @@ export const PrismaHero = ({
   showIntegratedNav = false,
 }: PrismaHeroProps) => {
   return (
-    <section className="relative w-full min-h-[92vh] md:min-h-screen">
-      <div className="relative h-full min-h-[92vh] md:min-h-screen w-full overflow-hidden">
-        
-        {/* Background video */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover scale-105 filter brightness-90"
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_170732_8a9ccda6-5cff-4628-b164-059c500a2b41.mp4"
-        />
+    <section className="relative w-full min-h-[90vh] md:min-h-screen flex flex-col justify-between overflow-hidden bg-zinc-950">
+      {/* Background video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover scale-105 filter brightness-90 pointer-events-none"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_170732_8a9ccda6-5cff-4628-b164-059c500a2b41.mp4"
+      />
 
-        {/* Noise texture overlay — adds cinematic grain */}
-        <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.6] mix-blend-overlay" />
+      {/* Noise texture overlay — adds cinematic grain */}
+      <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.6] mix-blend-overlay" />
 
-        {/* Gradient overlays for depth layering */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-zinc-950" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+      {/* Gradient overlays for depth layering */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-zinc-950" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
 
-        {/* ── Liquid Glass Navbar ── */}
-        <nav className="absolute left-0 right-0 top-0 z-30 px-4 sm:px-8 pt-4">
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl md:rounded-full px-5 py-3"
-            style={{
-              background: 'rgba(18, 18, 23, 0.65)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
-            }}
-          >
-            {/* Top specular rim highlight */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      {/* ── Liquid Glass Navbar ── */}
+      <header className="relative z-30 w-full px-4 sm:px-8 pt-4">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl md:rounded-full px-5 py-3"
+          style={{
+            background: 'rgba(18, 18, 23, 0.65)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          {/* Top specular rim highlight */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-            {/* Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner">
-                <GithubIcon className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                  <span>GitHub Analytics</span>
-                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    Telemetry
-                  </span>
-                </h2>
-                <p className="text-[11px] text-zinc-400 font-medium">Personal Telemetry Engine</p>
-              </div>
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner">
+              <GithubIcon className="w-4 h-4" />
             </div>
-
-            {/* Right Nav Actions */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              {lastSyncedAt !== undefined && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
-                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>{formatRelativeTime(lastSyncedAt)}</span>
-                </div>
-              )}
-
-              <RefreshButton onStatusChange={onStatusChange} />
-            </div>
-          </motion.div>
-        </nav>
-
-        {/* ── Giant Hero Content ── */}
-        <div className="absolute inset-x-0 bottom-0 px-4 pb-8 sm:px-8 md:px-12 lg:px-16 pt-32">
-          <div className="max-w-6xl mx-auto grid grid-cols-12 items-end gap-6 md:gap-8">
-            
-            {/* Giant Display Typography */}
-            <div className="col-span-12 lg:col-span-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-zinc-300 font-medium mb-4">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Personal Codebase Intelligence</span>
-              </div>
-              <h1
-                className="font-black leading-[0.82] tracking-[-0.06em] text-[20vw] sm:text-[18vw] md:text-[16vw] lg:text-[13vw] select-none uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
-                style={{ color: "#F4F4F5" }}
-              >
-                <WordsPullUp text={title} showAsterisk />
-              </h1>
-            </div>
-
-            {/* Right column: Description + Liquid Glass Stat Chips + CTA */}
-            <div className="col-span-12 flex flex-col gap-6 pb-2 lg:col-span-4 lg:pb-6">
-              
-              {/* Body text */}
-              <motion.p
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed"
-              >
-                {subtitle}
-              </motion.p>
-
-              {/* ── Liquid Glass Stat Chips ── */}
-              <motion.div
-                initial={{ y: 16, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-wrap gap-2.5"
-              >
-                {stats.map((stat, idx) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.65 + idx * 0.06, ease: [0.16, 1, 0.3, 1] }}
-                    className="relative px-3.5 py-2 rounded-2xl overflow-hidden shadow-lg"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      backdropFilter: 'blur(20px) saturate(180%)',
-                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                      border: '1px solid rgba(255, 255, 255, 0.14)',
-                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.3)',
-                    }}
-                  >
-                    {/* Specular corner highlight */}
-                    <div className="pointer-events-none absolute top-0 left-0 w-8 h-8 bg-gradient-to-br from-white/20 to-transparent rounded-tl-2xl" />
-                    <div className="flex flex-col">
-                      <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
-                        {stat.value}
-                      </span>
-                      <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              {/* Apple Motion CTA Button */}
-              <motion.a
-                href={ctaHref}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="group inline-flex items-center gap-3 self-start rounded-full bg-zinc-100 hover:bg-white py-1.5 pl-6 pr-1.5 text-sm sm:text-base font-bold text-zinc-950 shadow-[0_4px_32px_rgba(255,255,255,0.22)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
-              >
-                <span>{ctaText}</span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110 shadow-sm">
-                  <ArrowRight className="h-5 w-5" />
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                <span>GitHub Analytics</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  Telemetry
                 </span>
-              </motion.a>
-
+              </h2>
+              <p className="text-[11px] text-zinc-400 font-medium">Personal Telemetry Engine</p>
             </div>
+          </div>
+
+          {/* Right Nav Actions */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {lastSyncedAt !== undefined && (
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
+                <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                <span>{formatRelativeTime(lastSyncedAt)}</span>
+              </div>
+            )}
+
+            <RefreshButton onStatusChange={onStatusChange} />
+          </div>
+        </motion.div>
+      </header>
+
+      {/* ── Main Hero Content Container (Proper Document Flow) ── */}
+      <div className="relative z-20 max-w-6xl w-full mx-auto px-4 sm:px-6 md:px-8 pt-12 pb-8 sm:pb-12 flex flex-col justify-end flex-1">
+        
+        {/* Tier 1: Metrics tiles, Pill tag, Description & CTA (Positioned COMPLETELY ABOVE Hero Title) */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8 lg:mb-10">
+          
+          {/* Left: Codebase Intelligence Pill tag & Subtitle */}
+          <div className="max-w-xl space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-zinc-300 font-medium shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Personal Codebase Intelligence</span>
+            </div>
+            <motion.p
+              initial={{ y: 15, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed"
+            >
+              {subtitle}
+            </motion.p>
+          </div>
+
+          {/* Right: Liquid Glass Metrics Tiles & CTA */}
+          <div className="flex flex-wrap items-center gap-3">
+            {stats.map((stat, idx) => (
+              <motion.div
+                key={stat.label}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.35 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                className="relative px-4 py-2 rounded-2xl overflow-hidden shadow-lg bg-zinc-900/70 border border-white/[0.12] backdrop-blur-xl"
+                style={{
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4)',
+                }}
+              >
+                {/* Specular corner highlight */}
+                <div className="pointer-events-none absolute top-0 left-0 w-8 h-8 bg-gradient-to-br from-white/15 to-transparent rounded-tl-2xl" />
+                <div className="flex flex-col">
+                  <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
+                    {stat.value}
+                  </span>
+                  <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Apple Motion CTA Button */}
+            <motion.a
+              href={ctaHref}
+              initial={{ y: 15, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 shadow-[0_4px_32px_rgba(255,255,255,0.22)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
+            >
+              <span>{ctaText}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110 shadow-sm">
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </motion.a>
           </div>
         </div>
 
-        {/* Scroll indicator chevron */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center gap-1 pointer-events-none"
-        >
-          <motion.div
-            animate={{ y: [0, 5, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center pt-1.5"
+        {/* Tier 2: Giant Display Typography (Clear Bounding Box, No Overlap) */}
+        <div className="w-full pt-4 border-t border-white/[0.08]">
+          <h1
+            className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
+            style={{ color: "#F4F4F5" }}
           >
-            <div className="w-1 h-1.5 rounded-full bg-white/50" />
-          </motion.div>
-        </motion.div>
+            <WordsPullUp text={title} showAsterisk />
+          </h1>
+        </div>
 
       </div>
     </section>

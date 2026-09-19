@@ -242,7 +242,7 @@ export default function Home() {
       />
 
       {/* ── Top Overview Section ── */}
-      <section id="analytics" className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-12 pb-6">
+      <section id="analytics" className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-8 scroll-mt-6">
         {isReposError ? (
           <ErrorState onRetry={() => refetchRepos()} isRetrying={isReposFetching} />
         ) : isReposLoading ? (
