@@ -1,10 +1,11 @@
 export interface Repository {
-  id: number;
+  id: string;
+  username: string;
+  repoId: number;
   name: string;
   fullName: string;
   description: string | null;
   htmlUrl: string;
-  privateRepo: boolean;
   fork: boolean;
   defaultBranch: string;
   language: string | null;
@@ -15,7 +16,18 @@ export interface Repository {
   githubUpdatedAt: string;
   githubPushedAt: string;
   syncedAt: string;
-  languages?: Record<string, number>;
+}
+
+export interface UserSummary {
+  username: string;
+  githubId: number | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  firstSeenAt: string | null;
+  lastSyncedAt: string | null;
+  hasData: boolean;
+  cooldownRemainingSeconds: number;
+  canRefresh: boolean;
 }
 
 export interface RefreshStatus {
