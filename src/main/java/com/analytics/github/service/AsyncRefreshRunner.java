@@ -1,7 +1,6 @@
 package com.analytics.github.service;
 
 import com.analytics.github.config.AsyncConfig;
-import com.analytics.github.dto.RepoSyncResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -11,6 +10,8 @@ import java.time.Instant;
 
 /**
  * Executes the repository synchronization task on a background worker thread.
+ * Heavy traffic snapshots, releases, and security alert calls have been excluded
+ * to ensure rapid execution and zero unnecessary load on GitHub API rate limits.
  */
 @Service
 public class AsyncRefreshRunner {
@@ -20,15 +21,21 @@ public class AsyncRefreshRunner {
     private final RepositorySyncService repositorySyncService;
     private final CommitSyncService commitSyncService;
     private final LanguageSyncService languageSyncService;
+    private final ProfileSyncService profileSyncService;
+    private final PrIssueSyncService prIssueSyncService;
 
     public AsyncRefreshRunner(
         RepositorySyncService repositorySyncService,
         CommitSyncService commitSyncService,
-        LanguageSyncService languageSyncService
+        LanguageSyncService languageSyncService,
+        ProfileSyncService profileSyncService,
+        PrIssueSyncService prIssueSyncService
     ) {
         this.repositorySyncService = repositorySyncService;
         this.commitSyncService = commitSyncService;
         this.languageSyncService = languageSyncService;
+        this.profileSyncService = profileSyncService;
+        this.prIssueSyncService = prIssueSyncService;
     }
 
     @Async(AsyncConfig.REFRESH_EXECUTOR)
@@ -48,9 +55,16 @@ public class AsyncRefreshRunner {
             manager.updateStep("LANGUAGES");
             var updatedRepos = languageSyncService.syncAllLanguages(repos);
 
+            // Step 4: User Profile & Contribution Calendar
+            manager.updateStep("PROFILE");
+            var profile = profileSyncService.syncUserProfile();
+
+            // Step 5: Pull Requests & Issues
+            manager.updateStep("PRS_ISSUES");
+            prIssueSyncService.syncAll(repos);
+
             Instant finishedAt = Instant.now();
             Instant syncedAt = Instant.now();
-
 
             manager.onRefreshSuccess(
                     startedAt,

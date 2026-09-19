@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.analytics.github.dto.GitHubUserProfileResponse;
+import com.analytics.github.dto.GraphQLContributionCalendarResult;
+import com.analytics.github.model.ContributionDayRecord;
+
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -123,6 +127,196 @@ public class GitHubApiClient {
         } catch (Exception ex) {
             log.warn("Failed to fetch languages for {}/{}: {}", owner, repo, ex.getMessage());
             return Collections.emptyMap();
+        }
+    }
+
+    public GitHubUserProfileResponse fetchAuthenticatedUser() {
+        try {
+            log.info("Fetching authenticated user profile from GitHub: /user");
+            ResponseEntity<Map<String, Object>> response = restClient.get()
+                    .uri("/user")
+                    .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+
+            checkRateLimit(response.getHeaders());
+            Map<String, Object> map = response.getBody();
+            if (map == null) {
+                return null;
+            }
+
+            Long id = map.get("id") instanceof Number num ? num.longValue() : 0L;
+            String login = String.valueOf(map.getOrDefault("login", ""));
+            String name = map.get("name") instanceof String s ? s : login;
+            String bio = map.get("bio") instanceof String s ? s : null;
+            String avatarUrl = String.valueOf(map.getOrDefault("avatar_url", ""));
+            String htmlUrl = String.valueOf(map.getOrDefault("html_url", ""));
+            int publicRepos = map.get("public_repos") instanceof Number num ? num.intValue() : 0;
+            int totalPrivateRepos = map.get("total_private_repos") instanceof Number num ? num.intValue() : 0;
+            int followers = map.get("followers") instanceof Number num ? num.intValue() : 0;
+            int following = map.get("following") instanceof Number num ? num.intValue() : 0;
+
+            Instant createdAt = Instant.now();
+            if (map.get("created_at") instanceof String s) {
+                try {
+                    createdAt = Instant.parse(s);
+                } catch (Exception ignored) {}
+            }
+
+            Instant updatedAt = Instant.now();
+            if (map.get("updated_at") instanceof String s) {
+                try {
+                    updatedAt = Instant.parse(s);
+                } catch (Exception ignored) {}
+            }
+
+            return new GitHubUserProfileResponse(
+                    id, login, name, bio, avatarUrl, htmlUrl,
+                    publicRepos, totalPrivateRepos, followers, following,
+                    createdAt, updatedAt
+            );
+        } catch (Exception e) {
+            log.warn("Soft failure fetching authenticated user profile from GitHub: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Fetches all pull requests for a repository (all states: open, closed, merged).
+     * Uses pagination via Link headers. Fails softly returning empty list on errors.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchPullRequestsForRepo(String owner, String repo) {
+        return fetchPaginatedList("/repos/" + owner + "/" + repo + "/pulls?state=all&per_page=100", owner, repo, "pull requests");
+    }
+
+    /**
+     * Fetches all issues for a repository (all states). Note: GitHub's issues API
+     * returns PRs too — the caller must filter by checking for the "pull_request" key.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchIssuesForRepo(String owner, String repo) {
+        return fetchPaginatedList("/repos/" + owner + "/" + repo + "/issues?state=all&filter=all&per_page=100", owner, repo, "issues");
+    }
+
+    /**
+     * Generic paginated list fetch with soft failure for any GitHub list endpoint.
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> fetchPaginatedList(String initialUri, String owner, String repo, String label) {
+        List<Map<String, Object>> allItems = new ArrayList<>();
+        String nextUri = initialUri;
+
+        try {
+            while (nextUri != null) {
+                log.info("Fetching {} page for {}/{}: {}", label, owner, repo, sanitizeUri(nextUri));
+
+                RestClient.RequestHeadersSpec<?> requestSpec = nextUri.startsWith("http://") || nextUri.startsWith("https://")
+                        ? restClient.get().uri(URI.create(nextUri))
+                        : restClient.get().uri(nextUri);
+
+                ResponseEntity<List<Map<String, Object>>> response = requestSpec
+                        .retrieve()
+                        .toEntity(new ParameterizedTypeReference<>() {});
+
+                HttpHeaders headers = response.getHeaders();
+                checkRateLimit(headers);
+
+                List<Map<String, Object>> pageItems = response.getBody();
+                if (pageItems != null && !pageItems.isEmpty()) {
+                    allItems.addAll(pageItems);
+                }
+
+                nextUri = extractNextLink(headers);
+            }
+        } catch (HttpClientErrorException.Conflict ex) {
+            log.warn("Repository {}/{} is empty (HTTP 409). Skipping {} fetch.", owner, repo, label);
+            return Collections.emptyList();
+        } catch (Exception ex) {
+            log.warn("Soft failure fetching {} for {}/{}: {}", label, owner, repo, ex.getMessage());
+        }
+
+        log.info("Finished fetching {} for {}/{}. Total: {}", label, owner, repo, allItems.size());
+        return allItems;
+    }
+
+    public GraphQLContributionCalendarResult fetchContributionCalendarGraphQL() {
+        String query = """
+            query {
+              viewer {
+                contributionsCollection {
+                  contributionCalendar {
+                    totalContributions
+                    weeks {
+                      contributionDays {
+                        date
+                        contributionCount
+                        color
+                        weekday
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        try {
+            log.info("Fetching contribution calendar via GitHub GraphQL API: /graphql");
+            ResponseEntity<Map<String, Object>> response = restClient.post()
+                    .uri("/graphql")
+                    .body(Map.of("query", query))
+                    .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+
+            checkRateLimit(response.getHeaders());
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) {
+                return null;
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) body.get("data");
+            if (data == null) return null;
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> viewer = (Map<String, Object>) data.get("viewer");
+            if (viewer == null) return null;
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> coll = (Map<String, Object>) viewer.get("contributionsCollection");
+            if (coll == null) return null;
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> calendar = (Map<String, Object>) coll.get("contributionCalendar");
+            if (calendar == null) return null;
+
+            int totalContributions = calendar.get("totalContributions") instanceof Number num ? num.intValue() : 0;
+            List<ContributionDayRecord> days = new ArrayList<>();
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> weeks = (List<Map<String, Object>>) calendar.get("weeks");
+            if (weeks != null) {
+                for (Map<String, Object> week : weeks) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> dayList = (List<Map<String, Object>>) week.get("contributionDays");
+                    if (dayList != null) {
+                        for (Map<String, Object> day : dayList) {
+                            String date = String.valueOf(day.getOrDefault("date", ""));
+                            int count = day.get("contributionCount") instanceof Number num ? num.intValue() : 0;
+                            String color = String.valueOf(day.getOrDefault("color", "#161b22"));
+                            int weekday = day.get("weekday") instanceof Number num ? num.intValue() : 0;
+                            days.add(new ContributionDayRecord(date, count, color, weekday));
+                        }
+                    }
+                }
+            }
+
+            return new GraphQLContributionCalendarResult(totalContributions, days);
+        } catch (Exception e) {
+            log.warn("Soft failure fetching contribution calendar from GitHub GraphQL API: {}", e.getMessage());
+            return null;
         }
     }
 
