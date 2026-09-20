@@ -16,10 +16,18 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import com.analytics.github.exception.GitHubRateLimitException;
+import jakarta.annotation.PreDestroy;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Service responsible for synchronizing repository commits from GitHub into MongoDB Atlas per user.
@@ -36,6 +44,7 @@ public class CommitSyncService {
     private final CommitMongoRepository commitMongoRepository;
     private final RepositoryMongoRepository repositoryMongoRepository;
     private final MongoTemplate mongoTemplate;
+    private final ExecutorService commitWorkerPool;
 
     @Autowired
     public CommitSyncService(
@@ -45,11 +54,25 @@ public class CommitSyncService {
         RepositoryMongoRepository repositoryMongoRepository,
         MongoTemplate mongoTemplate
     ) {
+        this(gitHubApiClient, appProperties, commitMongoRepository, repositoryMongoRepository, mongoTemplate,
+             Executors.newFixedThreadPool(3, Thread.ofPlatform().daemon().name("commit-worker-", 0).factory()));
+    }
+
+    public CommitSyncService(
+        GitHubApiClient gitHubApiClient,
+        AppProperties appProperties,
+        CommitMongoRepository commitMongoRepository,
+        RepositoryMongoRepository repositoryMongoRepository,
+        MongoTemplate mongoTemplate,
+        ExecutorService commitWorkerPool
+    ) {
         this.gitHubApiClient = gitHubApiClient;
         this.appProperties = appProperties;
         this.commitMongoRepository = commitMongoRepository;
         this.repositoryMongoRepository = repositoryMongoRepository;
         this.mongoTemplate = mongoTemplate;
+        this.commitWorkerPool = commitWorkerPool != null ? commitWorkerPool :
+             Executors.newFixedThreadPool(3, Thread.ofPlatform().daemon().name("commit-worker-", 0).factory());
     }
 
     public CommitSyncService(
@@ -61,24 +84,89 @@ public class CommitSyncService {
         this(gitHubApiClient, appProperties, commitMongoRepository, repositoryMongoRepository, null);
     }
 
+    @PreDestroy
+    public void shutdown() {
+        if (commitWorkerPool != null) {
+            commitWorkerPool.shutdown();
+        }
+    }
+
     public record CommitSyncMetrics(int commitsSynced, int reposSkipped, int reposFailed) {}
 
+    private record RepoSyncOutcome(int commitsSynced, boolean skipped, boolean failed) {}
+
     public CommitSyncMetrics syncAllCommits(String username, List<RepositoryDocument> repositories) {
+        if (repositories == null || repositories.isEmpty()) {
+            return new CommitSyncMetrics(0, 0, 0);
+        }
+
         int totalCommitsSynced = 0;
         int reposSkipped = 0;
         int reposFailed = 0;
 
-        for (RepositoryDocument repo : repositories) {
+        List<CompletableFuture<RepoSyncOutcome>> futures = new ArrayList<>(repositories.size());
+
+        List<RepositoryDocument> sortedRepos = new ArrayList<>(repositories);
+        sortedRepos.sort((a, b) -> {
+            Instant pA = a.githubPushedAt();
+            Instant pB = b.githubPushedAt();
+            if (pA == null && pB == null) return 0;
+            if (pA == null) return 1;
+            if (pB == null) return -1;
+            return pB.compareTo(pA);
+        });
+
+        for (RepositoryDocument repo : sortedRepos) {
+            CompletableFuture<RepoSyncOutcome> future = CompletableFuture.supplyAsync(() -> {
+                // 1. Optimization: skip repo if pushed_at has not changed since last successful commit sync
+                if (repo.lastCommitSyncAt() != null && repo.githubPushedAt() != null
+                        && !repo.githubPushedAt().isAfter(repo.lastCommitSyncAt())) {
+                    log.info("Skipping commit sync for unchanged repo {} (pushedAt={} <= lastCommitSyncAt={})",
+                            repo.name(), repo.githubPushedAt(), repo.lastCommitSyncAt());
+                    return new RepoSyncOutcome(0, true, false);
+                }
+
+                try {
+                    int count = syncCommitsForRepo(username, repo);
+                    boolean skipped = (count == 0 && repo.fork());
+                    return new RepoSyncOutcome(count, skipped, false);
+                } catch (GitHubRateLimitException e) {
+                    throw e; // Preserve GitHub rate-limit protection
+                } catch (Exception e) {
+                    log.error("Soft failure: Error synchronizing commits for user {} on repo {}. Continuing with remaining repos.",
+                            username, repo.name(), e);
+                    return new RepoSyncOutcome(0, false, true);
+                }
+            }, commitWorkerPool);
+
+            futures.add(future);
+        }
+
+        // Wait for bounded workers, propagating GitHub rate-limit exceptions
+        for (CompletableFuture<RepoSyncOutcome> f : futures) {
             try {
-                int count = syncCommitsForRepo(username, repo);
-                if (count == 0 && repo.fork()) {
+                RepoSyncOutcome outcome = f.join();
+                totalCommitsSynced += outcome.commitsSynced();
+                if (outcome.skipped()) {
                     reposSkipped++;
                 }
-                totalCommitsSynced += count;
-            } catch (Exception e) {
-                log.error("Soft failure: Error synchronizing commits for user {} on repo {}. Continuing with remaining repos.",
-                        username, repo.name(), e);
-                reposFailed++;
+                if (outcome.failed()) {
+                    reposFailed++;
+                }
+            } catch (CompletionException ce) {
+                Throwable cause = ce.getCause();
+                if (cause instanceof GitHubRateLimitException rle) {
+                    log.error("GitHub rate limit hit during commit sync for user {}. Cancelling remaining tasks.", username);
+                    for (CompletableFuture<RepoSyncOutcome> remaining : futures) {
+                        remaining.cancel(true);
+                    }
+                    throw rle;
+                } else if (cause instanceof RuntimeException re) {
+                    log.error("Unexpected failure during commit sync: {}", re.getMessage());
+                    reposFailed++;
+                } else {
+                    reposFailed++;
+                }
             }
         }
 

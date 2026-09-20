@@ -23,6 +23,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -295,85 +296,6 @@ public class GitHubApiClient {
         return new GitHubSearchResponse(totalCount, incompleteResults, allItems);
     }
 
-    public GraphQLContributionCalendarResult fetchContributionCalendarGraphQL() {
-        String query = """
-            query {
-              viewer {
-                contributionsCollection {
-                  contributionCalendar {
-                    totalContributions
-                    weeks {
-                      contributionDays {
-                        date
-                        contributionCount
-                        color
-                        weekday
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            """;
-        try {
-            log.info("Fetching contribution calendar via GitHub GraphQL API: /graphql");
-            ResponseEntity<Map<String, Object>> response = restClient.post()
-                    .uri("/graphql")
-                    .body(Map.of("query", query))
-                    .retrieve()
-                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
-                    .toEntity(new ParameterizedTypeReference<>() {});
-
-            checkRateLimit(response.getHeaders());
-
-            Map<String, Object> body = response.getBody();
-            if (body == null) {
-                return null;
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) body.get("data");
-            if (data == null) return null;
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> viewer = (Map<String, Object>) data.get("viewer");
-            if (viewer == null) return null;
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> coll = (Map<String, Object>) viewer.get("contributionsCollection");
-            if (coll == null) return null;
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> calendar = (Map<String, Object>) coll.get("contributionCalendar");
-            if (calendar == null) return null;
-
-            int totalContributions = calendar.get("totalContributions") instanceof Number num ? num.intValue() : 0;
-            List<ContributionDayRecord> days = new ArrayList<>();
-
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> weeks = (List<Map<String, Object>>) calendar.get("weeks");
-            if (weeks != null) {
-                for (Map<String, Object> week : weeks) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> dayList = (List<Map<String, Object>>) week.get("contributionDays");
-                    if (dayList != null) {
-                        for (Map<String, Object> day : dayList) {
-                            String date = String.valueOf(day.getOrDefault("date", ""));
-                            int count = day.get("contributionCount") instanceof Number num ? num.intValue() : 0;
-                            String color = String.valueOf(day.getOrDefault("color", "#161b22"));
-                            int weekday = day.get("weekday") instanceof Number num ? num.intValue() : 0;
-                            days.add(new ContributionDayRecord(date, count, color, weekday));
-                        }
-                    }
-                }
-            }
-
-            return new GraphQLContributionCalendarResult(totalContributions, days);
-        } catch (Exception e) {
-            log.warn("Soft failure fetching contribution calendar from GitHub GraphQL API: {}", e.getMessage());
-            return null;
-        }
-    }
 
 
     private void logHttpError(int status, String endpoint, HttpHeaders headers, String exceptionType, String message) {
@@ -596,6 +518,106 @@ public class GitHubApiClient {
         } catch (Exception ex) {
             log.error("GraphQL contribution query failed for user {}: exception=[{}: {}]", username, ex.getClass().getName(), ex.getMessage());
             return new GraphQLContributionCalendarResult(0, Collections.emptyList());
+        }
+    }
+
+    /**
+     * Fetches repository language byte counts for up to 100 repositories of a user in a single GraphQL query.
+     * Returns a map keyed by both repo name and nameWithOwner (lowercased) to the language map.
+     * Returns an empty map on failure to allow graceful per-repo REST fallback.
+     */
+    public Map<String, Map<String, Long>> fetchRepoLanguagesGraphQL(String username) {
+        log.info("Fetching repository languages via GitHub GraphQL API for username: {}", username);
+        String query = """
+            query($username: String!) {
+              user(login: $username) {
+                repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR]) {
+                  nodes {
+                    name
+                    nameWithOwner
+                    languages(first: 20, orderBy: {field: SIZE, direction: DESC}) {
+                      edges {
+                        size
+                        node {
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        Map<String, Object> body = Map.of(
+            "query", query,
+            "variables", Map.of("username", username)
+        );
+
+        try {
+            ResponseEntity<Map<String, Object>> response = restClient.post()
+                    .uri("https://api.github.com/graphql")
+                    .body(body)
+                    .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, "/graphql"))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+
+            checkRateLimit(response.getHeaders(), "/graphql");
+            Map<String, Object> root = response.getBody();
+
+            if (root == null || root.containsKey("errors")) {
+                Object errorsObj = root != null ? root.get("errors") : "null";
+                log.warn("GraphQL languages query returned errors for user {}: {}. Falling back to REST.", username, errorsObj);
+                return Collections.emptyMap();
+            }
+
+            if (root.get("data") instanceof Map<?, ?> dataMap &&
+                dataMap.get("user") instanceof Map<?, ?> userMap &&
+                userMap.get("repositories") instanceof Map<?, ?> reposMap &&
+                reposMap.get("nodes") instanceof List<?> nodes) {
+
+                Map<String, Map<String, Long>> result = new HashMap<>();
+
+                for (Object nodeObj : nodes) {
+                    if (nodeObj instanceof Map<?, ?> nodeMap) {
+                        String name = nodeMap.get("name") instanceof String s ? s : null;
+                        String nameWithOwner = nodeMap.get("nameWithOwner") instanceof String s ? s : null;
+
+                        Map<String, Long> languages = new HashMap<>();
+                        if (nodeMap.get("languages") instanceof Map<?, ?> langMap &&
+                            langMap.get("edges") instanceof List<?> edges) {
+                            for (Object edgeObj : edges) {
+                                if (edgeObj instanceof Map<?, ?> edgeMap) {
+                                    long size = edgeMap.get("size") instanceof Number num ? num.longValue() : 0L;
+                                    if (edgeMap.get("node") instanceof Map<?, ?> langNode &&
+                                        langNode.get("name") instanceof String langName) {
+                                        languages.put(langName, size);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (nameWithOwner != null) {
+                            result.put(nameWithOwner.toLowerCase(), languages);
+                        }
+                        if (name != null) {
+                            result.put(name.toLowerCase(), languages);
+                        }
+                    }
+                }
+
+                log.info("Successfully fetched languages via GraphQL for {} repos for user {}", nodes.size(), username);
+                return result;
+            }
+
+            return Collections.emptyMap();
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), "/graphql", ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return Collections.emptyMap();
+        } catch (Exception ex) {
+            log.warn("GraphQL languages query failed for user {}: exception=[{}: {}]. Falling back to REST.",
+                    username, ex.getClass().getName(), ex.getMessage());
+            return Collections.emptyMap();
         }
     }
 

@@ -276,6 +276,64 @@ class SyncEngine7bTest {
     }
 
     @Test
+    @DisplayName("Performance: LanguageSyncService utilizes GraphQL bulk response when available, bypassing REST")
+    void testLanguageSync_usesBulkGraphQL_whenAvailable() {
+        LanguageSyncService service = new LanguageSyncService(
+                gitHubApiClient,
+                repositoryMongoRepository,
+                mongoTemplate
+        );
+
+        RepositoryDocument repo1 = sampleRepo("repo-one", 301L);
+        RepositoryDocument repo2 = sampleRepo("repo-two", 302L);
+
+        when(gitHubApiClient.fetchRepoLanguagesGraphQL("octocat")).thenReturn(Map.of(
+                "octocat/repo-one", Map.of("Java", 12000L),
+                "octocat/repo-two", Map.of("TypeScript", 8500L, "CSS", 1200L)
+        ));
+
+        List<RepositoryDocument> result = service.syncAllLanguages(List.of(repo1, repo2));
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).languages()).containsEntry("Java", 12000L);
+        assertThat(result.get(1).languages()).containsEntry("TypeScript", 8500L);
+
+        // Verify that per-repo REST call was NEVER made
+        verify(gitHubApiClient, never()).fetchLanguagesForRepo(any(), any());
+        verify(mongoTemplate, times(2)).updateFirst(any(Query.class), any(Update.class), eq(RepositoryDocument.class));
+    }
+
+    @Test
+    @DisplayName("Performance: LanguageSyncService skips unchanged repo when pushedAt <= lastCommitSyncAt and languages exist")
+    void testLanguageSync_skipsUnchangedRepo_whenPushedAtNotAfterLastCommitSyncAt() {
+        LanguageSyncService service = new LanguageSyncService(
+                gitHubApiClient,
+                repositoryMongoRepository,
+                mongoTemplate
+        );
+
+        Instant syncTime = Instant.now().minusSeconds(3600);
+        RepositoryDocument unchangedRepo = new RepositoryDocument(
+                "octocat:401", "octocat", 401L, "cached-repo", "octocat/cached-repo",
+                null, "https://github.com/octocat/cached-repo", false, "main", "Java",
+                0, 0, 0, syncTime.minusSeconds(7200), syncTime.minusSeconds(7200),
+                syncTime.minusSeconds(100), // pushedAt is BEFORE lastCommitSyncAt
+                syncTime, syncTime, Map.of("Java", 5000L), List.of(), "None", 100, false, 0
+        );
+
+        when(gitHubApiClient.fetchRepoLanguagesGraphQL("octocat")).thenReturn(Collections.emptyMap());
+
+        List<RepositoryDocument> result = service.syncAllLanguages(List.of(unchangedRepo));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).languages()).containsEntry("Java", 5000L);
+
+        // Verify neither REST nor Mongo write occurred
+        verify(gitHubApiClient, never()).fetchLanguagesForRepo(any(), any());
+        verify(mongoTemplate, never()).updateFirst(any(Query.class), any(Update.class), eq(RepositoryDocument.class));
+    }
+
+    @Test
     @DisplayName("7b-7: Two PRs with the same number in different repos do not collide in document ID")
     void testTwoPrsWithSameNumberInDifferentRepos_doNotCollide() {
         String docIdRepoA = PullRequestDocument.compositeId("octocat", "octocat/hello-world", 1);

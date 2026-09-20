@@ -205,56 +205,70 @@ public class AsyncRefreshRunner {
                 sliceMap.put("commits", SliceResult.skipped("commits", skipReason));
                 log.info("Skipped dependent slices (languages, commits) for user={}: {}", username, skipReason);
             } else {
-                // Languages
+                // Languages & Commits in Parallel
                 sliceMap.put("languages", SliceResult.running("languages"));
-                manager.updateStep(username, "LANGUAGES");
-                if (rateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
-                    sliceMap.put("languages", SliceResult.skipped("languages", rateLimitLow ? "Rate limit low" : "Time limit exceeded"));
-                } else {
-                    sliceStart = System.currentTimeMillis();
-                    log.info("Slice START: languages for user={}, repoCount={}", username, repos.size());
+                sliceMap.put("commits", SliceResult.running("commits"));
+                manager.updateStep(username, "COMMITS");
+
+                final List<RepositoryDocument> phase3Repos = repos;
+                final boolean phase3RateLimitLow = rateLimitLow;
+
+                CompletableFuture<Void> languagesFuture = CompletableFuture.runAsync(() -> {
+                    if (phase3RateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
+                        sliceMap.put("languages", SliceResult.skipped("languages", phase3RateLimitLow ? "Rate limit low" : "Time limit exceeded"));
+                        return;
+                    }
+                    long langStart = System.currentTimeMillis();
+                    log.info("Slice START: languages for user={}, repoCount={}", username, phase3Repos.size());
                     try {
-                        var updatedRepos = languageSyncService.syncAllLanguages(repos);
-                        long languagesDuration = System.currentTimeMillis() - sliceStart;
+                        var updatedRepos = languageSyncService.syncAllLanguages(phase3Repos);
+                        long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.success("languages", updatedRepos.size(), languagesDuration));
                         log.info("Slice END: languages for user={}, reposProcessed={}, duration={}ms", username, updatedRepos.size(), languagesDuration);
                     } catch (GitHubRateLimitException ex) {
-                        rateLimitLow = true;
-                        long languagesDuration = System.currentTimeMillis() - sliceStart;
+                        long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.skipped("languages", sanitizeErrorMessage(ex)));
                     } catch (Exception ex) {
-                        long languagesDuration = System.currentTimeMillis() - sliceStart;
+                        long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.failed("languages", languagesDuration, sanitizeErrorMessage(ex)));
                         log.warn("Slice FAILED: languages for user={}: {}", username, ex.getMessage());
                     }
-                }
+                }, sliceExecutor);
 
-                // Commits
-                sliceMap.put("commits", SliceResult.running("commits"));
-                manager.updateStep(username, "COMMITS");
-                if (rateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
-                    sliceMap.put("commits", SliceResult.skipped("commits", rateLimitLow ? "Rate limit low" : "Time limit exceeded"));
-                } else {
-                    sliceStart = System.currentTimeMillis();
-                    log.info("Slice START: commits for user={}, repoCount={}", username, repos.size());
+                CompletableFuture<CommitSyncService.CommitSyncMetrics> commitsFuture = CompletableFuture.supplyAsync(() -> {
+                    if (phase3RateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
+                        sliceMap.put("commits", SliceResult.skipped("commits", phase3RateLimitLow ? "Rate limit low" : "Time limit exceeded"));
+                        return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
+                    }
+                    long commitStart = System.currentTimeMillis();
+                    log.info("Slice START: commits for user={}, repoCount={}", username, phase3Repos.size());
                     try {
-                        var commitMetrics = commitSyncService.syncAllCommits(username, repos);
-                        commitsSynced = commitMetrics.commitsSynced();
-                        reposSkipped = commitMetrics.reposSkipped();
-                        reposFailed = commitMetrics.reposFailed();
-                        long commitsDuration = System.currentTimeMillis() - sliceStart;
-                        sliceMap.put("commits", SliceResult.success("commits", commitsSynced, commitsDuration));
+                        var commitMetrics = commitSyncService.syncAllCommits(username, phase3Repos);
+                        long commitsDuration = System.currentTimeMillis() - commitStart;
+                        sliceMap.put("commits", SliceResult.success("commits", commitMetrics.commitsSynced(), commitsDuration));
                         log.info("Slice END: commits for user={}, commitsSynced={}, reposSkipped={}, reposFailed={}, duration={}ms",
-                                username, commitsSynced, reposSkipped, reposFailed, commitsDuration);
+                                username, commitMetrics.commitsSynced(), commitMetrics.reposSkipped(), commitMetrics.reposFailed(), commitsDuration);
+                        return commitMetrics;
                     } catch (GitHubRateLimitException ex) {
-                        rateLimitLow = true;
-                        long commitsDuration = System.currentTimeMillis() - sliceStart;
+                        long commitsDuration = System.currentTimeMillis() - commitStart;
                         sliceMap.put("commits", SliceResult.skipped("commits", sanitizeErrorMessage(ex)));
+                        return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
                     } catch (Exception ex) {
-                        long commitsDuration = System.currentTimeMillis() - sliceStart;
+                        long commitsDuration = System.currentTimeMillis() - commitStart;
                         sliceMap.put("commits", SliceResult.failed("commits", commitsDuration, sanitizeErrorMessage(ex)));
                         log.warn("Slice FAILED: commits for user={}: {}", username, ex.getMessage());
+                        return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
                     }
+                }, sliceExecutor);
+
+                try {
+                    CompletableFuture.allOf(languagesFuture, commitsFuture).join();
+                    CommitSyncService.CommitSyncMetrics commitMetrics = commitsFuture.join();
+                    commitsSynced = commitMetrics.commitsSynced();
+                    reposSkipped = commitMetrics.reposSkipped();
+                    reposFailed = commitMetrics.reposFailed();
+                } catch (Exception ex) {
+                    log.error("Error awaiting phase 3 parallel dependent slices (languages/commits) for user {}: {}", username, ex.getMessage());
                 }
             }
 
