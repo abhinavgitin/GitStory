@@ -37,10 +37,12 @@ public class PrIssueAnalyticsService {
 
         double mergeRate = total > 0 ? (double) merged / total * 100 : 0.0;
 
-        // Compute average time-to-merge for merged PRs
+        // Compute average time-to-merge for the 30 most recent merged PRs
         List<PullRequestDocument> userPrs = prRepository.findByUsername(normalized);
         double avgTimeToMerge = userPrs.stream()
                 .filter(pr -> "merged".equals(pr.state()) && pr.createdAt() != null && pr.mergedAt() != null)
+                .sorted((a, b) -> b.mergedAt().compareTo(a.mergedAt()))
+                .limit(30)
                 .mapToLong(pr -> Duration.between(pr.createdAt(), pr.mergedAt()).toHours())
                 .average()
                 .orElse(0.0);

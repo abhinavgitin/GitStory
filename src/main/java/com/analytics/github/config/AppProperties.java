@@ -17,7 +17,7 @@ public record AppProperties(
 ) {
     public AppProperties {
         if (refresh == null) {
-            refresh = new Refresh(15);
+            refresh = new Refresh(15, 180);
         }
         if (limits == null) {
             limits = new Limits(50, 12, 2);
@@ -25,8 +25,13 @@ public record AppProperties(
     }
 
     public record Refresh(
-        @DefaultValue("15") int cooldownMinutes
-    ) {}
+        @DefaultValue("15") int cooldownMinutes,
+        @DefaultValue("180") int overallTimeoutSeconds
+    ) {
+        public Refresh(int cooldownMinutes) {
+            this(cooldownMinutes, 180);
+        }
+    }
 
     public record Limits(
         @DefaultValue("50") int maxReposPerUser,

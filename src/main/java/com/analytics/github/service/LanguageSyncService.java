@@ -5,6 +5,11 @@ import com.analytics.github.model.RepositoryDocument;
 import com.analytics.github.repository.RepositoryMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,11 +26,20 @@ public class LanguageSyncService {
 
     private final GitHubApiClient gitHubApiClient;
     private final RepositoryMongoRepository repositoryMongoRepository;
+    private final MongoTemplate mongoTemplate;
+
+    @Autowired
+    public LanguageSyncService(GitHubApiClient gitHubApiClient,
+                               RepositoryMongoRepository repositoryMongoRepository,
+                               MongoTemplate mongoTemplate) {
+        this.gitHubApiClient = gitHubApiClient;
+        this.repositoryMongoRepository = repositoryMongoRepository;
+        this.mongoTemplate = mongoTemplate;
+    }
 
     public LanguageSyncService(GitHubApiClient gitHubApiClient,
                                RepositoryMongoRepository repositoryMongoRepository) {
-        this.gitHubApiClient = gitHubApiClient;
-        this.repositoryMongoRepository = repositoryMongoRepository;
+        this(gitHubApiClient, repositoryMongoRepository, null);
     }
 
     public List<RepositoryDocument> syncAllLanguages(List<RepositoryDocument> repositories) {
@@ -46,6 +60,7 @@ public class LanguageSyncService {
             try {
                 Map<String, Long> languages = gitHubApiClient.fetchLanguagesForRepo(owner, repoName);
                 log.info("Fetched {} languages for {}: {}", languages.size(), fullName, languages.keySet());
+                updateLanguages(repo, languages);
                 updatedRepositories.add(repo.withLanguages(languages));
             } catch (Exception ex) {
                 log.warn("Soft failure fetching languages for {}: {}. Retaining existing language data.",
@@ -54,8 +69,17 @@ public class LanguageSyncService {
             }
         }
 
-        repositoryMongoRepository.saveAll(updatedRepositories);
         log.info("Successfully updated language telemetry for {} repositories in MongoDB Atlas", updatedRepositories.size());
         return updatedRepositories;
+    }
+
+    private void updateLanguages(RepositoryDocument repo, Map<String, Long> languages) {
+        if (mongoTemplate != null) {
+            Query query = Query.query(Criteria.where("id").is(repo.id()));
+            Update update = new Update().set("languages", languages);
+            mongoTemplate.updateFirst(query, update, RepositoryDocument.class);
+        } else {
+            repositoryMongoRepository.save(repo.withLanguages(languages));
+        }
     }
 }

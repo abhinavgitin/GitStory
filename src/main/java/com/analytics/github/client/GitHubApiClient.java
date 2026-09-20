@@ -11,9 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import com.analytics.github.dto.GitHubUserProfileResponse;
 import com.analytics.github.dto.GraphQLContributionCalendarResult;
+import com.analytics.github.dto.GitHubSearchResponse;
+import com.analytics.github.exception.GitHubSearchRateLimitException;
 import com.analytics.github.model.ContributionDayRecord;
 
 import java.net.URI;
@@ -42,18 +45,24 @@ public class GitHubApiClient {
     }
 
     public GitHubUserProfileResponse fetchUserProfile(String username) {
+        String endpoint = "/users/" + username;
         log.info("Fetching public GitHub user profile for username: {}", username);
         try {
             return restClient.get()
                     .uri("/users/{username}", username)
                     .retrieve()
                     .onStatus(status -> status.value() == 404, (req, res) -> {
+                        logHttpError(res.getStatusCode().value(), endpoint, res.getHeaders(), "UserNotFoundException", "User not found");
                         throw new UserNotFoundException(username);
                     })
-                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, endpoint))
                     .body(GitHubUserProfileResponse.class);
         } catch (HttpClientErrorException.NotFound nf) {
+            logHttpError(404, endpoint, nf.getResponseHeaders(), "HttpClientErrorException.NotFound", nf.getMessage());
             throw new UserNotFoundException(username);
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), endpoint, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            throw ex;
         }
     }
 
@@ -127,9 +136,10 @@ public class GitHubApiClient {
             ResponseEntity<Map<String, Long>> response = restClient.get()
                     .uri(uri)
                     .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, uri))
                     .toEntity(new ParameterizedTypeReference<Map<String, Long>>() {});
 
-            checkRateLimit(response.getHeaders());
+            checkRateLimit(response.getHeaders(), uri);
 
             Map<String, Long> body = response.getBody();
             return body != null ? body : Collections.emptyMap();
@@ -139,8 +149,11 @@ public class GitHubApiClient {
         } catch (HttpClientErrorException.NotFound notFoundEx) {
             log.warn("Repository {}/{} languages not found (HTTP 404).", owner, repo);
             return Collections.emptyMap();
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), uri, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return Collections.emptyMap();
         } catch (Exception ex) {
-            log.warn("Failed to fetch languages for {}/{}: {}", owner, repo, ex.getMessage());
+            log.error("Failed to fetch languages for {}/{}: exception=[{}: {}]", owner, repo, ex.getClass().getName(), ex.getMessage());
             return Collections.emptyMap();
         }
     }
@@ -177,16 +190,18 @@ public class GitHubApiClient {
             while (nextUri != null) {
                 log.info("Fetching {} page for {}/{}: {}", label, owner, repo, sanitizeUri(nextUri));
 
-                RestClient.RequestHeadersSpec<?> requestSpec = nextUri.startsWith("http://") || nextUri.startsWith("https://")
-                        ? restClient.get().uri(URI.create(nextUri))
-                        : restClient.get().uri(nextUri);
+                String currentUri = nextUri;
+                RestClient.RequestHeadersSpec<?> requestSpec = currentUri.startsWith("http://") || currentUri.startsWith("https://")
+                        ? restClient.get().uri(URI.create(currentUri))
+                        : restClient.get().uri(currentUri);
 
                 ResponseEntity<List<Map<String, Object>>> response = requestSpec
                         .retrieve()
+                        .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, currentUri))
                         .toEntity(new ParameterizedTypeReference<>() {});
 
                 HttpHeaders headers = response.getHeaders();
-                checkRateLimit(headers);
+                checkRateLimit(headers, currentUri);
 
                 List<Map<String, Object>> pageItems = response.getBody();
                 if (pageItems != null && !pageItems.isEmpty()) {
@@ -198,12 +213,86 @@ public class GitHubApiClient {
         } catch (HttpClientErrorException.Conflict ex) {
             log.warn("Repository {}/{} is empty (HTTP 409). Skipping {} fetch.", owner, repo, label);
             return Collections.emptyList();
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), nextUri != null ? nextUri : initialUri, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return Collections.emptyList();
         } catch (Exception ex) {
-            log.warn("Soft failure fetching {} for {}/{}: {}", label, owner, repo, ex.getMessage());
+            log.error("Soft failure fetching {} for {}/{}: exception=[{}: {}]", label, owner, repo, ex.getClass().getName(), ex.getMessage());
         }
 
         log.info("Finished fetching {} for {}/{}. Total: {}", label, owner, repo, allItems.size());
         return allItems;
+    }
+
+    /**
+     * Searches pull requests authored by the user using GitHub REST Search API.
+     * Respects X-RateLimit-Resource: search and caps pagination at maxPages (e.g. 3).
+     */
+    public GitHubSearchResponse searchUserPullRequests(String username, int maxPages) {
+        return searchIssuesInternal("author:" + username + " type:pr", maxPages, "pull requests");
+    }
+
+    /**
+     * Searches issues authored by the user using GitHub REST Search API.
+     * Respects X-RateLimit-Resource: search and caps pagination at maxPages (e.g. 3).
+     */
+    public GitHubSearchResponse searchUserIssues(String username, int maxPages) {
+        return searchIssuesInternal("author:" + username + " type:issue", maxPages, "issues");
+    }
+
+    private GitHubSearchResponse searchIssuesInternal(String query, int maxPages, String label) {
+        List<Map<String, Object>> allItems = new ArrayList<>();
+        int totalCount = 0;
+        boolean incompleteResults = false;
+
+        for (int page = 1; page <= maxPages; page++) {
+            final int currentPage = page;
+            log.info("Searching GitHub {} (page {}/{}): q='{}'", label, currentPage, maxPages, query);
+
+            ResponseEntity<GitHubSearchResponse> response;
+            try {
+                response = restClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/search/issues")
+                                .queryParam("q", query)
+                                .queryParam("sort", "created")
+                                .queryParam("order", "desc")
+                                .queryParam("per_page", 100)
+                                .queryParam("page", currentPage)
+                                .build())
+                        .retrieve()
+                        .onStatus(status -> status.value() == 403 || status.value() == 429,
+                                (req, res) -> handleRateLimit(res, "/search/issues"))
+                        .toEntity(GitHubSearchResponse.class);
+            } catch (RestClientResponseException ex) {
+                logHttpError(ex.getStatusCode().value(), "/search/issues", ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+                throw ex;
+            }
+
+            HttpHeaders headers = response.getHeaders();
+            checkRateLimit(headers, "/search/issues");
+
+            GitHubSearchResponse body = response.getBody();
+            if (body == null) {
+                break;
+            }
+
+            totalCount = body.totalCount();
+            incompleteResults = body.incompleteResults();
+            List<Map<String, Object>> items = body.items();
+            if (items != null && !items.isEmpty()) {
+                allItems.addAll(items);
+            }
+
+            // Stop paging if retrieved all items or page returned fewer than requested 100 items
+            if (items == null || items.size() < 100 || allItems.size() >= totalCount) {
+                break;
+            }
+        }
+
+        log.info("Finished searching {} for q='{}'. Total reported: {}, Total retrieved: {}",
+                label, query, totalCount, allItems.size());
+        return new GitHubSearchResponse(totalCount, incompleteResults, allItems);
     }
 
     public GraphQLContributionCalendarResult fetchContributionCalendarGraphQL() {
@@ -287,15 +376,28 @@ public class GitHubApiClient {
     }
 
 
+    private void logHttpError(int status, String endpoint, HttpHeaders headers, String exceptionType, String message) {
+        String remaining = headers != null ? headers.getFirst("X-RateLimit-Remaining") : null;
+        String resource = headers != null ? headers.getFirst("X-RateLimit-Resource") : null;
+        String retryAfter = headers != null ? headers.getFirst("Retry-After") : null;
+        log.error("GitHub HTTP call failed: status={}, endpoint={}, remaining={}, resource={}, retryAfter={}, exception=[{}: {}]",
+                status, sanitizeUri(endpoint), remaining, resource, retryAfter, exceptionType, message);
+    }
+
     private ResponseEntity<List<GitHubRepoResponse>> executeGetRepositories(String uri) {
         RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
                 ? restClient.get().uri(URI.create(uri))
                 : restClient.get().uri(uri);
 
-        return requestSpec
-                .retrieve()
-                .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
-                .toEntity(new ParameterizedTypeReference<>() {});
+        try {
+            return requestSpec
+                    .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, uri))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), uri, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            throw ex;
+        }
     }
 
     private ResponseEntity<List<GitHubCommitResponse>> executeGetCommits(String uri) {
@@ -303,17 +405,38 @@ public class GitHubApiClient {
                 ? restClient.get().uri(URI.create(uri))
                 : restClient.get().uri(uri);
 
-        return requestSpec
-                .retrieve()
-                .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res))
-                .toEntity(new ParameterizedTypeReference<>() {});
+        try {
+            return requestSpec
+                    .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, uri))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+        } catch (HttpClientErrorException.Conflict conflictEx) {
+            throw conflictEx;
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), uri, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            throw ex;
+        }
     }
 
-    private void handleRateLimit(org.springframework.http.client.ClientHttpResponse res) throws java.io.IOException {
-        String retryAfter = res.getHeaders().getFirst("Retry-After");
-        String reset = res.getHeaders().getFirst("X-RateLimit-Reset");
+    private void handleRateLimit(org.springframework.http.client.ClientHttpResponse res, String endpoint) throws java.io.IOException {
+        int status = res.getStatusCode().value();
+        HttpHeaders headers = res.getHeaders();
+        String retryAfter = headers.getFirst("Retry-After");
+        String reset = headers.getFirst("X-RateLimit-Reset");
+        String remaining = headers.getFirst("X-RateLimit-Remaining");
+        String resource = headers.getFirst("X-RateLimit-Resource");
+
+        if ("search".equalsIgnoreCase(resource) || (endpoint != null && endpoint.contains("/search/"))) {
+            log.warn("GitHub Search API rate limit hit: status={}, endpoint={}, remaining={}, resetEpoch={}",
+                    status, sanitizeUri(endpoint), remaining, reset);
+            throw new GitHubSearchRateLimitException("GitHub Search API rate limit reached (HTTP " + status + ")");
+        }
+
+        log.error("GitHub rate limit hit: status={}, endpoint={}, remaining={}, resource={}, retryAfter={}, resetEpoch={}",
+                status, sanitizeUri(endpoint), remaining, resource, retryAfter, reset);
+
         StringBuilder message = new StringBuilder("GitHub API rate limit exceeded (HTTP ")
-                .append(res.getStatusCode().value())
+                .append(status)
                 .append(")");
         if (retryAfter != null && !retryAfter.isBlank()) {
             message.append(". Retry-After: ").append(retryAfter).append(" seconds");
@@ -323,13 +446,36 @@ public class GitHubApiClient {
         throw new GitHubRateLimitException(message.toString());
     }
 
-    private void checkRateLimit(HttpHeaders headers) {
+    private void handleRateLimit(org.springframework.http.client.ClientHttpResponse res) throws java.io.IOException {
+        handleRateLimit(res, "unknown");
+    }
+
+    private void checkRateLimit(HttpHeaders headers, String endpoint) {
         String remainingHeader = headers.getFirst("X-RateLimit-Remaining");
+        String resource = headers.getFirst("X-RateLimit-Resource");
+
+        if ("search".equalsIgnoreCase(resource) || (endpoint != null && endpoint.contains("/search/"))) {
+            if (remainingHeader != null && !remainingHeader.isBlank()) {
+                try {
+                    int remaining = Integer.parseInt(remainingHeader);
+                    if (remaining <= 0) {
+                        String reset = headers.getFirst("X-RateLimit-Reset");
+                        log.warn("GitHub Search API quota exhausted (0 remaining): endpoint={}, resetEpoch={}",
+                                sanitizeUri(endpoint), reset);
+                        throw new GitHubSearchRateLimitException("GitHub Search API quota exhausted");
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            return;
+        }
+
         if (remainingHeader != null && !remainingHeader.isBlank()) {
             try {
                 int remaining = Integer.parseInt(remainingHeader);
                 if (remaining < RATE_LIMIT_THRESHOLD) {
                     String reset = headers.getFirst("X-RateLimit-Reset");
+                    log.error("GitHub rate limit low guard triggered: endpoint={}, remaining={}, resource={}, resetEpoch={}",
+                            sanitizeUri(endpoint), remaining, resource, reset);
                     throw new GitHubRateLimitException(
                             "GitHub API rate limit running critically low (" + remaining
                                     + " remaining). Halting sync. Quota resets at epoch: " + reset
@@ -339,6 +485,10 @@ public class GitHubApiClient {
                 // Ignore unparseable header values
             }
         }
+    }
+
+    private void checkRateLimit(HttpHeaders headers) {
+        checkRateLimit(headers, "unknown");
     }
 
     private String extractNextLink(HttpHeaders headers) {
@@ -394,14 +544,19 @@ public class GitHubApiClient {
         );
 
         try {
-            Map<String, Object> root = restClient.post()
+            ResponseEntity<Map<String, Object>> response = restClient.post()
                     .uri("https://api.github.com/graphql")
                     .body(body)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, "/graphql"))
+                    .toEntity(new ParameterizedTypeReference<>() {});
+
+            checkRateLimit(response.getHeaders(), "/graphql");
+            Map<String, Object> root = response.getBody();
 
             if (root == null || root.containsKey("errors")) {
-                log.warn("GraphQL returned errors or empty response for user {}: {}", username, root != null ? root.get("errors") : "null");
+                Object errorsObj = root != null ? root.get("errors") : "null";
+                log.error("GraphQL contribution query returned errors for user {}: {}", username, errorsObj);
                 return new GraphQLContributionCalendarResult(0, Collections.emptyList());
             }
 
@@ -435,34 +590,47 @@ public class GitHubApiClient {
                 return new GraphQLContributionCalendarResult(total, days);
             }
             return new GraphQLContributionCalendarResult(0, Collections.emptyList());
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), "/graphql", ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return new GraphQLContributionCalendarResult(0, Collections.emptyList());
         } catch (Exception ex) {
-            log.warn("GraphQL contribution query failed for user {}: {}. Returning empty calendar.", username, ex.getMessage());
+            log.error("GraphQL contribution query failed for user {}: exception=[{}: {}]", username, ex.getClass().getName(), ex.getMessage());
             return new GraphQLContributionCalendarResult(0, Collections.emptyList());
         }
     }
 
     public List<Map<String, Object>> fetchPublicEvents(String username) {
+        String endpoint = "/users/" + username + "/events/public?per_page=30";
         log.info("Fetching public activity events for user: {}", username);
         try {
             return restClient.get()
                     .uri("/users/{username}/events/public?per_page=30", username)
                     .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, endpoint))
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), endpoint, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return Collections.emptyList();
         } catch (Exception ex) {
-            log.warn("Failed to fetch public events for {}: {}", username, ex.getMessage());
+            log.error("Failed to fetch public events for {}: exception=[{}: {}]", username, ex.getClass().getName(), ex.getMessage());
             return Collections.emptyList();
         }
     }
 
     public List<Map<String, Object>> fetchUserOrgs(String username) {
+        String endpoint = "/users/" + username + "/orgs";
         log.info("Fetching public organizations for user: {}", username);
         try {
             return restClient.get()
                     .uri("/users/{username}/orgs", username)
                     .retrieve()
+                    .onStatus(status -> status.value() == 403 || status.value() == 429, (req, res) -> handleRateLimit(res, endpoint))
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+        } catch (RestClientResponseException ex) {
+            logHttpError(ex.getStatusCode().value(), endpoint, ex.getResponseHeaders(), ex.getClass().getSimpleName(), ex.getMessage());
+            return Collections.emptyList();
         } catch (Exception ex) {
-            log.warn("Failed to fetch organizations for {}: {}", username, ex.getMessage());
+            log.error("Failed to fetch organizations for {}: exception=[{}: {}]", username, ex.getClass().getName(), ex.getMessage());
             return Collections.emptyList();
         }
     }

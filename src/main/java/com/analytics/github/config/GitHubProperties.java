@@ -12,17 +12,41 @@ public record GitHubProperties(
     String token,
 
     @DefaultValue("https://api.github.com")
-    String baseUrl
+    String baseUrl,
+
+    @DefaultValue("5")
+    int connectTimeoutSeconds,
+
+    @DefaultValue("20")
+    int readTimeoutSeconds,
+
+    @DefaultValue("100")
+    int searchPageSize,
+
+    @DefaultValue("3")
+    int searchMaxPages
 ) {
     public GitHubProperties {
         if (baseUrl == null || baseUrl.isBlank()) {
             baseUrl = "https://api.github.com";
+        }
+        if (connectTimeoutSeconds <= 0) {
+            connectTimeoutSeconds = 5;
+        }
+        if (readTimeoutSeconds <= 0) {
+            readTimeoutSeconds = 20;
+        }
+        if (searchPageSize <= 0) {
+            searchPageSize = 100;
+        }
+        if (searchMaxPages <= 0) {
+            searchMaxPages = 3;
         }
     }
 
     @Override
     public String toString() {
         return "GitHubProperties[token=" + (token != null && !token.isBlank() ? "******" : "null")
-                + ", baseUrl=" + baseUrl + "]";
+                + ", baseUrl=" + baseUrl + ", connectTimeout=" + connectTimeoutSeconds + "s, readTimeout=" + readTimeoutSeconds + "s]";
     }
 }

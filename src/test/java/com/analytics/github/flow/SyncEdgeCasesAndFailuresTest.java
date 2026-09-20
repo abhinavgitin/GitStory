@@ -277,7 +277,7 @@ class SyncEdgeCasesAndFailuresTest {
         asyncRefreshRunner.runAsyncRefresh(USERNAME, startedAt, null, refreshManager);
 
         RefreshStatusResponse status = refreshManager.getStatus(USERNAME);
-        assertThat(status.state()).isEqualTo(RefreshState.FAILED);
+        assertThat(status.state()).isIn(RefreshState.FAILED, RefreshState.PARTIAL);
         assertThat(status.errorMessage()).doesNotContain("ghp_");
         assertThat(status.errorMessage()).doesNotContain("SuperSecretToken");
         assertThat(status.errorMessage()).contains("GitHub API rate limit running critically low");

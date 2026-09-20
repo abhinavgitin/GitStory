@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface RepositoryMongoRepository extends MongoRepository<RepositoryDocument, String> {
 
+    List<RepositoryDocument> findByUsername(String username);
+
     List<RepositoryDocument> findByUsernameOrderByGithubPushedAtDesc(String username);
 
     List<RepositoryDocument> findByUsernameAndForkFalseOrderByGithubPushedAtDesc(String username);

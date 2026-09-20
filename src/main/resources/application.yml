@@ -16,6 +16,10 @@ spring:
 github:
   token: ${GITHUB_TOKEN}
   base-url: https://api.github.com
+  connect-timeout-seconds: 5
+  read-timeout-seconds: 20
+  search-page-size: 100
+  search-max-pages: 3
 
 refresh:
   secret: ${REFRESH_SECRET}
@@ -24,6 +28,7 @@ app:
   timezone: Asia/Kolkata
   refresh:
     cooldown-minutes: 15
+    overall-timeout-seconds: 180
   limits:
     max-repos-per-user: 50
     commit-history-months: 12

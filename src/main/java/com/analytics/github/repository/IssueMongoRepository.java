@@ -14,4 +14,5 @@ public interface IssueMongoRepository extends MongoRepository<IssueDocument, Str
     List<IssueDocument> findByUsername(String username);
     List<IssueDocument> findByUsernameAndRepoId(String username, long repoId);
     void deleteByUsername(String username);
+    void deleteByUsernameAndSyncedAtBefore(String username, java.time.Instant threshold);
 }

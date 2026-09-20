@@ -9,6 +9,11 @@ import com.analytics.github.repository.CommitMongoRepository;
 import com.analytics.github.repository.RepositoryMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -30,6 +35,22 @@ public class CommitSyncService {
     private final AppProperties appProperties;
     private final CommitMongoRepository commitMongoRepository;
     private final RepositoryMongoRepository repositoryMongoRepository;
+    private final MongoTemplate mongoTemplate;
+
+    @Autowired
+    public CommitSyncService(
+        GitHubApiClient gitHubApiClient,
+        AppProperties appProperties,
+        CommitMongoRepository commitMongoRepository,
+        RepositoryMongoRepository repositoryMongoRepository,
+        MongoTemplate mongoTemplate
+    ) {
+        this.gitHubApiClient = gitHubApiClient;
+        this.appProperties = appProperties;
+        this.commitMongoRepository = commitMongoRepository;
+        this.repositoryMongoRepository = repositoryMongoRepository;
+        this.mongoTemplate = mongoTemplate;
+    }
 
     public CommitSyncService(
         GitHubApiClient gitHubApiClient,
@@ -37,10 +58,7 @@ public class CommitSyncService {
         CommitMongoRepository commitMongoRepository,
         RepositoryMongoRepository repositoryMongoRepository
     ) {
-        this.gitHubApiClient = gitHubApiClient;
-        this.appProperties = appProperties;
-        this.commitMongoRepository = commitMongoRepository;
-        this.repositoryMongoRepository = repositoryMongoRepository;
+        this(gitHubApiClient, appProperties, commitMongoRepository, repositoryMongoRepository, null);
     }
 
     public record CommitSyncMetrics(int commitsSynced, int reposSkipped, int reposFailed) {}
@@ -83,7 +101,7 @@ public class CommitSyncService {
         );
 
         if (commits.isEmpty()) {
-            repositoryMongoRepository.save(repo.withLastCommitSyncAt(Instant.now()));
+            updateLastCommitSyncAt(repo, Instant.now());
             return 0;
         }
 
@@ -93,9 +111,19 @@ public class CommitSyncService {
                 .toList();
 
         commitMongoRepository.saveAll(documents);
-        repositoryMongoRepository.save(repo.withLastCommitSyncAt(syncTimestamp));
+        updateLastCommitSyncAt(repo, syncTimestamp);
 
         return documents.size();
+    }
+
+    private void updateLastCommitSyncAt(RepositoryDocument repo, Instant syncTimestamp) {
+        if (mongoTemplate != null) {
+            Query query = Query.query(Criteria.where("id").is(repo.id()));
+            Update update = new Update().set("lastCommitSyncAt", syncTimestamp);
+            mongoTemplate.updateFirst(query, update, RepositoryDocument.class);
+        } else {
+            repositoryMongoRepository.save(repo.withLastCommitSyncAt(syncTimestamp));
+        }
     }
 
     private Instant resolveSinceTimestamp(String username, RepositoryDocument repo) {

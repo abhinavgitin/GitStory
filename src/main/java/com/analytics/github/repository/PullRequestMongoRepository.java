@@ -14,4 +14,5 @@ public interface PullRequestMongoRepository extends MongoRepository<PullRequestD
     List<PullRequestDocument> findByUsername(String username);
     List<PullRequestDocument> findByUsernameAndRepoId(String username, long repoId);
     void deleteByUsername(String username);
+    void deleteByUsernameAndSyncedAtBefore(String username, java.time.Instant threshold);
 }

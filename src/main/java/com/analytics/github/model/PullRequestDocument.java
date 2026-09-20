@@ -29,4 +29,8 @@ public record PullRequestDocument(
     public static String compositeId(String username, long repoId, int number) {
         return username.toLowerCase() + "-" + repoId + "-" + number;
     }
+
+    public static String compositeId(String username, String repoFullName, int number) {
+        return username.toLowerCase() + ":" + repoFullName.toLowerCase() + "#" + number;
+    }
 }
