@@ -3,8 +3,22 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'GitStory',
-  description: 'Public GitHub commit and activity analytics for any username.',
+  title: {
+    default: 'GitStory | Public Developer Analytics',
+    template: '%s | GitStory',
+  },
+  description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
+  openGraph: {
+    title: 'GitStory | Public Developer Analytics',
+    description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
+    type: 'website',
+    siteName: 'GitStory',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GitStory | Public Developer Analytics',
+    description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
+  },
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -31,9 +45,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
       <body className="bg-zinc-950 text-zinc-100 min-h-screen antialiased selection:bg-zinc-800 selection:text-zinc-100">
