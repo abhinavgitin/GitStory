@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useReducer } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ProfileSyncPanel } from '@/components/ProfileSyncPanel';
 import {
   UserSummary,
@@ -25,8 +26,13 @@ import {
 } from '@/types';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
 import { getFailedSlicesNotice } from '@/lib/capabilities';
+import {
+  transitionDashboardState,
+  INITIAL_DASHBOARD_CONTEXT,
+} from '@/lib/dashboard-state-machine';
 import { RefreshButton } from '@/components/RefreshButton';
 import { DashboardLoader } from '@/components/DashboardLoader';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { ErrorState } from '@/components/ErrorState';
 import { CommitSummaryCard } from '@/components/CommitSummaryCard';
 import { CommitHourChart } from '@/components/CommitHourChart';
@@ -71,8 +77,6 @@ function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-
-
 export default function UserDashboardPage({
   params,
 }: {
@@ -83,13 +87,21 @@ export default function UserDashboardPage({
   const isValid = isValidGitHubUsername(rawUsername);
   const normalizedUsername = isValid ? normalizeUsername(rawUsername) : '';
 
+  const [stateCtx, dispatch] = useReducer(transitionDashboardState, INITIAL_DASHBOARD_CONTEXT);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
+  const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const startSyncMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh`, {
+      setSyncStartTime(Date.now());
+      dispatch({ type: 'START_SYNC' });
+      const isFirst = !hasData;
+      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh${isFirst ? '?first=true' : ''}`, {
         method: 'POST',
+        headers: {
+          ...(isFirst ? { 'x-first-visit': 'true' } : {}),
+        },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -99,6 +111,12 @@ export default function UserDashboardPage({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refreshStatus', normalizedUsername] });
+    },
+    onError: () => {
+      dispatch({
+        type: 'POLL_ERROR',
+        errorTimestamp: Date.now(),
+      });
     },
   });
 
@@ -111,7 +129,7 @@ export default function UserDashboardPage({
     refetch: refetchProfile,
     isFetching: isProfileFetching,
   } = useQuery<UserSummary>({
-    queryKey: ['userProfile', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'summary'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}`);
       if (res.status === 404) throw new Error('USER_NOT_FOUND');
@@ -123,32 +141,91 @@ export default function UserDashboardPage({
       return res.json();
     },
     enabled: isValid,
+    placeholderData: (prev) => prev,
     retry: 1,
   });
 
   // ── 2. User Capabilities Query ──
-  const { data: capabilities } = useQuery<UserCapabilities>({
-    queryKey: ['capabilities', normalizedUsername],
+  const { data: capabilities, isLoading: isCapabilitiesLoading } = useQuery<UserCapabilities>({
+    queryKey: ['dashboard', normalizedUsername, 'capabilities'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/capabilities`);
       if (!res.ok) throw new Error('FAILED_TO_LOAD_CAPABILITIES');
       return res.json();
     },
     enabled: isValid,
+    placeholderData: (prev) => prev,
     retry: 1,
   });
 
-  const isSyncRunning = refreshStatus?.state === 'RUNNING' || refreshStatus?.state === 'PENDING';
+  const isSyncRunning =
+    refreshStatus?.state === 'RUNNING' ||
+    refreshStatus?.state === 'PENDING' ||
+    refreshStatus?.state === 'QUEUED';
+
   const hasData = Boolean(
     userProfile?.hasData ||
     (capabilities && Object.values(capabilities).some((c: unknown) => typeof c === 'object' && c !== null && 'hasData' in c && Boolean((c as CapabilityStatus).hasData)))
   );
 
+  // Sync state machine on initial check completion
+  useEffect(() => {
+    if (stateCtx.state !== 'CHECKING') return;
+    if (isProfileLoading || isCapabilitiesLoading) return;
+
+    if (isProfileError) {
+      dispatch({
+        type: 'CHECK_INITIAL_RESPONSE',
+        hasData: false,
+        isUserNotFound: profileError?.message === 'USER_NOT_FOUND',
+        isBackendError: profileError?.message === 'BACKEND_UNREACHABLE',
+        errorMessage: profileError?.message,
+      });
+      return;
+    }
+
+    dispatch({
+      type: 'CHECK_INITIAL_RESPONSE',
+      hasData,
+      isSyncActive: isSyncRunning,
+    });
+  }, [
+    stateCtx.state,
+    isProfileLoading,
+    isCapabilitiesLoading,
+    isProfileError,
+    profileError,
+    hasData,
+    isSyncRunning,
+  ]);
+
+  // Tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      dispatch({
+        type: 'TAB_VISIBILITY_CHANGED',
+        isVisible: !document.hidden,
+      });
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Sync state machine when refresh status updates from polling
+  useEffect(() => {
+    if (refreshStatus) {
+      dispatch({
+        type: 'POLL_SUCCESS',
+        statusState: refreshStatus.state,
+      });
+    }
+  }, [refreshStatus]);
+
   // Auto-start sync if first visit has no cached data
   useEffect(() => {
     if (
       isValid &&
-      !isProfileLoading &&
+      stateCtx.state === 'SYNCING' &&
       !hasData &&
       !isSyncRunning &&
       refreshStatus?.state !== 'SUCCESS' &&
@@ -159,159 +236,203 @@ export default function UserDashboardPage({
     ) {
       startSyncMutation.mutate();
     }
-  }, [isValid, isProfileLoading, hasData, isSyncRunning, refreshStatus?.state, startSyncMutation]);
+  }, [isValid, stateCtx.state, hasData, isSyncRunning, refreshStatus?.state, startSyncMutation]);
+
+  // In LOADING_DATA state: invalidate and refetch all queries concurrently before READY
+  useEffect(() => {
+    if (stateCtx.state !== 'LOADING_DATA') return;
+    let isCancelled = false;
+
+    async function refetchAllQueries() {
+      try {
+        await queryClient.refetchQueries({
+          queryKey: ['dashboard', normalizedUsername],
+          exact: false,
+        });
+        if (!isCancelled) {
+          dispatch({ type: 'DATA_REFETCH_COMPLETE', hasAnyData: true });
+        }
+      } catch {
+        // Retry once upon failure
+        try {
+          await queryClient.refetchQueries({
+            queryKey: ['dashboard', normalizedUsername],
+            exact: false,
+          });
+          if (!isCancelled) {
+            dispatch({ type: 'DATA_REFETCH_COMPLETE', hasAnyData: true });
+          }
+        } catch {
+          if (!isCancelled) {
+            // Still proceed to READY so partial notice or available data is displayed
+            dispatch({
+              type: 'DATA_REFETCH_COMPLETE',
+              hasAnyData: true,
+              hasErrors: true,
+            });
+          }
+        }
+      }
+    }
+
+    refetchAllQueries();
+    return () => {
+      isCancelled = true;
+    };
+  }, [stateCtx.state, normalizedUsername, queryClient]);
 
   const slices = refreshStatus?.slices || [];
   const completedSlices = slices.filter(
     (s: SliceResult) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
   ).length;
 
-  const isInitialSyncOrLoading = isProfileLoading || isSyncRunning || (!hasData && refreshStatus?.state !== 'FAILED' && refreshStatus?.state !== 'SUCCESS');
+  // Active query subscriptions for all telemetry panels
+  const shouldFetchPanels = hasData || stateCtx.state === 'LOADING_DATA';
 
   // ── 3. Detailed Profile Query ──
-  // ── 3. Detailed Profile Query ──
-  const shouldFetchProfile = hasData;
   const { data: detailedProfile } = useQuery<UserProfile>({
-    queryKey: ['detailedProfile', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'profile'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/profile`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchProfile,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 4. Contribution Calendar Query ──
-  const shouldFetchCalendar = hasData;
   const { data: contributionCalendar, isLoading: isCalendarLoading } = useQuery<ContributionCalendar>({
-    queryKey: ['contributions', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'contributions'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/contributions`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchCalendar,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 5. Repositories Query ──
-  const {
-    data: repos,
-  } = useQuery<Repository[]>({
-    queryKey: ['repos', normalizedUsername],
+  const { data: repos } = useQuery<Repository[]>({
+    queryKey: ['dashboard', normalizedUsername, 'repos'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/repos`);
       if (res.status === 503) throw new Error('BACKEND_UNREACHABLE');
       if (!res.ok) throw new Error('FAILED_TO_LOAD_REPOS');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
     retry: 1,
   });
 
   // ── 6. Languages Query ──
-  const shouldFetchLanguages = hasData;
   const { data: languagesData, isLoading: isLanguagesLoading } = useQuery<LanguageOverviewResponse>({
-    queryKey: ['languages', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'languages'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/languages`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchLanguages,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 7. Repo Insights Query ──
-  const shouldFetchRepoInsights = hasData;
   const { data: repoInsights, isLoading: isRepoInsightsLoading } = useQuery<RepoInsights>({
-    queryKey: ['repoInsights', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'repoInsights'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/repos/insights`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchRepoInsights,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 8. PR Summary Query ──
-  const shouldFetchPr = hasData;
   const { data: prSummary, isLoading: isPrLoading } = useQuery<PrSummary>({
-    queryKey: ['prSummary', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'prs'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/prs/summary`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchPr,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 9. Issue Summary Query ──
-  const shouldFetchIssue = hasData;
   const { data: issueSummary, isLoading: isIssueLoading } = useQuery<IssueSummary>({
-    queryKey: ['issueSummary', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'issues'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/issues/summary`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchIssue,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 10. User Activity Query ──
-  const shouldFetchActivity = hasData;
   const { data: userActivity, isLoading: isActivityLoading } = useQuery<UserActivity>({
-    queryKey: ['userActivity', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'activity'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/activity`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchActivity,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 11. Commit Summary Query ──
-  const shouldFetchCommits = hasData;
   const { data: commitSummary, isLoading: isCommitSummaryLoading } = useQuery<CommitSummary>({
-    queryKey: ['commitSummary', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'commits'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/commits/summary`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchCommits,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 12. Hourly Productivity Query ──
-  const shouldFetchRhythm = hasData;
   const { data: commitHourStats, isLoading: isCommitHourLoading } = useQuery<CommitHourStats[]>({
-    queryKey: ['commitHour', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'commitHour'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/commits/by-hour`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchRhythm,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 13. Weekday Productivity Query ──
   const { data: commitWeekdayStats, isLoading: isCommitWeekdayLoading } = useQuery<CommitWeekdayStats[]>({
-    queryKey: ['commitWeekday', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'commitWeekday'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/commits/by-weekday`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchRhythm,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // ── 14. Recent Commits Query ──
   const { data: recentCommits, isLoading: isRecentCommitsLoading } = useQuery<RecentCommit[]>({
-    queryKey: ['recentCommits', normalizedUsername],
+    queryKey: ['dashboard', normalizedUsername, 'recentCommits'],
     queryFn: async () => {
       const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/analytics/commits/recent?limit=10`);
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && shouldFetchCommits,
+    enabled: isValid && shouldFetchPanels,
+    placeholderData: (prev) => prev,
   });
 
   // Single top notice for sync failures
@@ -327,6 +448,8 @@ export default function UserDashboardPage({
   const showRhythm = hasData;
   const showPr = hasData;
   const showIssue = hasData;
+
+  const showStableLoader = stateCtx.state === 'SYNCING' || stateCtx.state === 'LOADING_DATA';
 
   return (
     <div className="relative min-h-screen bg-transparent text-zinc-100 selection:bg-zinc-800 selection:text-zinc-100 overflow-x-hidden">
@@ -355,13 +478,8 @@ export default function UserDashboardPage({
               <span>Back to Search</span>
             </Link>
           </div>
-        ) : isProfileError && profileError?.message === 'BACKEND_UNREACHABLE' ? (
-          /* State B: Backend Unreachable */
-          <div className="flex-1 flex flex-col justify-center items-center p-6">
-            <ErrorState onRetry={() => refetchProfile()} isRetrying={isProfileFetching} />
-          </div>
-        ) : isProfileError && profileError?.message === 'USER_NOT_FOUND' ? (
-          /* State C: User Not Found on GitHub (404) */
+        ) : stateCtx.state === 'NOT_FOUND' ? (
+          /* State B: User Not Found on GitHub (404) */
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <div className="w-16 h-16 rounded-lg bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4">
               <UserX className="w-8 h-8 text-rose-400" />
@@ -379,8 +497,19 @@ export default function UserDashboardPage({
               <span>Search Another User</span>
             </Link>
           </div>
+        ) : stateCtx.state === 'FAILED' ? (
+          /* State C: Failure / Connection Lost with Retry */
+          <div className="flex-1 flex flex-col justify-center items-center p-6">
+            <ErrorState
+              onRetry={() => {
+                dispatch({ type: 'USER_RETRY' });
+                refetchProfile();
+              }}
+              isRetrying={isProfileFetching}
+            />
+          </div>
         ) : (
-          /* State D: Dashboard Telemetry (Header + Body: Skeleton, First Visit, or Telemetry) */
+          /* State D: Dashboard Telemetry (Header + Body: Skeleton, Loader, or Dashboard) */
           <>
             {/* ── Fixed Floating Apple Liquid Glass Header ── */}
             <header className="sticky top-0 z-40 w-full px-4 sm:px-6 lg:px-8 pt-3 pb-2 pointer-events-none">
@@ -442,33 +571,48 @@ export default function UserDashboardPage({
             {/* ── Main Container ── */}
             <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex-1 w-full">
               {/* Single Notice near top if any slice failed */}
-              {failedSlicesNotice && (
+              {failedSlicesNotice && stateCtx.state === 'READY' && (
                 <div className="mb-6 px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2.5 shadow-sm">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span>{failedSlicesNotice}</span>
                 </div>
               )}
 
-              {/* State 1: Clean Minimal Loader during sync and loading */}
-              {isInitialSyncOrLoading ? (
-                <DashboardLoader
-                  username={normalizedUsername}
-                  step={refreshStatus?.currentStep}
-                  completedSlices={completedSlices}
-                  totalSlices={9}
-                />
-              ) : !hasData ? (
-                /* State 2: Unsynced or Empty account */
+              {/* State 1: Checking with existing data shows Skeleton */}
+              {stateCtx.state === 'CHECKING' && hasData ? (
+                <DashboardSkeleton />
+              ) : showStableLoader ? (
+                /* State 2: Single stable loader during SYNCING and LOADING_DATA */
+                <AnimatePresence mode="wait">
+                  <DashboardLoader
+                    key="stable-dashboard-loader"
+                    username={normalizedUsername}
+                    statusState={refreshStatus?.state}
+                    queuePosition={refreshStatus?.queuePosition}
+                    step={stateCtx.state === 'LOADING_DATA' ? 'Loading telemetry panels...' : refreshStatus?.currentStep}
+                    completedSlices={completedSlices}
+                    totalSlices={9}
+                    startTime={syncStartTime}
+                  />
+                </AnimatePresence>
+              ) : stateCtx.state === 'READY' && !hasData ? (
+                /* State 3: Unsynced or Empty account */
                 <ProfileSyncPanel
                   username={normalizedUsername}
-                  status={refreshStatus?.state === 'FAILED' ? 'error' : 'idle'}
+                  status={refreshStatus?.state === 'FAILED' || startSyncMutation.isError ? 'error' : 'idle'}
+                  errorMessage={startSyncMutation.error?.message || (refreshStatus?.state === 'FAILED' ? refreshStatus?.errorMessage : null)}
                   onStartSync={() => startSyncMutation.mutate()}
                   isStarting={startSyncMutation.isPending}
                 />
               ) : (
-                /* State 3: Complete Telemetry Dashboard with all results */
-                <div className="space-y-8">
-
+                /* State 4: Complete Telemetry Dashboard with all results */
+                <motion.div
+                  key="ready-telemetry-dashboard"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  className="space-y-8"
+                >
                   {/* 1. Developer Profile Banner (Render only if profile has data) */}
                   {showProfile && (
                     <section className="p-6 sm:p-8 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -664,7 +808,7 @@ export default function UserDashboardPage({
                       Commits are matched by GitHub username. Commits authored under unlinked git emails are not counted. Data is cached from GitHub&apos;s public API and can be removed on request.
                     </p>
                   </footer>
-                </div>
+                </motion.div>
               )}
             </main>
           </>

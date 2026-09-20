@@ -66,13 +66,19 @@ public class UserRefreshController {
             }
         }
 
-        refreshManager.startRefresh(normalized);
+        RefreshStatusResponse statusResponse = refreshManager.startRefresh(normalized);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
-                "message", "Refresh started in background for user: " + normalized,
-                "status", "RUNNING",
-                "username", normalized
-        ));
+        java.util.Map<String, String> responseBody = new java.util.LinkedHashMap<>();
+        responseBody.put("username", normalized);
+        responseBody.put("status", statusResponse.state().name());
+        if (statusResponse.state() == com.analytics.github.model.RefreshState.QUEUED) {
+            responseBody.put("message", "Refresh queued for user: " + normalized);
+            responseBody.put("queuePosition", statusResponse.queuePosition() != null ? String.valueOf(statusResponse.queuePosition()) : "1");
+        } else {
+            responseBody.put("message", "Refresh started in background for user: " + normalized);
+        }
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(responseBody);
     }
 
     @GetMapping("/status")

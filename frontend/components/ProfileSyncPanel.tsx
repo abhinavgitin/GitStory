@@ -10,6 +10,7 @@ interface ProfileSyncPanelProps {
   status?: SyncStatus;
   onStartSync?: () => void;
   isStarting?: boolean;
+  errorMessage?: string | null;
 }
 
 class SeededRandom {
@@ -136,6 +137,7 @@ export function ProfileSyncPanel({
   status = 'syncing',
   onStartSync,
   isStarting = false,
+  errorMessage,
 }: ProfileSyncPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -199,13 +201,14 @@ export function ProfileSyncPanel({
       : 'Syncing profile';
 
   const subtitle =
-    status === 'complete'
+    errorMessage ||
+    (status === 'complete'
       ? 'Public data is ready'
       : status === 'error'
       ? 'Please try refreshing again'
       : status === 'idle'
       ? 'Ready to ingest public data'
-      : 'Fetching public data';
+      : 'Fetching public data');
 
   return (
     <div
@@ -230,20 +233,20 @@ export function ProfileSyncPanel({
           @{username}
         </p>
 
-        <p className="mt-4 text-[11px] text-white/35">
+        <p className="mt-4 text-[11px] text-white/35 max-w-xs leading-relaxed">
           {subtitle}
         </p>
 
-        {/* Action Button for idle state or active pulse */}
-        {status === 'idle' && onStartSync && (
+        {/* Action Button for idle and error states */}
+        {(status === 'idle' || status === 'error') && onStartSync && (
           <div className="mt-6">
             <button
               onClick={onStartSync}
               disabled={isStarting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 transition-all active:scale-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 transition-all duration-150 active:scale-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${isStarting ? 'animate-spin' : ''}`} />
-              <span>{isStarting ? 'Starting...' : 'Sync Profile'}</span>
+              <RotateCcw className={`w-3.5 h-3.5 ${isStarting ? 'animate-spin motion-reduce:animate-none' : ''}`} />
+              <span>{isStarting ? 'Starting...' : status === 'error' ? 'Try Again' : 'Sync Profile'}</span>
             </button>
           </div>
         )}

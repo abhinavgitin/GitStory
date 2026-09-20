@@ -67,8 +67,21 @@ export interface SliceResult {
   reason: string | null;
 }
 
+export type RefreshState = 'IDLE' | 'QUEUED' | 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+
+export type RefreshErrorType = 'USER_COOLDOWN' | 'SERVER_BUSY' | 'NEW_USER_LIMIT' | 'CLIENT_RATE_LIMIT' | 'REFRESH_ALREADY_ACTIVE';
+
+export interface RefreshErrorResponse {
+  status?: number;
+  error?: string;
+  errorType?: RefreshErrorType;
+  message?: string;
+  cooldownRemainingSeconds?: number;
+  retryAfterSeconds?: number;
+}
+
 export interface RefreshStatus {
-  state: 'IDLE' | 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  state: RefreshState;
   currentStep: string | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -79,6 +92,7 @@ export interface RefreshStatus {
   commitsSynced: number;
   errorMessage: string | null;
   slices: SliceResult[];
+  queuePosition?: number | null;
 }
 
 export interface CommitSummary {

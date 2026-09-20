@@ -5,6 +5,7 @@ package com.analytics.github.model;
  */
 public enum RefreshState {
     IDLE,
+    QUEUED,
     PENDING,
     RUNNING,
     SUCCESS,

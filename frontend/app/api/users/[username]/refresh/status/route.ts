@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
 
 export async function GET(
   _request: Request,
@@ -12,7 +19,7 @@ export async function GET(
   if (!isValidGitHubUsername(username)) {
     return NextResponse.json(
       { error: 'Invalid username format', username },
-      { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+      { status: 400, headers: NO_CACHE_HEADERS }
     );
   }
 
@@ -27,7 +34,7 @@ export async function GET(
       },
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
     return NextResponse.json(data, {
       status: res.status,
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },

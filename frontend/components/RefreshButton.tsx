@@ -17,7 +17,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
   const [lastError, setLastError] = useState<string | null>(null);
   const runningStartRef = useRef<number | null>(null);
 
-  // Poll status while RUNNING or PENDING, up to 180 seconds, pauses when tab is hidden
+  // Poll status while RUNNING, PENDING, or QUEUED, up to 360 seconds (180s run + queue), pauses when tab is hidden
   const { data: status } = useQuery<RefreshStatus>({
     queryKey: ['refreshStatus', username],
     queryFn: async () => {
@@ -27,7 +27,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     },
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      if (state === 'RUNNING' || state === 'PENDING') {
+      if (state === 'RUNNING' || state === 'PENDING' || state === 'QUEUED') {
         if (!runningStartRef.current) {
           runningStartRef.current = Date.now();
         }
@@ -64,7 +64,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     prevStatusStateRef.current = currentState;
 
     if (
-      (prevState === 'RUNNING' || prevState === 'PENDING') &&
+      (prevState === 'RUNNING' || prevState === 'PENDING' || prevState === 'QUEUED') &&
       (currentState === 'SUCCESS' || currentState === 'PARTIAL')
     ) {
       queryClient.invalidateQueries({ queryKey: ['capabilities', username] });
@@ -95,9 +95,29 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       const body = await res.json().catch(() => ({}));
 
       if (res.status === 429) {
-        const remaining = body.cooldownRemainingSeconds || 900;
-        setCooldownRemaining(remaining);
-        throw new Error(`Cooldown active: refresh available in ${Math.ceil(remaining / 60)} minutes.`);
+        // Cooldown countdown applies ONLY to USER_COOLDOWN
+        if (body.errorType === 'USER_COOLDOWN' && typeof body.cooldownRemainingSeconds === 'number' && body.cooldownRemainingSeconds > 0) {
+          setCooldownRemaining(body.cooldownRemainingSeconds);
+          throw new Error(`Profile recently refreshed: available in ${Math.ceil(body.cooldownRemainingSeconds / 60)} minutes.`);
+        }
+
+        // Never set cooldown timer for non-cooldown 429 errors
+        setCooldownRemaining(0);
+
+        if (body.errorType === 'SERVER_BUSY') {
+          const retrySec = body.retryAfterSeconds || 15;
+          throw new Error(`The server is busy right now. Try again in about ${retrySec} seconds.`);
+        }
+
+        if (body.errorType === 'NEW_USER_LIMIT') {
+          throw new Error('This site can add about 30 new users per hour and that limit was reached. Please try again later.');
+        }
+
+        if (body.errorType === 'CLIENT_RATE_LIMIT') {
+          throw new Error('Too many refresh requests from your connection. Please wait a few minutes.');
+        }
+
+        throw new Error(body.message || 'Request limit reached. Please try again shortly.');
       }
 
       if (!res.ok) {
@@ -114,6 +134,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     },
   });
 
+  const isQueued = status?.state === 'QUEUED';
   const isRunning = status?.state === 'RUNNING' || status?.state === 'PENDING' || mutation.isPending;
   const isCooldown = cooldownRemaining > 0;
 
@@ -164,8 +185,16 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+      {/* Queued State Pill (Calm tone) */}
+      {isQueued && !isCooldown && (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
+          <Clock className="w-3.5 h-3.5 text-zinc-400" />
+          <span>You are in line, position {status?.queuePosition || 1}.</span>
+        </span>
+      )}
+
       {/* Slice Progress Pill when running */}
-      {isRunning && (
+      {isRunning && !isQueued && (
         <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse motion-reduce:animate-none">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           <span className="font-mono">
@@ -175,14 +204,14 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       )}
 
       {/* Terminal State Badge (Updated just now / Partly updated) */}
-      {!isRunning && !isCooldown && status?.state === 'SUCCESS' && (
+      {!isRunning && !isQueued && !isCooldown && status?.state === 'SUCCESS' && (
         <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <CheckCircle2 className="w-3.5 h-3.5" />
           <span>{finalLabel || 'Updated just now'}</span>
         </span>
       )}
 
-      {!isRunning && !isCooldown && status?.state === 'PARTIAL' && (
+      {!isRunning && !isQueued && !isCooldown && status?.state === 'PARTIAL' && (
         <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Partly updated</span>
@@ -211,10 +240,10 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       {/* Tactile Refresh Button */}
       <button
         onClick={() => mutation.mutate()}
-        disabled={isRunning || isCooldown}
+        disabled={isRunning || isQueued || isCooldown}
         aria-label="Refresh developer telemetry"
         className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-md text-xs font-semibold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
-          isRunning || isCooldown
+          isRunning || isQueued || isCooldown
             ? 'bg-zinc-800/60 text-zinc-500 border border-zinc-800/90 shadow-none cursor-not-allowed'
             : 'bg-zinc-200 hover:bg-zinc-100 text-zinc-950 border border-zinc-300/40'
         }`}
@@ -224,12 +253,20 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
             isRunning ? 'animate-spin motion-reduce:animate-none text-zinc-400' : 'text-zinc-900'
           }`}
         />
-        <span>{isRunning ? 'Syncing...' : isCooldown ? 'On Cooldown' : 'Refresh Data'}</span>
+        <span>{isQueued ? 'In Line...' : isRunning ? 'Syncing...' : isCooldown ? 'On Cooldown' : 'Refresh Data'}</span>
       </button>
 
       {lastError && !isCooldown && (
-        <div className="w-full text-right text-[11px] text-rose-400/90 pr-1">
-          {lastError}
+        <div className="w-full text-right text-[11px] text-zinc-400 flex items-center justify-end gap-2 pr-1">
+          <span>{lastError}</span>
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            className="underline hover:text-white text-zinc-300 cursor-pointer font-medium"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

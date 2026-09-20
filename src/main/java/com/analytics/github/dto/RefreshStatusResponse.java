@@ -22,7 +22,8 @@ public record RefreshStatusResponse(
     int reposFailed,
     int commitsSynced,
     String errorMessage,
-    List<SliceResult> slices
+    List<SliceResult> slices,
+    Integer queuePosition
 ) {
     public RefreshStatusResponse {
         slices = slices != null ? List.copyOf(slices) : Collections.emptyList();
@@ -38,9 +39,25 @@ public record RefreshStatusResponse(
         int reposSkipped,
         int reposFailed,
         int commitsSynced,
+        String errorMessage,
+        List<SliceResult> slices
+    ) {
+        this(state, currentStep, startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, errorMessage, slices, null);
+    }
+
+    public RefreshStatusResponse(
+        RefreshState state,
+        String currentStep,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant lastSyncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
         String errorMessage
     ) {
-        this(state, currentStep, startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, errorMessage, Collections.emptyList());
+        this(state, currentStep, startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, errorMessage, Collections.emptyList(), null);
     }
 
     public static RefreshStatusResponse initial(Instant lastSyncedAt) {
@@ -55,7 +72,25 @@ public record RefreshStatusResponse(
             0,
             0,
             null,
-            Collections.emptyList()
+            Collections.emptyList(),
+            null
+        );
+    }
+
+    public static RefreshStatusResponse queued(Instant startedAt, Instant lastSyncedAt, int queuePosition) {
+        return new RefreshStatusResponse(
+            RefreshState.QUEUED,
+            "QUEUED",
+            startedAt,
+            null,
+            lastSyncedAt,
+            0,
+            0,
+            0,
+            0,
+            null,
+            Collections.emptyList(),
+            queuePosition
         );
     }
 

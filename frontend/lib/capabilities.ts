@@ -56,6 +56,9 @@ export function getPollingInterval(
   if (state === 'SUCCESS' || state === 'PARTIAL' || state === 'FAILED' || state === 'IDLE') {
     return false;
   }
+  if (state === 'QUEUED') {
+    return elapsedSeconds >= 360 ? false : 1000;
+  }
   if (state === 'RUNNING' || state === 'PENDING') {
     if (elapsedSeconds >= 180) {
       return false;

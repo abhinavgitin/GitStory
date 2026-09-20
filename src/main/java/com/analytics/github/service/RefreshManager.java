@@ -3,15 +3,18 @@ package com.analytics.github.service;
 import com.analytics.github.config.AppProperties;
 import com.analytics.github.dto.RefreshStatusResponse;
 import com.analytics.github.exception.ConcurrencyLimitExceededException;
-import com.analytics.github.exception.RefreshCooldownException;
+import com.analytics.github.exception.NewUserLimitExceededException;
 import com.analytics.github.exception.RefreshConflictException;
+import com.analytics.github.exception.RefreshCooldownException;
+import com.analytics.github.exception.ServerBusyException;
+import com.analytics.github.model.NewUserRefreshDocument;
 import com.analytics.github.model.RefreshState;
 import com.analytics.github.model.SyncMetadataDocument;
+import com.analytics.github.repository.NewUserRefreshMongoRepository;
 import com.analytics.github.repository.SyncMetadataMongoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.task.TaskRejectedException;
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -22,27 +25,53 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Coordinates per-user refresh lifecycle.
- * Manages per-username concurrency via ConcurrentHashMap, enforces global refresh cap
- * via AtomicInteger, guarantees atomic cooldown check & write in MongoDB, and records
- * persistent synchronization metadata.
+ * Manages per-username concurrency via ConcurrentHashMap, enforces global running cap & FIFO queue,
+ * checks hourly new-user quota, and guarantees atomic cooldown check & write in MongoDB.
  */
 @Service
 public class RefreshManager {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshManager.class);
 
+    public record QueuedRefresh(
+        String username,
+        Instant queuedAt,
+        Instant lastSyncedAt
+    ) {}
+
     private final ConcurrentHashMap<String, RefreshStatusResponse> userStates = new ConcurrentHashMap<>();
+    private final ConcurrentLinkedQueue<QueuedRefresh> refreshQueue = new ConcurrentLinkedQueue<>();
     private final AtomicInteger activeRefreshesCount = new AtomicInteger(0);
+    private final Object lock = new Object();
 
     private final SyncMetadataMongoRepository syncMetadataMongoRepository;
     private final MongoTemplate mongoTemplate;
     private final AppProperties appProperties;
     private final UsernameValidator usernameValidator;
     private final AsyncRefreshRunner asyncRefreshRunner;
+    private final NewUserRefreshMongoRepository newUserRefreshMongoRepository;
+
+    @Autowired
+    public RefreshManager(
+        SyncMetadataMongoRepository syncMetadataMongoRepository,
+        MongoTemplate mongoTemplate,
+        AppProperties appProperties,
+        UsernameValidator usernameValidator,
+        AsyncRefreshRunner asyncRefreshRunner,
+        @Autowired(required = false) NewUserRefreshMongoRepository newUserRefreshMongoRepository
+    ) {
+        this.syncMetadataMongoRepository = syncMetadataMongoRepository;
+        this.mongoTemplate = mongoTemplate;
+        this.appProperties = appProperties;
+        this.usernameValidator = usernameValidator;
+        this.asyncRefreshRunner = asyncRefreshRunner;
+        this.newUserRefreshMongoRepository = newUserRefreshMongoRepository;
+    }
 
     public RefreshManager(
         SyncMetadataMongoRepository syncMetadataMongoRepository,
@@ -51,91 +80,141 @@ public class RefreshManager {
         UsernameValidator usernameValidator,
         AsyncRefreshRunner asyncRefreshRunner
     ) {
-        this.syncMetadataMongoRepository = syncMetadataMongoRepository;
-        this.mongoTemplate = mongoTemplate;
-        this.appProperties = appProperties;
-        this.usernameValidator = usernameValidator;
-        this.asyncRefreshRunner = asyncRefreshRunner;
+        this(syncMetadataMongoRepository, mongoTemplate, appProperties, usernameValidator, asyncRefreshRunner, null);
     }
 
     public RefreshStatusResponse startRefresh(String rawUsername) {
         String username = usernameValidator.validateAndNormalize(rawUsername);
         Instant now = Instant.now();
 
-        // Ensure sync metadata document exists so findAndModify with upsert:false works cleanly without E11000 DuplicateKey
-        if (!syncMetadataMongoRepository.existsById(username)) {
-            try {
-                syncMetadataMongoRepository.insert(new SyncMetadataDocument(
-                        username, null, null, RefreshState.IDLE, 0, 0, 0, 0, null
-                ));
-            } catch (Exception ignored) {
-                // Ignore concurrent insert collision
-            }
+        // 1. Check if already RUNNING or QUEUED
+        RefreshStatusResponse existing = userStates.get(username);
+        if (existing != null && (existing.state() == RefreshState.RUNNING || existing.state() == RefreshState.QUEUED)) {
+            log.info("Refresh already active for user {}: state={}", username, existing.state());
+            throw new RefreshConflictException("A refresh is already running for user " + username);
         }
 
-        // 1. Atomic Cooldown Check & lastRefreshStartedAt write in one guarded MongoDB step
+        // 2. Cooldown check: strictly per lowercase username
+        Optional<SyncMetadataDocument> metaOpt = syncMetadataMongoRepository.findById(username);
         int cooldownMinutes = appProperties.refresh().cooldownMinutes();
         Instant cooldownThreshold = now.minus(Duration.ofMinutes(cooldownMinutes));
 
+        if (metaOpt.isPresent() && metaOpt.get().lastRefreshStartedAt() != null) {
+            Instant lastStarted = metaOpt.get().lastRefreshStartedAt();
+            if (lastStarted.isAfter(cooldownThreshold)) {
+                long elapsed = Duration.between(lastStarted, now).getSeconds();
+                long remainingSec = Math.max(1, (cooldownMinutes * 60L) - elapsed);
+                log.warn("Refresh blocked by cooldown for user {}. Remaining: {}s", username, remainingSec);
+                throw new RefreshCooldownException(remainingSec);
+            }
+        }
+
+        // 3. New User Limit Check (30 new users per hour)
+        // A new user is a username with no stored sync_metadata or lastSyncedAt == null.
+        boolean isNewUser = metaOpt.isEmpty() || metaOpt.get().lastSyncedAt() == null;
+        int maxNewUsers = appProperties.refresh().maxNewUsersPerHour();
+        if (isNewUser && newUserRefreshMongoRepository != null) {
+            Instant oneHourAgo = now.minus(Duration.ofMinutes(60));
+            long currentNewUsersCount = newUserRefreshMongoRepository.countByCreatedAtAfter(oneHourAgo);
+            if (currentNewUsersCount >= maxNewUsers) {
+                var oldestList = newUserRefreshMongoRepository.findByCreatedAtAfterOrderByCreatedAtAsc(oneHourAgo);
+                long retryAfter = oldestList.isEmpty() ? 3600L : Math.max(1L, 3600L - Duration.between(oldestList.get(0).createdAt(), now).getSeconds());
+                log.warn("New user limit reached ({}/hr). User {} rejected. Retry in {}s", maxNewUsers, username, retryAfter);
+                throw new NewUserLimitExceededException(retryAfter, maxNewUsers);
+            }
+        }
+
+        // 4. Concurrency and Queue Capacity Check
+        int maxConcurrent = appProperties.refresh().maxConcurrent();
+        int maxQueued = appProperties.refresh().maxQueued();
+        Instant lastSynced = metaOpt.map(SyncMetadataDocument::lastSyncedAt).orElse(null);
+
+        boolean startImmediately = false;
+        int assignedQueuePos = 0;
+
+        synchronized (lock) {
+            if (activeRefreshesCount.get() < maxConcurrent) {
+                activeRefreshesCount.incrementAndGet();
+                startImmediately = true;
+            } else {
+                if (refreshQueue.size() >= maxQueued) {
+                    log.warn("Refresh rejected: queue full (capacity {}), active {}", maxQueued, activeRefreshesCount.get());
+                    throw new ServerBusyException(15L);
+                }
+                refreshQueue.offer(new QueuedRefresh(username, now, lastSynced));
+                assignedQueuePos = refreshQueue.size();
+            }
+        }
+
+        // 5. ACCEPTED: Write cooldown and new-user record ONLY after cap, queue, and new-user checks pass
+        if (isNewUser && newUserRefreshMongoRepository != null) {
+            try {
+                newUserRefreshMongoRepository.save(new NewUserRefreshDocument(username, now));
+            } catch (Exception ex) {
+                log.warn("Failed to record new user audit for {}: {}", username, ex.getMessage());
+            }
+        }
+
+        writeCooldownTimestamp(username, now);
+
+        // 6. Launch or Queue
+        if (startImmediately) {
+            RefreshStatusResponse runningStatus = RefreshStatusResponse.running(now, lastSynced, "STARTING");
+            userStates.put(username, runningStatus);
+            try {
+                asyncRefreshRunner.runAsyncRefresh(username, now, lastSynced, this);
+            } catch (Throwable t) {
+                log.error("Task submission failed for user {}: {}", username, t.getMessage());
+                onTaskComplete(); // release slot immediately and launch next queued if any
+                userStates.put(username, RefreshStatusResponse.failed(now, Instant.now(), lastSynced, "task rejected: refresh capacity exceeded; please try again shortly"));
+                throw new RefreshConflictException("Refresh capacity exceeded; please try again shortly");
+            }
+            return runningStatus;
+        } else {
+            RefreshStatusResponse queuedStatus = RefreshStatusResponse.queued(now, lastSynced, assignedQueuePos);
+            userStates.put(username, queuedStatus);
+            log.info("User {} placed in refresh queue at position {}", username, assignedQueuePos);
+            return queuedStatus;
+        }
+    }
+
+    private void writeCooldownTimestamp(String username, Instant now) {
+        if (!syncMetadataMongoRepository.existsById(username)) {
+            try {
+                syncMetadataMongoRepository.insert(new SyncMetadataDocument(
+                        username, null, now, RefreshState.IDLE, 0, 0, 0, 0, null
+                ));
+                return;
+            } catch (Exception ignored) {
+                // Ignore concurrent insert collision, proceed to update
+            }
+        }
         Query query = new Query(Criteria.where("_id").is(username));
-        Criteria canRefreshCriteria = new Criteria().orOperator(
-                Criteria.where("lastRefreshStartedAt").exists(false),
-                Criteria.where("lastRefreshStartedAt").isNull(),
-                Criteria.where("lastRefreshStartedAt").lt(cooldownThreshold)
-        );
-        query.addCriteria(canRefreshCriteria);
-
         Update update = new Update().set("lastRefreshStartedAt", now);
+        mongoTemplate.updateFirst(query, update, SyncMetadataDocument.class);
+    }
 
-        FindAndModifyOptions options = FindAndModifyOptions.options().upsert(false).returnNew(true);
-        SyncMetadataDocument updated = mongoTemplate.findAndModify(query, update, options, SyncMetadataDocument.class);
-
-        if (updated == null) {
-            // Document exists and lastRefreshStartedAt >= cooldownThreshold
-            Optional<SyncMetadataDocument> existing = syncMetadataMongoRepository.findById(username);
-            long remainingSec = cooldownMinutes * 60L;
-            if (existing.isPresent() && existing.get().lastRefreshStartedAt() != null) {
-                long elapsed = Duration.between(existing.get().lastRefreshStartedAt(), now).getSeconds();
-                remainingSec = Math.max(1, (cooldownMinutes * 60L) - elapsed);
+    public void onTaskComplete() {
+        QueuedRefresh next = null;
+        synchronized (lock) {
+            next = refreshQueue.poll();
+            if (next == null) {
+                activeRefreshesCount.decrementAndGet();
             }
-            log.warn("Refresh blocked by cooldown for user {}. Remaining: {}s", username, remainingSec);
-            throw new RefreshCooldownException(remainingSec);
         }
 
-        // 2. Atomic per-user in-memory concurrency guard
-        RefreshStatusResponse current = userStates.compute(username, (user, existing) -> {
-            if (existing != null && existing.state() == RefreshState.RUNNING) {
-                log.warn("Rejected concurrent refresh request for user {}; sync is already running", username);
-                throw new RefreshConflictException("A refresh is already running for user " + username);
+        if (next != null) {
+            log.info("Starting queued refresh for user: {}", next.username());
+            Instant runStart = Instant.now();
+            userStates.put(next.username(), RefreshStatusResponse.running(runStart, next.lastSyncedAt(), "STARTING"));
+            try {
+                asyncRefreshRunner.runAsyncRefresh(next.username(), runStart, next.lastSyncedAt(), this);
+            } catch (Throwable t) {
+                log.error("Failed to launch queued task for {}: {}", next.username(), t.getMessage());
+                userStates.put(next.username(), RefreshStatusResponse.failed(runStart, Instant.now(), next.lastSyncedAt(), "Failed to start queued refresh"));
+                onTaskComplete(); // pass slot to next in queue
             }
-            Instant lastSynced = existing != null ? existing.lastSyncedAt() : null;
-            return RefreshStatusResponse.running(now, lastSynced, "STARTING");
-        });
-
-        // 3. Global concurrency cap check
-        int maxConcurrent = appProperties.limits().maxConcurrentRefreshes();
-        if (activeRefreshesCount.get() >= maxConcurrent) {
-            userStates.put(username, RefreshStatusResponse.failed(now, now, current.lastSyncedAt(), "Global concurrency limit reached"));
-            log.warn("Rejected refresh for user {}: active refreshes ({}) reached limit ({})",
-                    username, activeRefreshesCount.get(), maxConcurrent);
-            throw new ConcurrencyLimitExceededException("Maximum concurrent refreshes reached (" + maxConcurrent + "). Please retry shortly.");
         }
-
-        // 4. Increment global counter ONLY after both per-user guard and cooldown pass
-        activeRefreshesCount.incrementAndGet();
-
-        // 5. Submit to background executor with TaskRejectedException safety
-        try {
-            asyncRefreshRunner.runAsyncRefresh(username, now, current.lastSyncedAt(), this);
-        } catch (TaskRejectedException ex) {
-            // Decrement leaked counter immediately if executor rejected task
-            activeRefreshesCount.decrementAndGet();
-            userStates.put(username, RefreshStatusResponse.failed(now, Instant.now(), current.lastSyncedAt(), "Executor queue full; task rejected"));
-            log.error("Task rejected by refresh executor for user {}: {}", username, ex.getMessage());
-            throw new RefreshConflictException("Refresh capacity exceeded; please try again shortly");
-        }
-
-        return userStates.get(username);
     }
 
     public RefreshStatusResponse getStatus(String rawUsername) {
@@ -143,6 +222,22 @@ public class RefreshManager {
 
         RefreshStatusResponse inMemory = userStates.get(username);
         if (inMemory != null) {
+            if (inMemory.state() == RefreshState.QUEUED) {
+                int pos = 1;
+                boolean found = false;
+                synchronized (lock) {
+                    for (QueuedRefresh q : refreshQueue) {
+                        if (q.username().equals(username)) {
+                            found = true;
+                            break;
+                        }
+                        pos++;
+                    }
+                }
+                if (found) {
+                    return RefreshStatusResponse.queued(inMemory.startedAt(), inMemory.lastSyncedAt(), pos);
+                }
+            }
             return inMemory;
         }
 
@@ -368,10 +463,22 @@ public class RefreshManager {
     }
 
     public void decrementActiveRefreshesCount() {
-        activeRefreshesCount.decrementAndGet();
+        onTaskComplete();
     }
 
     public int getActiveRefreshesCount() {
         return activeRefreshesCount.get();
+    }
+
+    public int getQueueSize() {
+        synchronized (lock) {
+            return refreshQueue.size();
+        }
+    }
+
+    public void clearQueue() {
+        synchronized (lock) {
+            refreshQueue.clear();
+        }
     }
 }

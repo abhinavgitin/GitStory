@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/username.test.ts lib/dashboard-flow.test.ts lib/capabilities-visibility.test.ts lib/rate-limit.test.ts"
+    "test": "node --experimental-strip-types --test lib/username.test.ts lib/dashboard-flow.test.ts lib/capabilities-visibility.test.ts lib/rate-limit.test.ts lib/cooldown-and-errors.test.ts lib/state-machine.test.ts lib/fresh-data-and-cache.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.1",

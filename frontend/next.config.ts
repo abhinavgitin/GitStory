@@ -15,8 +15,31 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 180,
+    },
+  },
   async headers() {
     return [
+      {
+        source: '/api/users/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

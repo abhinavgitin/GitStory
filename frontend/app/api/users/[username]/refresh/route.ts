@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
-import { checkRefreshRateLimit, recordRefreshSuccess, getClientIp } from '@/lib/rate-limit';
+import { checkRefreshRateLimit, recordRefreshSuccess, extractClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
 
 export async function POST(
   request: Request,
@@ -13,18 +20,23 @@ export async function POST(
   if (!isValidGitHubUsername(username)) {
     return NextResponse.json(
       { error: 'Invalid username format', username },
-      { status: 400, headers: { 'Cache-Control': 'no-store' } }
+      { status: 400, headers: NO_CACHE_HEADERS }
     );
   }
 
-  // IP rate limiting: maximum 5 refresh requests per IP per hour
-  const clientIp = getClientIp(request);
-  const rateLimit = checkRefreshRateLimit(clientIp);
+  const isFirstVisit =
+    request.headers.get('x-first-visit') === 'true' ||
+    new URL(request.url).searchParams.get('first') === 'true';
+
+  // Per-IP rate limiting (disabled when TRUST_PROXY_HEADER is false or behind shared proxies)
+  const clientIp = extractClientIp(request);
+  const rateLimit = checkRefreshRateLimit(clientIp, isFirstVisit);
   if (!rateLimit.allowed) {
     return NextResponse.json(
       {
         error: 'Too Many Requests',
-        message: `Maximum 5 refresh requests per hour exceeded for your IP. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+        errorType: 'CLIENT_RATE_LIMIT',
+        message: 'Too many refresh requests from your connection. Please wait a few minutes.',
         retryAfterSeconds: rateLimit.retryAfterSeconds,
       },
       {
@@ -55,12 +67,12 @@ export async function POST(
     const data = await res.json().catch(() => ({}));
 
     if (res.status === 200 || res.status === 202) {
-      recordRefreshSuccess(clientIp);
+      recordRefreshSuccess(clientIp, isFirstVisit);
     }
 
     return NextResponse.json(data, {
       status: res.status,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: NO_CACHE_HEADERS,
     });
   } catch {
     return NextResponse.json(
@@ -68,7 +80,7 @@ export async function POST(
         error: 'Backend unreachable',
         message: `Could not connect to Spring Boot backend at ${backendUrl}`,
       },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+      { status: 503, headers: NO_CACHE_HEADERS }
     );
   }
 }

@@ -2,8 +2,10 @@ package com.analytics.github.controller;
 
 import com.analytics.github.exception.ConcurrencyLimitExceededException;
 import com.analytics.github.exception.InvalidUsernameException;
+import com.analytics.github.exception.NewUserLimitExceededException;
 import com.analytics.github.exception.RefreshConflictException;
 import com.analytics.github.exception.RefreshCooldownException;
+import com.analytics.github.exception.ServerBusyException;
 import com.analytics.github.exception.UnauthorizedException;
 import com.analytics.github.exception.UserNotFoundException;
 import org.slf4j.Logger;
@@ -40,7 +42,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RefreshConflictException.class)
     public ResponseEntity<Map<String, Object>> handleRefreshConflict(RefreshConflictException ex) {
         log.warn("Refresh conflict: {}", ex.getMessage());
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("error", HttpStatus.CONFLICT.getReasonPhrase());
+        body.put("errorType", "REFRESH_ALREADY_ACTIVE");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(RefreshCooldownException.class)
@@ -50,15 +58,49 @@ public class GlobalExceptionHandler {
         body.put("timestamp", Instant.now().toString());
         body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
         body.put("error", "Too Many Requests");
+        body.put("errorType", "USER_COOLDOWN");
         body.put("message", ex.getMessage());
         body.put("cooldownRemainingSeconds", ex.getRemainingSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+    }
+
+    @ExceptionHandler(ServerBusyException.class)
+    public ResponseEntity<Map<String, Object>> handleServerBusy(ServerBusyException ex) {
+        log.warn("Refresh server busy: {}", ex.getMessage());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        body.put("error", "Too Many Requests");
+        body.put("errorType", "SERVER_BUSY");
+        body.put("message", ex.getMessage());
+        body.put("retryAfterSeconds", ex.getRetryAfterSeconds());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
 
     @ExceptionHandler(ConcurrencyLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleConcurrencyLimitExceeded(ConcurrencyLimitExceededException ex) {
         log.warn("Refresh concurrency limit reached: {}", ex.getMessage());
-        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        body.put("error", "Too Many Requests");
+        body.put("errorType", "SERVER_BUSY");
+        body.put("message", ex.getMessage());
+        body.put("retryAfterSeconds", 15L);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+    }
+
+    @ExceptionHandler(NewUserLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleNewUserLimitExceeded(NewUserLimitExceededException ex) {
+        log.warn("New user limit reached: {}", ex.getMessage());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        body.put("error", "Too Many Requests");
+        body.put("errorType", "NEW_USER_LIMIT");
+        body.put("message", ex.getMessage());
+        body.put("retryAfterSeconds", ex.getRetryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
 
     @ExceptionHandler(UnauthorizedException.class)

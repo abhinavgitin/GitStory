@@ -36,10 +36,13 @@ app:
   refresh:
     cooldown-minutes: 15
     overall-timeout-seconds: 180
+    max-concurrent: 5
+    max-queued: 10
+    max-new-users-per-hour: 30
   limits:
     max-repos-per-user: 50
     commit-history-months: 12
-    max-concurrent-refreshes: 2
+    max-concurrent-refreshes: 5
 
 management:
   endpoints:

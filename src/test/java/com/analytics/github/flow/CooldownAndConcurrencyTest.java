@@ -141,38 +141,46 @@ class CooldownAndConcurrencyTest {
     }
 
     @Test
-    @DisplayName("C12: Global cap: with 2 refreshes running for different users, 3rd is rejected with 429, and counter returns to 0")
+    @DisplayName("C12: Running cap: 5 running, 6th is QUEUED, queue full returns 429 SERVER_BUSY, and counter does not leak")
     void testGlobalCap_withTwoRunningThirdGets429AndCounterRecovers() {
         when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
                 .thenReturn(new SyncMetadataDocument(
                         USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
                 ));
 
-        // Start user1
-        refreshManager.startRefresh("user1");
-        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(1);
+        // Start 5 concurrent refreshes
+        for (int i = 1; i <= 5; i++) {
+            refreshManager.startRefresh("user" + i);
+        }
+        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(5);
 
-        // Start user2
-        refreshManager.startRefresh("user2");
-        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(2);
+        // 6th is queued
+        RefreshStatusResponse queued = refreshManager.startRefresh("user6");
+        assertThat(queued.state()).isEqualTo(RefreshState.QUEUED);
+        assertThat(queued.queuePosition()).isEqualTo(1);
 
-        // Start user3 -> cap reached (2), rejected with ConcurrencyLimitExceededException
-        assertThatThrownBy(() -> refreshManager.startRefresh("user3"))
-                .isInstanceOf(ConcurrencyLimitExceededException.class)
-                .hasMessageContaining("Maximum concurrent refreshes reached (2)");
+        // Fill remaining queue slots (total 10 queued: user6 to user15)
+        for (int i = 7; i <= 15; i++) {
+            refreshManager.startRefresh("user" + i);
+        }
 
-        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(2);
+        // user16 exceeds maxQueued (10), throws ServerBusyException
+        assertThatThrownBy(() -> refreshManager.startRefresh("user16"))
+                .isInstanceOf(com.analytics.github.exception.ServerBusyException.class);
 
-        // Normal completion of user1 and user2 decrements active count
-        refreshManager.decrementActiveRefreshesCount();
-        refreshManager.decrementActiveRefreshesCount();
+        assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(5);
+
+        // Normal completions decrement active count and drain queue
+        for (int i = 0; i < 15; i++) {
+            refreshManager.onTaskComplete();
+        }
         assertThat(refreshManager.getActiveRefreshesCount()).isEqualTo(0);
 
         // Test executor rejection also does not leak counter:
         doThrow(new TaskRejectedException("Executor full"))
                 .when(asyncRunner).runAsyncRefresh(any(), any(), any(), any());
 
-        assertThatThrownBy(() -> refreshManager.startRefresh("user4"))
+        assertThatThrownBy(() -> refreshManager.startRefresh("userRejection"))
                 .isInstanceOf(RefreshConflictException.class)
                 .hasMessageContaining("Refresh capacity exceeded");
 

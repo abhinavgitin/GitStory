@@ -108,18 +108,31 @@ class RefreshManagerTest {
     }
 
     @Test
-    void startRefresh_whenGlobalCapExceeded_throwsConcurrencyLimitExceededException() {
+    void startRefresh_whenCapReached_queuesRequest_andWhenQueueFull_throwsServerBusyException() {
         when(mongoTemplate.findAndModify(any(Query.class), any(Update.class), any(), eq(SyncMetadataDocument.class)))
                 .thenReturn(new SyncMetadataDocument(
                         USERNAME, null, Instant.now(), RefreshState.IDLE, 0, 0, 0, 0, null
                 ));
 
-        refreshManager.startRefresh("user1");
-        refreshManager.startRefresh("user2");
+        // Max concurrent is 5
+        for (int i = 1; i <= 5; i++) {
+            RefreshStatusResponse res = refreshManager.startRefresh("user" + i);
+            assertThat(res.state()).isEqualTo(RefreshState.RUNNING);
+        }
 
-        assertThatThrownBy(() -> refreshManager.startRefresh("user3"))
-                .isInstanceOf(ConcurrencyLimitExceededException.class)
-                .hasMessageContaining("Maximum concurrent refreshes reached (2)");
+        // 6th to 15th are queued (max-queued is 10)
+        RefreshStatusResponse queuedRes = refreshManager.startRefresh("user6");
+        assertThat(queuedRes.state()).isEqualTo(RefreshState.QUEUED);
+        assertThat(queuedRes.queuePosition()).isEqualTo(1);
+
+        for (int i = 7; i <= 15; i++) {
+            RefreshStatusResponse q = refreshManager.startRefresh("user" + i);
+            assertThat(q.state()).isEqualTo(RefreshState.QUEUED);
+        }
+
+        // 16th exceeds maxQueued -> throws ServerBusyException
+        assertThatThrownBy(() -> refreshManager.startRefresh("user16"))
+                .isInstanceOf(com.analytics.github.exception.ServerBusyException.class);
     }
 
     @Test
