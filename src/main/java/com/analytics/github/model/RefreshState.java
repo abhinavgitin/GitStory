@@ -5,7 +5,10 @@ package com.analytics.github.model;
  */
 public enum RefreshState {
     IDLE,
+    PENDING,
     RUNNING,
     SUCCESS,
-    FAILED
+    PARTIAL,
+    FAILED,
+    SKIPPED
 }

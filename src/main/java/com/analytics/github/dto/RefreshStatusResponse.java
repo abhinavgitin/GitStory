@@ -1,12 +1,15 @@
 package com.analytics.github.dto;
 
 import com.analytics.github.model.RefreshState;
+import com.analytics.github.model.SliceResult;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Immutable status representation returned by GET /api/refresh/status
- * and stored internally in an AtomicReference for thread-safe state publication.
+ * Immutable status representation returned by GET /api/users/{username}/refresh/status
+ * and stored internally in an AtomicReference / ConcurrentHashMap for thread-safe state publication.
  */
 public record RefreshStatusResponse(
     RefreshState state,
@@ -18,8 +21,28 @@ public record RefreshStatusResponse(
     int reposSkipped,
     int reposFailed,
     int commitsSynced,
-    String errorMessage
+    String errorMessage,
+    List<SliceResult> slices
 ) {
+    public RefreshStatusResponse {
+        slices = slices != null ? List.copyOf(slices) : Collections.emptyList();
+    }
+
+    public RefreshStatusResponse(
+        RefreshState state,
+        String currentStep,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant lastSyncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        String errorMessage
+    ) {
+        this(state, currentStep, startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, errorMessage, Collections.emptyList());
+    }
+
     public static RefreshStatusResponse initial(Instant lastSyncedAt) {
         return new RefreshStatusResponse(
             RefreshState.IDLE,
@@ -31,15 +54,20 @@ public record RefreshStatusResponse(
             0,
             0,
             0,
-            null
+            null,
+            Collections.emptyList()
         );
     }
 
     public static RefreshStatusResponse running(Instant startedAt, Instant lastSyncedAt) {
-        return running(startedAt, lastSyncedAt, "STARTING");
+        return running(startedAt, lastSyncedAt, "STARTING", Collections.emptyList());
     }
 
     public static RefreshStatusResponse running(Instant startedAt, Instant lastSyncedAt, String step) {
+        return running(startedAt, lastSyncedAt, step, Collections.emptyList());
+    }
+
+    public static RefreshStatusResponse running(Instant startedAt, Instant lastSyncedAt, String step, List<SliceResult> slices) {
         return new RefreshStatusResponse(
             RefreshState.RUNNING,
             step,
@@ -50,12 +78,13 @@ public record RefreshStatusResponse(
             0,
             0,
             0,
-            null
+            null,
+            slices
         );
     }
 
     public static RefreshStatusResponse success(Instant startedAt, Instant finishedAt, Instant lastSyncedAt, int reposSynced) {
-        return success(startedAt, finishedAt, lastSyncedAt, reposSynced, 0, 0, 0);
+        return success(startedAt, finishedAt, lastSyncedAt, reposSynced, 0, 0, 0, Collections.emptyList());
     }
 
     public static RefreshStatusResponse success(
@@ -67,6 +96,19 @@ public record RefreshStatusResponse(
         int reposFailed,
         int commitsSynced
     ) {
+        return success(startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, Collections.emptyList());
+    }
+
+    public static RefreshStatusResponse success(
+        Instant startedAt,
+        Instant finishedAt,
+        Instant lastSyncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        List<SliceResult> slices
+    ) {
         return new RefreshStatusResponse(
             RefreshState.SUCCESS,
             "DONE",
@@ -77,11 +119,55 @@ public record RefreshStatusResponse(
             reposSkipped,
             reposFailed,
             commitsSynced,
-            null
+            null,
+            slices
+        );
+    }
+
+    public static RefreshStatusResponse partial(
+        Instant startedAt,
+        Instant finishedAt,
+        Instant lastSyncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        String errorMessage
+    ) {
+        return partial(startedAt, finishedAt, lastSyncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, errorMessage, Collections.emptyList());
+    }
+
+    public static RefreshStatusResponse partial(
+        Instant startedAt,
+        Instant finishedAt,
+        Instant lastSyncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        String errorMessage,
+        List<SliceResult> slices
+    ) {
+        return new RefreshStatusResponse(
+            RefreshState.PARTIAL,
+            "DONE",
+            startedAt,
+            finishedAt,
+            lastSyncedAt,
+            reposSynced,
+            reposSkipped,
+            reposFailed,
+            commitsSynced,
+            errorMessage,
+            slices
         );
     }
 
     public static RefreshStatusResponse failed(Instant startedAt, Instant finishedAt, Instant lastSyncedAt, String errorMessage) {
+        return failed(startedAt, finishedAt, lastSyncedAt, errorMessage, Collections.emptyList());
+    }
+
+    public static RefreshStatusResponse failed(Instant startedAt, Instant finishedAt, Instant lastSyncedAt, String errorMessage, List<SliceResult> slices) {
         return new RefreshStatusResponse(
             RefreshState.FAILED,
             "FAILED",
@@ -92,7 +178,8 @@ public record RefreshStatusResponse(
             0,
             0,
             0,
-            errorMessage
+            errorMessage,
+            slices
         );
     }
 }

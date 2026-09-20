@@ -160,7 +160,8 @@ public class RefreshManager {
                     doc.reposSkipped(),
                     doc.reposFailed(),
                     doc.commitsSynced(),
-                    doc.lastErrorMessage()
+                    doc.lastErrorMessage(),
+                    doc.slices()
             );
         }
 
@@ -168,10 +169,15 @@ public class RefreshManager {
     }
 
     public void updateStep(String username, String step) {
+        updateStepAndSlices(username, step, null);
+    }
+
+    public void updateStepAndSlices(String username, String step, java.util.List<com.analytics.github.model.SliceResult> slices) {
         RefreshStatusResponse current = userStates.get(username);
         if (current != null && current.state() == RefreshState.RUNNING) {
-            userStates.put(username, RefreshStatusResponse.running(current.startedAt(), current.lastSyncedAt(), step));
-            log.info("Refresh progress for user {}: current step is {}", username, step);
+            java.util.List<com.analytics.github.model.SliceResult> activeSlices = slices != null ? slices : current.slices();
+            userStates.put(username, RefreshStatusResponse.running(current.startedAt(), current.lastSyncedAt(), step, activeSlices));
+            log.info("Refresh progress for user {}: step={}, activeSlicesCount={}", username, step, activeSlices.size());
         }
     }
 
@@ -185,7 +191,11 @@ public class RefreshManager {
         int reposFailed,
         int commitsSynced
     ) {
-        userStates.put(username, RefreshStatusResponse.success(startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced));
+        RefreshStatusResponse current = userStates.get(username);
+        java.util.List<com.analytics.github.model.SliceResult> slices =
+                current != null && current.slices() != null ? current.slices() : java.util.Collections.emptyList();
+
+        userStates.put(username, RefreshStatusResponse.success(startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, slices));
 
         try {
             syncMetadataMongoRepository.save(new SyncMetadataDocument(
@@ -197,13 +207,92 @@ public class RefreshManager {
                     reposSkipped,
                     reposFailed,
                     commitsSynced,
-                    null
+                    null,
+                    slices
             ));
-            log.info("Saved SUCCESS sync metadata for user {}. SyncedAt: {}, Commits: {}",
-                    username, syncedAt, commitsSynced);
+            log.info("Saved SUCCESS sync metadata for user {}. SyncedAt: {}, Commits: {}, Slices: {}",
+                    username, syncedAt, commitsSynced, slices.size());
         } catch (Exception ex) {
             log.error("Failed to persist sync metadata on success for user {}: {}", username, ex.getMessage());
         }
+    }
+
+    public void onRefreshSuccess(
+        String username,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant syncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        java.util.List<com.analytics.github.model.SliceResult> slices
+    ) {
+        if (slices != null && !slices.isEmpty()) {
+            RefreshStatusResponse current = userStates.get(username);
+            Instant st = current != null ? current.startedAt() : startedAt;
+            Instant ls = current != null ? current.lastSyncedAt() : syncedAt;
+            userStates.put(username, RefreshStatusResponse.running(st, ls, "DONE", slices));
+        }
+        onRefreshSuccess(username, startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced);
+    }
+
+    public void onRefreshPartial(
+        String username,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant syncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        String warningMessage
+    ) {
+        RefreshStatusResponse current = userStates.get(username);
+        java.util.List<com.analytics.github.model.SliceResult> slices =
+                current != null && current.slices() != null ? current.slices() : java.util.Collections.emptyList();
+
+        userStates.put(username, RefreshStatusResponse.partial(startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, warningMessage, slices));
+
+        try {
+            syncMetadataMongoRepository.save(new SyncMetadataDocument(
+                    username,
+                    syncedAt,
+                    startedAt,
+                    RefreshState.PARTIAL,
+                    reposSynced,
+                    reposSkipped,
+                    reposFailed,
+                    commitsSynced,
+                    warningMessage,
+                    slices
+            ));
+            log.info("Saved PARTIAL sync metadata for user {}. SyncedAt: {}, Commits: {}, Slices: {}",
+                    username, syncedAt, commitsSynced, slices.size());
+        } catch (Exception ex) {
+            log.error("Failed to persist sync metadata on partial for user {}: {}", username, ex.getMessage());
+        }
+    }
+
+    public void onRefreshPartial(
+        String username,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant syncedAt,
+        int reposSynced,
+        int reposSkipped,
+        int reposFailed,
+        int commitsSynced,
+        String warningMessage,
+        java.util.List<com.analytics.github.model.SliceResult> slices
+    ) {
+        if (slices != null && !slices.isEmpty()) {
+            RefreshStatusResponse current = userStates.get(username);
+            Instant st = current != null ? current.startedAt() : startedAt;
+            Instant ls = current != null ? current.lastSyncedAt() : syncedAt;
+            userStates.put(username, RefreshStatusResponse.running(st, ls, "DONE", slices));
+        }
+        onRefreshPartial(username, startedAt, finishedAt, syncedAt, reposSynced, reposSkipped, reposFailed, commitsSynced, warningMessage);
     }
 
     public void onRefreshFailure(
@@ -213,25 +302,55 @@ public class RefreshManager {
         Instant previousLastSyncedAt,
         String cleanErrorMessage
     ) {
-        userStates.put(username, RefreshStatusResponse.failed(startedAt, finishedAt, previousLastSyncedAt, cleanErrorMessage));
+        RefreshStatusResponse current = userStates.get(username);
+        java.util.List<com.analytics.github.model.SliceResult> slices =
+                current != null && current.slices() != null ? current.slices() : java.util.Collections.emptyList();
+
+        userStates.put(username, RefreshStatusResponse.failed(startedAt, finishedAt, previousLastSyncedAt, cleanErrorMessage, slices));
 
         try {
+            Optional<SyncMetadataDocument> existingOpt = syncMetadataMongoRepository.findById(username);
+            int reposSynced = existingOpt.map(SyncMetadataDocument::reposSynced).orElse(0);
+            int reposSkipped = existingOpt.map(SyncMetadataDocument::reposSkipped).orElse(0);
+            int reposFailed = existingOpt.map(SyncMetadataDocument::reposFailed).orElse(0);
+            int commitsSynced = existingOpt.map(SyncMetadataDocument::commitsSynced).orElse(0);
+            Instant lastSyncedAt = existingOpt.map(SyncMetadataDocument::lastSyncedAt).orElse(previousLastSyncedAt);
+
             // Save startedAt as lastRefreshStartedAt so cooldown is honored even on failure
             syncMetadataMongoRepository.save(new SyncMetadataDocument(
                     username,
-                    previousLastSyncedAt,
+                    lastSyncedAt,
                     startedAt,
                     RefreshState.FAILED,
-                    0,
-                    0,
-                    0,
-                    0,
-                    cleanErrorMessage
+                    reposSynced,
+                    reposSkipped,
+                    reposFailed,
+                    commitsSynced,
+                    cleanErrorMessage,
+                    slices
             ));
-            log.info("Saved FAILED sync metadata for user {} with message: {}", username, cleanErrorMessage);
+            log.info("Saved FAILED sync metadata for user {} with message: {}, preserved counts (repos={}, commits={}), Slices: {}",
+                    username, cleanErrorMessage, reposSynced, commitsSynced, slices.size());
         } catch (Exception ex) {
             log.error("Failed to persist sync metadata on failure for user {}: {}", username, ex.getMessage());
         }
+    }
+
+    public void onRefreshFailure(
+        String username,
+        Instant startedAt,
+        Instant finishedAt,
+        Instant previousLastSyncedAt,
+        String cleanErrorMessage,
+        java.util.List<com.analytics.github.model.SliceResult> slices
+    ) {
+        if (slices != null && !slices.isEmpty()) {
+            RefreshStatusResponse current = userStates.get(username);
+            Instant st = current != null ? current.startedAt() : startedAt;
+            Instant ls = current != null ? current.lastSyncedAt() : previousLastSyncedAt;
+            userStates.put(username, RefreshStatusResponse.running(st, ls, "FAILED", slices));
+        }
+        onRefreshFailure(username, startedAt, finishedAt, previousLastSyncedAt, cleanErrorMessage);
     }
 
     public long getCooldownRemainingSeconds(String rawUsername) {
