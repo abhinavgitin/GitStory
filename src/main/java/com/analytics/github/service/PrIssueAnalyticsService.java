@@ -43,7 +43,7 @@ public class PrIssueAnalyticsService {
                 .filter(pr -> "merged".equals(pr.state()) && pr.createdAt() != null && pr.mergedAt() != null)
                 .sorted((a, b) -> b.mergedAt().compareTo(a.mergedAt()))
                 .limit(30)
-                .mapToLong(pr -> Duration.between(pr.createdAt(), pr.mergedAt()).toHours())
+                .mapToDouble(pr -> Duration.between(pr.createdAt(), pr.mergedAt()).toMinutes() / 60.0)
                 .average()
                 .orElse(0.0);
 

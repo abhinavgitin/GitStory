@@ -567,12 +567,6 @@ export default function UserDashboardPage({
                       </div>
 
                       <div className="flex items-center gap-3 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
-                        <div className="text-right">
-                          <span className="text-[11px] text-zinc-500 uppercase tracking-wider block font-medium">Account Age</span>
-                          <span className="text-sm font-semibold text-zinc-200 font-mono">
-                            {detailedProfile?.accountAgeFormatted || 'Active'}
-                          </span>
-                        </div>
                         <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                           Public
                         </span>

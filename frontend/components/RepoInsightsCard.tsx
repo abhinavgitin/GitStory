@@ -8,7 +8,7 @@ import {
   GitFork,
   Eye,
   AlertCircle,
-  HardDrive,
+
   ShieldCheck,
   Tag,
   Clock,
@@ -98,7 +98,7 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       </div>
 
       {/* Metric Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8">
         <div className="rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
           <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
             <Star className="w-3.5 h-3.5 text-amber-400" />
@@ -131,13 +131,6 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
           <p className="text-xl font-bold font-mono text-zinc-100">{insights.totalOpenIssues.toLocaleString()}</p>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-teal-400" />
-            <span>Codebase Size</span>
-          </div>
-          <p className="text-xl font-bold font-mono text-zinc-100">{formatSize(insights.totalSizeKb)}</p>
-        </div>
       </div>
 
       {/* Top Repos highlight tabbed section */}
