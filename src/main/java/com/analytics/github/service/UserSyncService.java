@@ -2,6 +2,7 @@ package com.analytics.github.service;
 
 import com.analytics.github.client.GitHubApiClient;
 import com.analytics.github.dto.GitHubUserProfileResponse;
+import com.analytics.github.exception.InvalidUsernameException;
 import com.analytics.github.model.UserDocument;
 import com.analytics.github.repository.UserMongoRepository;
 import org.slf4j.Logger;
@@ -30,6 +31,10 @@ public class UserSyncService {
     public UserDocument syncUser(String username) {
         log.info("Synchronizing public GitHub user profile for username: {}", username);
         GitHubUserProfileResponse profile = gitHubApiClient.fetchUserProfile(username);
+        if ("Organization".equalsIgnoreCase(profile.type())) {
+            log.warn("Account {} is an Organization. Rejecting sync.", username);
+            throw new InvalidUsernameException("Organization accounts are not supported; please enter a personal developer handle.");
+        }
         Instant now = Instant.now();
 
         Optional<UserDocument> existing = userMongoRepository.findById(username);

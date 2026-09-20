@@ -3,6 +3,7 @@ package com.analytics.github.controller;
 import com.analytics.github.client.GitHubApiClient;
 import com.analytics.github.config.RefreshProperties;
 import com.analytics.github.dto.RefreshStatusResponse;
+import com.analytics.github.exception.InvalidUsernameException;
 import com.analytics.github.exception.UnauthorizedException;
 import com.analytics.github.repository.UserMongoRepository;
 import com.analytics.github.service.RefreshManager;
@@ -59,7 +60,10 @@ public class UserRefreshController {
 
         // Pre-check user existence on GitHub if not already known in database
         if (!userMongoRepository.existsById(normalized)) {
-            gitHubApiClient.fetchUserProfile(normalized);
+            var profile = gitHubApiClient.fetchUserProfile(normalized);
+            if ("Organization".equalsIgnoreCase(profile.type())) {
+                throw new InvalidUsernameException("Organization accounts are not supported; please enter a personal developer handle.");
+            }
         }
 
         refreshManager.startRefresh(normalized);

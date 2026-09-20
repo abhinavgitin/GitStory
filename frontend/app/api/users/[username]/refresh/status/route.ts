@@ -12,7 +12,7 @@ export async function GET(
   if (!isValidGitHubUsername(username)) {
     return NextResponse.json(
       { error: 'Invalid username format', username },
-      { status: 400 }
+      { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   }
 
@@ -28,14 +28,17 @@ export async function GET(
     });
 
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(data, {
+      status: res.status,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch {
     return NextResponse.json(
       {
         error: 'Backend unreachable',
         message: `Could not connect to Spring Boot backend at ${backendUrl}`,
       },
-      { status: 503 }
+      { status: 503, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   }
 }

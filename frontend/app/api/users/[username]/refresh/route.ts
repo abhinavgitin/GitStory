@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
+import { checkRefreshRateLimit, recordRefreshSuccess, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
@@ -12,7 +13,27 @@ export async function POST(
   if (!isValidGitHubUsername(username)) {
     return NextResponse.json(
       { error: 'Invalid username format', username },
-      { status: 400 }
+      { status: 400, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
+  // IP rate limiting: maximum 5 refresh requests per IP per hour
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRefreshRateLimit(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Too Many Requests',
+        message: `Maximum 5 refresh requests per hour exceeded for your IP. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds || 3600),
+          'Cache-Control': 'no-store',
+        },
+      }
     );
   }
 
@@ -32,14 +53,22 @@ export async function POST(
     });
 
     const data = await res.json().catch(() => ({}));
-    return NextResponse.json(data, { status: res.status });
+
+    if (res.status === 200 || res.status === 202) {
+      recordRefreshSuccess(clientIp);
+    }
+
+    return NextResponse.json(data, {
+      status: res.status,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch {
     return NextResponse.json(
       {
         error: 'Backend unreachable',
         message: `Could not connect to Spring Boot backend at ${backendUrl}`,
       },
-      { status: 503 }
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }
