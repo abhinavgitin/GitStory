@@ -86,8 +86,8 @@ export function DashboardLoader({
       >
         {/* Minimal Spinner Ring */}
         <div className="relative w-12 h-12 mb-6 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-md border-2 border-zinc-800" />
-          <div className="absolute inset-0 rounded-md border-2 border-t-zinc-200 border-r-transparent border-b-transparent border-l-transparent animate-spin motion-reduce:animate-none" />
+          <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
+          <div className="absolute inset-0 rounded-full border-2 border-t-zinc-200 border-r-transparent border-b-transparent border-l-transparent animate-spin motion-reduce:animate-none" />
         </div>
 
         {/* Username Tag with Elapsed Time */}
