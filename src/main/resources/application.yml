@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:${X_ZOHO_CATALYST_LISTEN_PORT:8080}}
+  port: ${PORT:${X_ZOHO_CATALYST_LISTEN_PORT:9000}}
   shutdown: graceful
 
 spring:

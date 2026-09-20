@@ -50,7 +50,7 @@ export async function POST(
   }
 
   const normalized = normalizeUsername(username);
-  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:8080';
+  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:9000';
   const refreshSecret = process.env.REFRESH_SECRET || '';
 
   try {

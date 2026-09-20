@@ -24,7 +24,7 @@ export async function GET(
   }
 
   const normalized = normalizeUsername(username);
-  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:8080';
+  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:9000';
 
   try {
     const res = await fetch(`${backendUrl}/api/users/${normalized}/analytics/issues/summary`, {
