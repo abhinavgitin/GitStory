@@ -69,7 +69,7 @@ interface RouteHandlerResult {
 async function executeUserRoute(
   username: string,
   fetchFn: (url: string, init?: RequestInit) => Promise<Response>,
-  backendUrl = 'http://localhost:8080'
+  backendUrl = 'http://localhost:9000'
 ): Promise<RouteHandlerResult> {
   if (!isValidGitHubUsername(username)) {
     return {
@@ -101,7 +101,7 @@ async function executeRefreshRoute(
   username: string,
   secret: string,
   fetchFn: (url: string, init?: RequestInit) => Promise<Response>,
-  backendUrl = 'http://localhost:8080'
+  backendUrl = 'http://localhost:9000'
 ): Promise<RouteHandlerResult> {
   if (!isValidGitHubUsername(username)) {
     return {
