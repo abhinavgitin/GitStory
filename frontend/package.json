@@ -10,20 +10,20 @@
     "test": "node --experimental-strip-types --test lib/username.test.ts lib/dashboard-flow.test.ts lib/capabilities-visibility.test.ts lib/rate-limit.test.ts lib/cooldown-and-errors.test.ts lib/state-machine.test.ts lib/fresh-data-and-cache.test.ts"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.103.1",
-    "framer-motion": "^13.4.0",
-    "next": "16.3.5",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
-  },
-  "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query": "^5.103.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "framer-motion": "^13.4.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5"
   }
 }
