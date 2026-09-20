@@ -1,3 +1,7 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
 spring:
   application:
     name: github-analytics
@@ -5,6 +9,8 @@ spring:
     default: dev
   config:
     import: optional:file:.env[.properties]
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   mongodb:
     uri: ${MONGODB_URI}
     database: github-analytics
@@ -12,6 +18,7 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: github-analytics
+      auto-index-creation: true
 
 github:
   token: ${GITHUB_TOKEN}
@@ -41,4 +48,6 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: always
+      show-details: never
+      probes:
+        enabled: true

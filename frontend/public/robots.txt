@@ -1,0 +1,7 @@
+# robots.txt for GitStory
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /u/
+
+Sitemap: https://gitstory.dev/sitemap.xml
