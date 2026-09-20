@@ -15,7 +15,7 @@ import {
   Layers,
   CircleDot,
   GitBranch,
-} from 'lucide-react';
+} from '@/components/ui/MaterialIcon';
 import {
   UserActivity,
   CommitSummary,

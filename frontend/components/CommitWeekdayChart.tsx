@@ -1,7 +1,7 @@
 'use client';
 
 import { CommitWeekdayStats } from '@/types';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3 } from '@/components/ui/MaterialIcon';
 
 interface CommitWeekdayChartProps {
   stats: CommitWeekdayStats[] | undefined;

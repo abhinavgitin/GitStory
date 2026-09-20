@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Code2, ChevronDown, Layers, PieChart } from 'lucide-react';
+import { Code2, ChevronDown, Layers, PieChart } from '@/components/ui/MaterialIcon';
 import { LanguageOverviewResponse, LanguageStatItem } from '@/types';
 
 interface LanguageDistributionCardProps {

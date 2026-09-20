@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Flame, Trophy, Clock, UserCheck } from 'lucide-react';
+import { Calendar, Flame, Trophy, Clock, UserCheck } from '@/components/ui/MaterialIcon';
 import { ContributionCalendar, UserProfile, ContributionDay } from '@/types';
 
 interface ContributionHeatmapProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import { CommitSummary } from '@/types';
-import { GitCommit, Calendar, Info } from 'lucide-react';
+import { GitCommit, Calendar, Info } from '@/components/ui/MaterialIcon';
 
 interface CommitSummaryCardProps {
   summary: CommitSummary | null | undefined;

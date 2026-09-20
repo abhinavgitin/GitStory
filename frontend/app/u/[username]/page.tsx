@@ -50,7 +50,7 @@ import {
   Building,
   Link as LinkIcon,
   Users,
-} from 'lucide-react';
+} from '@/components/ui/MaterialIcon';
 import { motion } from 'framer-motion';
 
 function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {

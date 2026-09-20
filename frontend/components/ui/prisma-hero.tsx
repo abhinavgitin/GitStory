@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useInView } from "framer-motion";
-import { ArrowRight, Clock, Sparkles } from "lucide-react";
+import { ArrowRight, Clock, Sparkles } from "@/components/ui/MaterialIcon";
 import { useRef } from "react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { RefreshStatus } from "@/types";

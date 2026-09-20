@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Repository, RepoLanguageResponse } from '@/types';
-import { Search, Star, GitFork, ExternalLink, Globe, GitBranch } from 'lucide-react';
+import { Search, Star, GitFork, ExternalLink, Globe, GitBranch } from '@/components/ui/MaterialIcon';
 
 interface RepoListProps {
   repos: Repository[];

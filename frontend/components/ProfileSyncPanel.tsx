@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw } from '@/components/ui/MaterialIcon';
 
 export type SyncStatus = 'idle' | 'syncing' | 'complete' | 'error';
 

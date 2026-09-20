@@ -14,7 +14,7 @@ import {
   Clock,
   ExternalLink,
   Archive,
-} from 'lucide-react';
+} from '@/components/ui/MaterialIcon';
 import { RepoInsights } from '@/types';
 
 interface RepoInsightsCardProps {

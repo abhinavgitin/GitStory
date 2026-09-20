@@ -1,7 +1,7 @@
 'use client';
 
 import { RecentCommit } from '@/types';
-import { GitCommit, ExternalLink } from 'lucide-react';
+import { GitCommit, ExternalLink } from '@/components/ui/MaterialIcon';
 
 interface RecentCommitsListProps {
   commits: RecentCommit[] | undefined;

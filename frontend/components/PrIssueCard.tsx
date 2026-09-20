@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   XCircle,
-} from 'lucide-react';
+} from '@/components/ui/MaterialIcon';
 import { PrSummary, IssueSummary } from '@/types';
 
 function formatHours(hours: number): string {

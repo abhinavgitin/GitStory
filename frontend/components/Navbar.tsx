@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshStatus } from '@/types';
 import { RefreshButton } from './RefreshButton';
-import { Clock } from 'lucide-react';
+import { Clock } from '@/components/ui/MaterialIcon';
 
 interface NavbarProps {
   username?: string;

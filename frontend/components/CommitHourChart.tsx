@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CommitHourStats } from '@/types';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from '@/components/ui/MaterialIcon';
 
 interface CommitHourChartProps {
   stats: CommitHourStats[] | undefined;

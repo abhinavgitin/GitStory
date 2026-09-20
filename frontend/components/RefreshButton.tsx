@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RotateCcw, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { RotateCcw, AlertCircle, Clock, CheckCircle2 } from '@/components/ui/MaterialIcon';
 import { useEffect, useState, useRef } from 'react';
 import { RefreshStatus } from '@/types';
 import { getPollingInterval, getFinalSyncLabel } from '@/lib/capabilities';

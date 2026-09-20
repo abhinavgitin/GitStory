@@ -2,7 +2,7 @@
 
 import { PrismaHero } from '@/components/ui/prisma-hero';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/ui/MaterialIcon';
 
 export default function PrismaPage() {
   return (

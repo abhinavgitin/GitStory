@@ -1,6 +1,6 @@
 'use client';
 
-import { ServerOff, RotateCcw } from 'lucide-react';
+import { ServerOff, RotateCcw } from '@/components/ui/MaterialIcon';
 
 interface ErrorStateProps {
   onRetry: () => void;
