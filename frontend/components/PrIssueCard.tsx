@@ -4,7 +4,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   GitPullRequest,
-  GitMerge,
   CircleDot,
   Clock,
   CheckCircle2,
@@ -38,11 +37,14 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
     );
   }
 
-  if (!summary || summary.totalPrs <= 0) {
-    return null;
-  }
-
-  const pr = summary;
+  const pr = summary || {
+    totalPrs: 0,
+    openPrs: 0,
+    mergedPrs: 0,
+    closedPrs: 0,
+    mergeRate: 0,
+    avgMergeHours: null,
+  };
   const prTotal = pr.totalPrs;
   const prMergedPct = prTotal > 0 ? (pr.mergedPrs / prTotal) * 100 : 0;
   const prOpenPct = prTotal > 0 ? (pr.openPrs / prTotal) * 100 : 0;
@@ -62,9 +64,6 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
               <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
                 Pull Requests
               </h3>
-              <p className="text-[11px] text-zinc-400">
-                Turnaround and resolution rates
-              </p>
             </div>
           </div>
           <span className="font-mono text-xs text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
@@ -223,11 +222,13 @@ export function IssueCard({ summary, isLoading }: IssueCardProps) {
     );
   }
 
-  if (!summary || summary.totalIssues <= 0) {
-    return null;
-  }
-
-  const issue = summary;
+  const issue = summary || {
+    totalIssues: 0,
+    openIssues: 0,
+    closedIssues: 0,
+    closeRate: 0,
+    avgCloseHours: null,
+  };
   const issueTotal = issue.totalIssues;
   const issueClosedPct = issueTotal > 0 ? (issue.closedIssues / issueTotal) * 100 : 0;
   const issueOpenPct = issueTotal > 0 ? (issue.openIssues / issueTotal) * 100 : 0;
@@ -358,17 +359,10 @@ export function PrIssueSection({
   showPr = true,
   showIssue = true,
 }: PrIssueSectionProps) {
-  const hasPr = showPr && (isPrLoading || (prSummary && prSummary.totalPrs > 0));
-  const hasIssue = showIssue && (isIssueLoading || (issueSummary && issueSummary.totalIssues > 0));
-
-  if (!hasPr && !hasIssue) {
-    return null;
-  }
-
   return (
-    <div className={`grid grid-cols-1 ${hasPr && hasIssue ? 'lg:grid-cols-2' : ''} gap-6 w-full`}>
-      {hasPr && <PrCard summary={prSummary} isLoading={isPrLoading} />}
-      {hasIssue && <IssueCard summary={issueSummary} isLoading={isIssueLoading} />}
+    <div className={`grid grid-cols-1 ${showPr && showIssue ? 'lg:grid-cols-2' : ''} gap-6 w-full`}>
+      {showPr && <PrCard summary={prSummary} isLoading={isPrLoading} />}
+      {showIssue && <IssueCard summary={issueSummary} isLoading={isIssueLoading} />}
     </div>
   );
 }

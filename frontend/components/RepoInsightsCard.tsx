@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
   Star,
@@ -47,7 +46,13 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
   }
 
   if (!insights || insights.totalRepos === 0) {
-    return null;
+    return (
+      <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06] text-center py-12 mb-8">
+        <Sparkles className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
+        <p className="text-sm font-medium text-zinc-300">No repository insights available</p>
+        <p className="text-xs text-zinc-500 mt-1">No public repositories were found to generate intelligence metrics</p>
+      </section>
+    );
   }
 
   const activeTopList =
@@ -73,9 +78,6 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
               Repository Intelligence & Health
             </h2>
           </div>
-          <p className="text-xs text-zinc-400">
-            Portfolio health distribution, impact metrics, and project classifications
-          </p>
         </div>
 
         {/* Health status badges */}

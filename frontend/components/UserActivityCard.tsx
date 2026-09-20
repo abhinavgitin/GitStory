@@ -175,9 +175,6 @@ export function UserActivityCard({
               Developer Rhythm & Public Activity
             </h2>
           </div>
-          <p className="text-xs text-zinc-400">
-            Commit cadence, peak productivity windows, streaks, and public presence
-          </p>
         </div>
 
         <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/60 border border-white/10 shadow-sm">

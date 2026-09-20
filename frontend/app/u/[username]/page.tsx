@@ -20,11 +20,12 @@ import {
   UserActivity,
   UserCapabilities,
   RefreshStatus,
+  CapabilityStatus,
+  SliceResult,
 } from '@/types';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
-import { shouldRenderPanel, getFailedSlicesNotice } from '@/lib/capabilities';
+import { getFailedSlicesNotice } from '@/lib/capabilities';
 import { RefreshButton } from '@/components/RefreshButton';
-import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { DashboardLoader } from '@/components/DashboardLoader';
 import { ErrorState } from '@/components/ErrorState';
 import { CommitSummaryCard } from '@/components/CommitSummaryCard';
@@ -40,11 +41,9 @@ import { UserActivityCard } from '@/components/UserActivityCard';
 import ConstellationGrid from '@/components/ui/constellation-grid';
 import {
   ArrowLeft,
-  Clock,
   ExternalLink,
   FolderGit2,
   AlertTriangle,
-  Sparkles,
   Shield,
   UserX,
   MapPin,
@@ -52,7 +51,6 @@ import {
   Link as LinkIcon,
   Users,
 } from '@/components/ui/MaterialIcon';
-import { motion } from 'framer-motion';
 
 function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -73,19 +71,7 @@ function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-function formatRelativeTime(dateString: string | null | undefined): string {
-  if (!dateString) return 'Not yet synced';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Unknown';
-  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diffSec < 15) return 'Just now';
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+
 
 export default function UserDashboardPage({
   params,
@@ -153,7 +139,10 @@ export default function UserDashboardPage({
   });
 
   const isSyncRunning = refreshStatus?.state === 'RUNNING' || refreshStatus?.state === 'PENDING';
-  const hasData = Boolean(userProfile?.hasData || (capabilities && Object.values(capabilities).some((c: any) => c?.hasData)));
+  const hasData = Boolean(
+    userProfile?.hasData ||
+    (capabilities && Object.values(capabilities).some((c: unknown) => typeof c === 'object' && c !== null && 'hasData' in c && Boolean((c as CapabilityStatus).hasData)))
+  );
 
   // Auto-start sync if first visit has no cached data
   useEffect(() => {
@@ -174,13 +163,14 @@ export default function UserDashboardPage({
 
   const slices = refreshStatus?.slices || [];
   const completedSlices = slices.filter(
-    (s: any) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
+    (s: SliceResult) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
   ).length;
 
   const isInitialSyncOrLoading = isProfileLoading || isSyncRunning || (!hasData && refreshStatus?.state !== 'FAILED' && refreshStatus?.state !== 'SUCCESS');
 
   // ── 3. Detailed Profile Query ──
-  const shouldFetchProfile = shouldRenderPanel(capabilities?.profile) || hasData;
+  // ── 3. Detailed Profile Query ──
+  const shouldFetchProfile = hasData;
   const { data: detailedProfile } = useQuery<UserProfile>({
     queryKey: ['detailedProfile', normalizedUsername],
     queryFn: async () => {
@@ -192,7 +182,7 @@ export default function UserDashboardPage({
   });
 
   // ── 4. Contribution Calendar Query ──
-  const shouldFetchCalendar = shouldRenderPanel(capabilities?.calendar) || (hasData && capabilities === undefined);
+  const shouldFetchCalendar = hasData;
   const { data: contributionCalendar, isLoading: isCalendarLoading } = useQuery<ContributionCalendar>({
     queryKey: ['contributions', normalizedUsername],
     queryFn: async () => {
@@ -219,7 +209,7 @@ export default function UserDashboardPage({
   });
 
   // ── 6. Languages Query ──
-  const shouldFetchLanguages = shouldRenderPanel(capabilities?.languages) || (hasData && capabilities === undefined);
+  const shouldFetchLanguages = hasData;
   const { data: languagesData, isLoading: isLanguagesLoading } = useQuery<LanguageOverviewResponse>({
     queryKey: ['languages', normalizedUsername],
     queryFn: async () => {
@@ -231,7 +221,7 @@ export default function UserDashboardPage({
   });
 
   // ── 7. Repo Insights Query ──
-  const shouldFetchRepoInsights = shouldRenderPanel(capabilities?.repoInsights) || (hasData && capabilities === undefined);
+  const shouldFetchRepoInsights = hasData;
   const { data: repoInsights, isLoading: isRepoInsightsLoading } = useQuery<RepoInsights>({
     queryKey: ['repoInsights', normalizedUsername],
     queryFn: async () => {
@@ -243,7 +233,7 @@ export default function UserDashboardPage({
   });
 
   // ── 8. PR Summary Query ──
-  const shouldFetchPr = shouldRenderPanel(capabilities?.pullRequests) || (hasData && capabilities === undefined);
+  const shouldFetchPr = hasData;
   const { data: prSummary, isLoading: isPrLoading } = useQuery<PrSummary>({
     queryKey: ['prSummary', normalizedUsername],
     queryFn: async () => {
@@ -255,7 +245,7 @@ export default function UserDashboardPage({
   });
 
   // ── 9. Issue Summary Query ──
-  const shouldFetchIssue = shouldRenderPanel(capabilities?.issues) || (hasData && capabilities === undefined);
+  const shouldFetchIssue = hasData;
   const { data: issueSummary, isLoading: isIssueLoading } = useQuery<IssueSummary>({
     queryKey: ['issueSummary', normalizedUsername],
     queryFn: async () => {
@@ -267,7 +257,7 @@ export default function UserDashboardPage({
   });
 
   // ── 10. User Activity Query ──
-  const shouldFetchActivity = shouldRenderPanel(capabilities?.activity) || (hasData && capabilities === undefined);
+  const shouldFetchActivity = hasData;
   const { data: userActivity, isLoading: isActivityLoading } = useQuery<UserActivity>({
     queryKey: ['userActivity', normalizedUsername],
     queryFn: async () => {
@@ -279,7 +269,7 @@ export default function UserDashboardPage({
   });
 
   // ── 11. Commit Summary Query ──
-  const shouldFetchCommits = shouldRenderPanel(capabilities?.commits) || (hasData && capabilities === undefined);
+  const shouldFetchCommits = hasData;
   const { data: commitSummary, isLoading: isCommitSummaryLoading } = useQuery<CommitSummary>({
     queryKey: ['commitSummary', normalizedUsername],
     queryFn: async () => {
@@ -291,7 +281,7 @@ export default function UserDashboardPage({
   });
 
   // ── 12. Hourly Productivity Query ──
-  const shouldFetchRhythm = shouldRenderPanel(capabilities?.commitRhythm) || (hasData && capabilities === undefined);
+  const shouldFetchRhythm = hasData;
   const { data: commitHourStats, isLoading: isCommitHourLoading } = useQuery<CommitHourStats[]>({
     queryKey: ['commitHour', normalizedUsername],
     queryFn: async () => {
@@ -327,16 +317,16 @@ export default function UserDashboardPage({
   // Single top notice for sync failures
   const failedSlicesNotice = getFailedSlicesNotice(capabilities);
 
-  // Determine which panels render based on capabilities (fallback to data presence if capabilities is undefined or loading)
-  const showProfile = capabilities ? shouldRenderPanel(capabilities.profile) : hasData;
-  const showCalendar = capabilities ? shouldRenderPanel(capabilities.calendar) : Boolean(contributionCalendar?.days && contributionCalendar.days.length > 0);
-  const showLanguages = capabilities ? shouldRenderPanel(capabilities.languages) : Boolean(languagesData?.languages && languagesData.languages.length > 0);
-  const showRepoInsights = capabilities ? shouldRenderPanel(capabilities.repoInsights) : Boolean(repoInsights && repoInsights.totalRepos > 0);
-  const showActivity = capabilities ? shouldRenderPanel(capabilities.activity) : Boolean(userActivity && ((userActivity.recentEvents && userActivity.recentEvents.length > 0) || (commitSummary && commitSummary.totalCommits > 0)));
-  const showCommits = capabilities ? shouldRenderPanel(capabilities.commits) : Boolean(commitSummary && commitSummary.totalCommits > 0);
-  const showRhythm = capabilities ? shouldRenderPanel(capabilities.commitRhythm) : Boolean((commitHourStats && commitHourStats.length > 0) || (commitWeekdayStats && commitWeekdayStats.length > 0));
-  const showPr = capabilities ? shouldRenderPanel(capabilities.pullRequests) : Boolean(prSummary && prSummary.totalPrs > 0);
-  const showIssue = capabilities ? shouldRenderPanel(capabilities.issues) : Boolean(issueSummary && issueSummary.totalIssues > 0);
+  // Render all dashboard panels whenever user data exists
+  const showProfile = hasData;
+  const showCalendar = hasData;
+  const showLanguages = hasData;
+  const showRepoInsights = hasData;
+  const showActivity = hasData;
+  const showCommits = hasData;
+  const showRhythm = hasData;
+  const showPr = hasData;
+  const showIssue = hasData;
 
   return (
     <div className="relative min-h-screen bg-transparent text-zinc-100 selection:bg-zinc-800 selection:text-zinc-100 overflow-x-hidden">
@@ -439,15 +429,8 @@ export default function UserDashboardPage({
                   </div>
                 </div>
 
-                {/* Right Header Actions: Freshness & Refresh */}
+                {/* Right Header Actions: Authoritative Refresh & Status */}
                 <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                  {hasData && (
-                    <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-2.5 py-1 rounded-full border border-zinc-800/80 font-mono">
-                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{formatRelativeTime(userProfile?.lastSyncedAt)}</span>
-                    </div>
-                  )}
-
                   <RefreshButton
                     username={normalizedUsername}
                     onStatusChange={setRefreshStatus}
@@ -622,19 +605,19 @@ export default function UserDashboardPage({
                     />
                   )}
 
-                  {/* 7. Commit Metrics: Summary, Hour, Weekday (Render based on capabilities) */}
-                  {(showCommits || showRhythm) && (
-                    <div className={`grid grid-cols-1 ${showCommits && showRhythm ? 'md:grid-cols-3' : showRhythm ? 'md:grid-cols-2' : ''} gap-5`}>
-                      {showCommits && (
-                        <CommitSummaryCard summary={commitSummary} isLoading={isCommitSummaryLoading} />
-                      )}
-                      {showRhythm && (
-                        <>
-                          <CommitHourChart stats={commitHourStats} isLoading={isCommitHourLoading} />
-                          <CommitWeekdayChart stats={commitWeekdayStats} isLoading={isCommitWeekdayLoading} />
-                        </>
-                      )}
-                    </div>
+                  {/* 7. Component 1: Commit Activity (Full width from left to right border) */}
+                  {showCommits && (
+                    <CommitSummaryCard summary={commitSummary} isLoading={isCommitSummaryLoading} />
+                  )}
+
+                  {/* 8. Component 2: 24-Hour Productivity (Full width just below Component 1) */}
+                  {showRhythm && (
+                    <CommitHourChart stats={commitHourStats} isLoading={isCommitHourLoading} />
+                  )}
+
+                  {/* 9. Component 3: Weekly Commit Distribution (Full width just below Component 2) */}
+                  {showRhythm && (
+                    <CommitWeekdayChart stats={commitWeekdayStats} isLoading={isCommitWeekdayLoading} />
                   )}
 
                   {/* 8. Recent Commits (Render only if commits has data) */}

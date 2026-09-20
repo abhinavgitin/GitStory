@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Flame, Trophy, Clock, UserCheck } from '@/components/ui/MaterialIcon';
+import { motion } from 'framer-motion';
+import { Calendar, Flame, Trophy, Clock } from '@/components/ui/MaterialIcon';
 import { ContributionCalendar, UserProfile, ContributionDay } from '@/types';
 
 interface ContributionHeatmapProps {
@@ -136,28 +136,7 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
               Contribution Cadence
             </h2>
           </div>
-          <p className="text-xs text-zinc-400">
-            52-week activity stream and streak metrics synchronized via GitHub GraphQL
-          </p>
         </div>
-
-        {profile && (
-          <div className="flex items-center gap-3 bg-zinc-950/40 px-3.5 py-1.5 rounded-xl border border-white/5 self-start sm:self-auto">
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={profile.name || profile.login}
-                className="w-6 h-6 rounded-full ring-1 ring-white/20"
-              />
-            ) : (
-              <UserCheck className="w-4 h-4 text-zinc-400" />
-            )}
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-zinc-200">{profile.name || profile.login}</span>
-              <span className="text-[10px] text-zinc-500 font-mono">@{profile.login}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* KPI Ribbon: Contributions, Current Streak, Longest Streak, Account Age */}
@@ -218,7 +197,7 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
               <span
                 key={`${m.name}-${idx}`}
                 className="absolute"
-                style={{ left: `${m.weekIndex * 14}px` }}
+                style={{ left: `${m.weekIndex * 13.5}px` }}
               >
                 {m.name}
               </span>
@@ -237,33 +216,39 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
             </div>
 
             {/* Weeks Grid */}
-            <div className="flex gap-[3.5px]">
-              {weeks.map((week, wIdx) => (
-                <div key={wIdx} className="flex flex-col gap-[3.5px]">
-                  {week.map((day, dIdx) => {
-                    if (day.count < 0) {
-                      return <div key={dIdx} className="w-2.5 h-2.5 rounded-[2.5px] opacity-0" />;
-                    }
+            {weeks.length === 0 ? (
+              <div className="flex-1 py-10 text-center text-xs text-zinc-500 font-mono">
+                No contribution days recorded for the past year.
+              </div>
+            ) : (
+              <div className="flex gap-[3.5px]">
+                {weeks.map((week, wIdx) => (
+                  <div key={wIdx} className="flex flex-col gap-[3.5px]">
+                    {week.map((day, dIdx) => {
+                      if (day.count < 0) {
+                        return <div key={dIdx} className="w-2.5 h-2.5 rounded-[2.5px] opacity-0" />;
+                      }
 
-                    const isHovered = hoveredDay?.date === day.date;
-                    const colorClass = getIntensityColor(day.count);
+                      const isHovered = hoveredDay?.date === day.date;
+                      const colorClass = getIntensityColor(day.count);
 
-                    return (
-                      <motion.div
-                        key={day.date}
-                        onMouseEnter={() => setHoveredDay(day)}
-                        onMouseLeave={() => setHoveredDay(null)}
-                        whileHover={{ scale: 1.35 }}
-                        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                        className={`w-2.5 h-2.5 rounded-[2.5px] border transition-colors duration-100 cursor-pointer ${colorClass} ${
-                          isHovered ? 'ring-2 ring-emerald-300 z-10' : ''
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+                      return (
+                        <motion.div
+                          key={day.date}
+                          onMouseEnter={() => setHoveredDay(day)}
+                          onMouseLeave={() => setHoveredDay(null)}
+                          whileHover={{ scale: 1.35 }}
+                          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                          className={`w-2.5 h-2.5 rounded-[2.5px] border transition-colors duration-100 cursor-pointer ${colorClass} ${
+                            isHovered ? 'ring-2 ring-emerald-300 z-10' : ''
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Footer legend and live tooltip */}

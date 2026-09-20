@@ -51,11 +51,6 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       ? data.repoBreakdown.find((r) => r.repoId === selectedRepoId)?.formattedTotalBytes || '0 B'
       : data.formattedTotalSize;
 
-  const activeRepo =
-    viewMode === 'by-repo' && selectedRepoId !== null
-      ? data.repoBreakdown.find((r) => r.repoId === selectedRepoId)
-      : null;
-
   return (
     <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06]">
       {/* Specular top sheen */}
@@ -71,7 +66,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
             <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">Codebase Composition</h2>
           </div>
           <p className="text-xs text-zinc-400">
-            Byte-level language proportion across {data.repoBreakdown.length} private repositories
+            Byte-level language proportion across {data.repoBreakdown.length} public repositories
           </p>
         </div>
 
@@ -137,7 +132,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 mb-7">
         <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-            {viewMode === 'by-repo' ? 'Repository Code Size' : 'Total Code Size'}
+            {viewMode === 'by-repo' ? 'Repository Code Volume' : 'Code Volume (Bytes)'}
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-semibold text-zinc-100 font-mono tabular-nums">
