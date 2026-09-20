@@ -317,21 +317,21 @@ export function UserActivityCard({
         )}
       </div>
 
-      {/* ── Recent Public Activity (Full Width, Public Organizations Removed) ── */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-sky-400" />
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
-              Recent Public Activity
-            </h3>
+      {/* ── Recent Public Activity (Render only when events exist) ── */}
+      {activity?.recentEvents && activity.recentEvents.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-sky-400" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                Recent Public Activity
+              </h3>
+            </div>
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+              {activity.recentEvents.length} public events logged
+            </span>
           </div>
-          <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-            {activity?.recentEvents?.length || 0} public events logged
-          </span>
-        </div>
 
-        {activity?.recentEvents && activity.recentEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {activity.recentEvents.slice(0, 8).map((evt) => (
               <div
@@ -353,16 +353,8 @@ export function UserActivityCard({
               </div>
             ))}
           </div>
-        ) : (
-          <div className="p-8 rounded-2xl bg-zinc-950/40 border border-white/[0.04] text-center">
-            <Activity className="w-6 h-6 text-zinc-600 mx-auto mb-2" />
-            <p className="text-xs text-zinc-400 font-medium">No recent public events recorded</p>
-            <p className="text-[11px] text-zinc-500 mt-1">
-              Public GitHub activities such as pushes, pull requests, and repository stars will appear here.
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

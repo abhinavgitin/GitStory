@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -17,8 +17,11 @@ import {
   PrSummary,
   IssueSummary,
   UserActivity,
+  UserCapabilities,
+  RefreshStatus,
 } from '@/types';
 import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
+import { shouldRenderPanel, getFailedSlicesNotice } from '@/lib/capabilities';
 import { RefreshButton } from '@/components/RefreshButton';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { ErrorState } from '@/components/ErrorState';
@@ -30,7 +33,7 @@ import { RepoList } from '@/components/RepoList';
 import { ContributionHeatmap } from '@/components/ContributionHeatmap';
 import { LanguageDistributionCard } from '@/components/LanguageDistributionCard';
 import { RepoInsightsCard } from '@/components/RepoInsightsCard';
-import { PrIssueCard } from '@/components/PrIssueCard';
+import { PrIssueSection } from '@/components/PrIssueCard';
 import { UserActivityCard } from '@/components/UserActivityCard';
 import ConstellationGrid from '@/components/ui/constellation-grid';
 import {
@@ -92,6 +95,8 @@ export default function UserDashboardPage({
   const isValid = isValidGitHubUsername(rawUsername);
   const normalizedUsername = isValid ? normalizeUsername(rawUsername) : '';
 
+  const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
+
   // ── 1. User Summary & Freshness Query ──
   const {
     data: userProfile,
@@ -116,9 +121,23 @@ export default function UserDashboardPage({
     retry: 1,
   });
 
-  const hasData = Boolean(userProfile?.hasData);
+  // ── 2. User Capabilities Query ──
+  const { data: capabilities } = useQuery<UserCapabilities>({
+    queryKey: ['capabilities', normalizedUsername],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/capabilities`);
+      if (!res.ok) throw new Error('FAILED_TO_LOAD_CAPABILITIES');
+      return res.json();
+    },
+    enabled: isValid,
+    retry: 1,
+  });
 
-  // ── 2. Detailed Profile Query ──
+  const isSyncRunning = refreshStatus?.state === 'RUNNING' || refreshStatus?.state === 'PENDING';
+  const hasData = Boolean(userProfile?.hasData || (capabilities && Object.values(capabilities).some((c: any) => c?.hasData)));
+
+  // ── 3. Detailed Profile Query ──
+  const shouldFetchProfile = shouldRenderPanel(capabilities?.profile) || hasData;
   const { data: detailedProfile } = useQuery<UserProfile>({
     queryKey: ['detailedProfile', normalizedUsername],
     queryFn: async () => {
@@ -126,10 +145,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchProfile,
   });
 
-  // ── 3. Contribution Calendar Query ──
+  // ── 4. Contribution Calendar Query ──
+  const shouldFetchCalendar = shouldRenderPanel(capabilities?.calendar) || (hasData && capabilities === undefined);
   const { data: contributionCalendar, isLoading: isCalendarLoading } = useQuery<ContributionCalendar>({
     queryKey: ['contributions', normalizedUsername],
     queryFn: async () => {
@@ -137,13 +157,12 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchCalendar,
   });
 
-  // ── 4. Repositories Query ──
+  // ── 5. Repositories Query ──
   const {
     data: repos,
-    isLoading: isReposLoading,
   } = useQuery<Repository[]>({
     queryKey: ['repos', normalizedUsername],
     queryFn: async () => {
@@ -156,7 +175,8 @@ export default function UserDashboardPage({
     retry: 1,
   });
 
-  // ── 5. Languages Query ──
+  // ── 6. Languages Query ──
+  const shouldFetchLanguages = shouldRenderPanel(capabilities?.languages) || (hasData && capabilities === undefined);
   const { data: languagesData, isLoading: isLanguagesLoading } = useQuery<LanguageOverviewResponse>({
     queryKey: ['languages', normalizedUsername],
     queryFn: async () => {
@@ -164,10 +184,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchLanguages,
   });
 
-  // ── 6. Repo Insights Query ──
+  // ── 7. Repo Insights Query ──
+  const shouldFetchRepoInsights = shouldRenderPanel(capabilities?.repoInsights) || (hasData && capabilities === undefined);
   const { data: repoInsights, isLoading: isRepoInsightsLoading } = useQuery<RepoInsights>({
     queryKey: ['repoInsights', normalizedUsername],
     queryFn: async () => {
@@ -175,10 +196,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchRepoInsights,
   });
 
-  // ── 7. PR Summary Query ──
+  // ── 8. PR Summary Query ──
+  const shouldFetchPr = shouldRenderPanel(capabilities?.pullRequests) || (hasData && capabilities === undefined);
   const { data: prSummary, isLoading: isPrLoading } = useQuery<PrSummary>({
     queryKey: ['prSummary', normalizedUsername],
     queryFn: async () => {
@@ -186,10 +208,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchPr,
   });
 
-  // ── 8. Issue Summary Query ──
+  // ── 9. Issue Summary Query ──
+  const shouldFetchIssue = shouldRenderPanel(capabilities?.issues) || (hasData && capabilities === undefined);
   const { data: issueSummary, isLoading: isIssueLoading } = useQuery<IssueSummary>({
     queryKey: ['issueSummary', normalizedUsername],
     queryFn: async () => {
@@ -197,10 +220,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchIssue,
   });
 
-  // ── 9. User Activity Query ──
+  // ── 10. User Activity Query ──
+  const shouldFetchActivity = shouldRenderPanel(capabilities?.activity) || (hasData && capabilities === undefined);
   const { data: userActivity, isLoading: isActivityLoading } = useQuery<UserActivity>({
     queryKey: ['userActivity', normalizedUsername],
     queryFn: async () => {
@@ -208,10 +232,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchActivity,
   });
 
-  // ── 10. Commit Summary Query ──
+  // ── 11. Commit Summary Query ──
+  const shouldFetchCommits = shouldRenderPanel(capabilities?.commits) || (hasData && capabilities === undefined);
   const { data: commitSummary, isLoading: isCommitSummaryLoading } = useQuery<CommitSummary>({
     queryKey: ['commitSummary', normalizedUsername],
     queryFn: async () => {
@@ -219,10 +244,11 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchCommits,
   });
 
-  // ── 11. Hourly Productivity Query ──
+  // ── 12. Hourly Productivity Query ──
+  const shouldFetchRhythm = shouldRenderPanel(capabilities?.commitRhythm) || (hasData && capabilities === undefined);
   const { data: commitHourStats, isLoading: isCommitHourLoading } = useQuery<CommitHourStats[]>({
     queryKey: ['commitHour', normalizedUsername],
     queryFn: async () => {
@@ -230,10 +256,10 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchRhythm,
   });
 
-  // ── 12. Weekday Productivity Query ──
+  // ── 13. Weekday Productivity Query ──
   const { data: commitWeekdayStats, isLoading: isCommitWeekdayLoading } = useQuery<CommitWeekdayStats[]>({
     queryKey: ['commitWeekday', normalizedUsername],
     queryFn: async () => {
@@ -241,10 +267,10 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchRhythm,
   });
 
-  // ── 13. Recent Commits Query ──
+  // ── 14. Recent Commits Query ──
   const { data: recentCommits, isLoading: isRecentCommitsLoading } = useQuery<RecentCommit[]>({
     queryKey: ['recentCommits', normalizedUsername],
     queryFn: async () => {
@@ -252,8 +278,22 @@ export default function UserDashboardPage({
       if (!res.ok) throw new Error('FAILED');
       return res.json();
     },
-    enabled: isValid && hasData,
+    enabled: isValid && shouldFetchCommits,
   });
+
+  // Single top notice for sync failures
+  const failedSlicesNotice = getFailedSlicesNotice(capabilities);
+
+  // Determine which panels render based on capabilities (fallback to data presence if capabilities is undefined or loading)
+  const showProfile = capabilities ? shouldRenderPanel(capabilities.profile) : hasData;
+  const showCalendar = capabilities ? shouldRenderPanel(capabilities.calendar) : Boolean(contributionCalendar?.days && contributionCalendar.days.length > 0);
+  const showLanguages = capabilities ? shouldRenderPanel(capabilities.languages) : Boolean(languagesData?.languages && languagesData.languages.length > 0);
+  const showRepoInsights = capabilities ? shouldRenderPanel(capabilities.repoInsights) : Boolean(repoInsights && repoInsights.totalRepos > 0);
+  const showActivity = capabilities ? shouldRenderPanel(capabilities.activity) : Boolean(userActivity && ((userActivity.recentEvents && userActivity.recentEvents.length > 0) || (commitSummary && commitSummary.totalCommits > 0)));
+  const showCommits = capabilities ? shouldRenderPanel(capabilities.commits) : Boolean(commitSummary && commitSummary.totalCommits > 0);
+  const showRhythm = capabilities ? shouldRenderPanel(capabilities.commitRhythm) : Boolean((commitHourStats && commitHourStats.length > 0) || (commitWeekdayStats && commitWeekdayStats.length > 0));
+  const showPr = capabilities ? shouldRenderPanel(capabilities.pullRequests) : Boolean(prSummary && prSummary.totalPrs > 0);
+  const showIssue = capabilities ? shouldRenderPanel(capabilities.issues) : Boolean(issueSummary && issueSummary.totalIssues > 0);
 
   return (
     <div className="relative min-h-screen bg-transparent text-zinc-100 selection:bg-zinc-800 selection:text-zinc-100 overflow-x-hidden">
@@ -365,22 +405,33 @@ export default function UserDashboardPage({
                     </div>
                   )}
 
-                  <RefreshButton username={normalizedUsername} />
+                  <RefreshButton
+                    username={normalizedUsername}
+                    onStatusChange={setRefreshStatus}
+                  />
                 </div>
               </div>
             </header>
 
             {/* ── Main Container ── */}
             <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 flex-1 w-full">
+              {/* Single Notice near top if any slice failed */}
+              {failedSlicesNotice && (
+                <div className="mb-6 px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2.5 shadow-sm">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{failedSlicesNotice}</span>
+                </div>
+              )}
+
               {/* State 1: Initial Skeleton Loading */}
               {isProfileLoading ? (
                 <DashboardSkeleton />
-              ) : !hasData ? (
+              ) : !hasData && !isSyncRunning ? (
                 /* State 2: Unsynced / First Visit State */
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.4 }}
                   className="my-16 max-w-lg mx-auto text-center p-8 sm:p-12 rounded-3xl"
                   style={{
                     background: 'rgba(18, 18, 23, 0.75)',
@@ -398,11 +449,14 @@ export default function UserDashboardPage({
                     First Visit for @{normalizedUsername}
                   </h2>
                   <p className="text-sm text-zinc-400 leading-relaxed mb-8">
-                    No cached telemetry exists for this developer. Ingesting public repositories, commits, and profile analytics will take approximately 5–10 seconds.
+                    No cached telemetry exists for this developer. Ingesting public repositories, commits, and profile analytics will reveal each panel as its slice completes.
                   </p>
 
                   <div className="flex justify-center">
-                    <RefreshButton username={normalizedUsername} />
+                    <RefreshButton
+                      username={normalizedUsername}
+                      onStatusChange={setRefreshStatus}
+                    />
                   </div>
 
                   <p className="text-[11px] text-zinc-500 font-mono mt-6">
@@ -412,145 +466,189 @@ export default function UserDashboardPage({
               ) : (
                 /* State 3: Active Telemetry Dashboard */
                 <div className="space-y-8">
-                  {/* Developer Banner */}
-                  <section className="p-6 sm:p-8 rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <div className="flex items-start sm:items-center gap-5">
-                      {userProfile?.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={userProfile.avatarUrl}
-                          alt={normalizedUsername}
-                          className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 shadow-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 flex items-center justify-center text-zinc-400 shadow-md">
-                          <GithubIcon className="w-10 h-10" />
-                        </div>
-                      )}
+                  {/* Live Syncing Progress Banner during First-Visit / In-Progress sync */}
+                  {isSyncRunning && (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between shadow-sm animate-pulse motion-reduce:animate-none">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        <span>Sync in progress: telemetry panels will reveal automatically as each slice completes.</span>
+                      </div>
+                    </div>
+                  )}
 
-                      <div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                            {detailedProfile?.name || userProfile?.displayName || normalizedUsername}
-                          </h1>
-                          <span className="font-mono text-xs text-zinc-400 bg-zinc-800/80 px-2.5 py-0.5 rounded-full border border-zinc-700/50">
-                            @{normalizedUsername}
-                          </span>
-                        </div>
-
-                        {detailedProfile?.bio && (
-                          <p className="text-xs sm:text-sm text-zinc-300 mt-2 max-w-2xl leading-relaxed">
-                            {detailedProfile.bio}
-                          </p>
+                  {/* 1. Developer Profile Banner (Render only if profile has data) */}
+                  {showProfile && (
+                    <section className="p-6 sm:p-8 rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                      <div className="flex items-start sm:items-center gap-5">
+                        {userProfile?.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={userProfile.avatarUrl}
+                            alt={normalizedUsername}
+                            className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 shadow-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 flex items-center justify-center text-zinc-400 shadow-md">
+                            <GithubIcon className="w-10 h-10" />
+                          </div>
                         )}
 
-                        <div className="flex items-center gap-4 mt-3 text-xs text-zinc-400 flex-wrap">
-                          {detailedProfile?.company && (
-                            <span className="flex items-center gap-1.5 text-zinc-300">
-                              <Building className="w-3.5 h-3.5 text-zinc-500" />
-                              {detailedProfile.company}
+                        <div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                              {detailedProfile?.name || userProfile?.displayName || normalizedUsername}
+                            </h1>
+                            <span className="font-mono text-xs text-zinc-400 bg-zinc-800/80 px-2.5 py-0.5 rounded-full border border-zinc-700/50">
+                              @{normalizedUsername}
                             </span>
+                          </div>
+
+                          {detailedProfile?.bio && (
+                            <p className="text-xs sm:text-sm text-zinc-300 mt-2 max-w-2xl leading-relaxed">
+                              {detailedProfile.bio}
+                            </p>
                           )}
 
-                          {detailedProfile?.location && (
-                            <span className="flex items-center gap-1.5 text-zinc-300">
-                              <MapPin className="w-3.5 h-3.5 text-zinc-500" />
-                              {detailedProfile.location}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-4 mt-3 text-xs text-zinc-400 flex-wrap">
+                            {detailedProfile?.company && (
+                              <span className="flex items-center gap-1.5 text-zinc-300">
+                                <Building className="w-3.5 h-3.5 text-zinc-500" />
+                                {detailedProfile.company}
+                              </span>
+                            )}
 
-                          {detailedProfile?.blog && (
+                            {detailedProfile?.location && (
+                              <span className="flex items-center gap-1.5 text-zinc-300">
+                                <MapPin className="w-3.5 h-3.5 text-zinc-500" />
+                                {detailedProfile.location}
+                              </span>
+                            )}
+
+                            {detailedProfile?.blog && (
+                              <a
+                                href={detailedProfile.blog.startsWith('http') ? detailedProfile.blog : `https://${detailedProfile.blog}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 text-emerald-400 hover:underline"
+                              >
+                                <LinkIcon className="w-3.5 h-3.5" />
+                                {detailedProfile.blog.replace(/^https?:\/\//, '')}
+                              </a>
+                            )}
+
+                            <span className="flex items-center gap-1 text-zinc-400">
+                              <Users className="w-3.5 h-3.5 text-zinc-500" />
+                              <strong className="text-zinc-200">{detailedProfile?.followers ?? 0}</strong> followers
+                              <span className="mx-1">&bull;</span>
+                              <strong className="text-zinc-200">{detailedProfile?.following ?? 0}</strong> following
+                            </span>
+
                             <a
-                              href={detailedProfile.blog.startsWith('http') ? detailedProfile.blog : `https://${detailedProfile.blog}`}
+                              href={`https://github.com/${normalizedUsername}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-emerald-400 hover:underline"
+                              className="inline-flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
                             >
-                              <LinkIcon className="w-3.5 h-3.5" />
-                              {detailedProfile.blog.replace(/^https?:\/\//, '')}
+                              <span>github.com/{normalizedUsername}</span>
+                              <ExternalLink className="w-3 h-3 text-zinc-500" />
                             </a>
-                          )}
-
-                          <span className="flex items-center gap-1 text-zinc-400">
-                            <Users className="w-3.5 h-3.5 text-zinc-500" />
-                            <strong className="text-zinc-200">{detailedProfile?.followers ?? 0}</strong> followers
-                            <span className="mx-1">&bull;</span>
-                            <strong className="text-zinc-200">{detailedProfile?.following ?? 0}</strong> following
-                          </span>
-
-                          <a
-                            href={`https://github.com/${normalizedUsername}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
-                          >
-                            <span>github.com/{normalizedUsername}</span>
-                            <ExternalLink className="w-3 h-3 text-zinc-500" />
-                          </a>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
-                      <div className="text-right">
-                        <span className="text-[11px] text-zinc-500 uppercase tracking-wider block font-medium">Account Age</span>
-                        <span className="text-sm font-semibold text-zinc-200 font-mono">
-                          {detailedProfile?.accountAgeFormatted || 'Active'}
+                      <div className="flex items-center gap-3 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
+                        <div className="text-right">
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-wider block font-medium">Account Age</span>
+                          <span className="text-sm font-semibold text-zinc-200 font-mono">
+                            {detailedProfile?.accountAgeFormatted || 'Active'}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                          Public
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                        Public
-                      </span>
+                    </section>
+                  )}
+
+                  {/* 2. Contribution Calendar Heatmap (Render only if calendar has data) */}
+                  {showCalendar && (
+                    <ContributionHeatmap
+                      calendar={contributionCalendar || null}
+                      profile={detailedProfile || null}
+                      isLoading={isCalendarLoading}
+                    />
+                  )}
+
+                  {/* 3. Languages Distribution Card (Render only if languages has data) */}
+                  {showLanguages && (
+                    <LanguageDistributionCard
+                      data={languagesData || null}
+                      loading={isLanguagesLoading}
+                    />
+                  )}
+
+                  {/* 4. Repository Intelligence & Health Insights (Render only if repoInsights has data) */}
+                  {showRepoInsights && (
+                    <RepoInsightsCard
+                      insights={repoInsights || null}
+                      isLoading={isRepoInsightsLoading}
+                    />
+                  )}
+
+                  {/* 5. Developer Rhythm & Public Activity (Render only if activity has data) */}
+                  {showActivity && (
+                    <UserActivityCard
+                      activity={userActivity || null}
+                      commitSummary={commitSummary || null}
+                      commitWeekdayStats={commitWeekdayStats || null}
+                      commitHourStats={commitHourStats || null}
+                      isLoading={isActivityLoading || isCommitSummaryLoading || isCommitWeekdayLoading || isCommitHourLoading}
+                    />
+                  )}
+
+                  {/* 6. Pull Requests & Issues (Render only if either has data, reflowing cleanly) */}
+                  {(showPr || showIssue) && (
+                    <PrIssueSection
+                      prSummary={prSummary || null}
+                      issueSummary={issueSummary || null}
+                      isPrLoading={isPrLoading}
+                      isIssueLoading={isIssueLoading}
+                      showPr={showPr}
+                      showIssue={showIssue}
+                    />
+                  )}
+
+                  {/* 7. Commit Metrics: Summary, Hour, Weekday (Render based on capabilities) */}
+                  {(showCommits || showRhythm) && (
+                    <div className={`grid grid-cols-1 ${showCommits && showRhythm ? 'md:grid-cols-3' : showRhythm ? 'md:grid-cols-2' : ''} gap-5`}>
+                      {showCommits && (
+                        <CommitSummaryCard summary={commitSummary} isLoading={isCommitSummaryLoading} />
+                      )}
+                      {showRhythm && (
+                        <>
+                          <CommitHourChart stats={commitHourStats} isLoading={isCommitHourLoading} />
+                          <CommitWeekdayChart stats={commitWeekdayStats} isLoading={isCommitWeekdayLoading} />
+                        </>
+                      )}
                     </div>
-                  </section>
+                  )}
 
-                  {/* Contribution Calendar Heatmap */}
-                  <ContributionHeatmap
-                    calendar={contributionCalendar || null}
-                    profile={detailedProfile || null}
-                    isLoading={isCalendarLoading}
-                  />
+                  {/* 8. Recent Commits (Render only if commits has data) */}
+                  {showCommits && (
+                    <RecentCommitsList commits={recentCommits} isLoading={isRecentCommitsLoading} />
+                  )}
 
-                  {/* Languages Distribution Card */}
-                  <LanguageDistributionCard
-                    data={languagesData || null}
-                    loading={isLanguagesLoading}
-                  />
-
-                  {/* Repository Intelligence & Health Insights */}
-                  <RepoInsightsCard
-                    insights={repoInsights || null}
-                    isLoading={isRepoInsightsLoading}
-                  />
-
-                  {/* Top: Developer Rhythm & Public Activity (Full Width) */}
-                  <UserActivityCard
-                    activity={userActivity || null}
-                    commitSummary={commitSummary || null}
-                    commitWeekdayStats={commitWeekdayStats || null}
-                    commitHourStats={commitHourStats || null}
-                    isLoading={isActivityLoading || isCommitSummaryLoading || isCommitWeekdayLoading || isCommitHourLoading}
-                  />
-
-                  {/* Below: Pull Requests & Issues (Full Width) */}
-                  <PrIssueCard
-                    prSummary={prSummary || null}
-                    issueSummary={issueSummary || null}
-                    isLoading={isPrLoading || isIssueLoading}
-                  />
-
-                  {/* Commit Metrics Triplet */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <CommitSummaryCard summary={commitSummary} isLoading={isCommitSummaryLoading} />
-                    <CommitHourChart stats={commitHourStats} isLoading={isCommitHourLoading} />
-                    <CommitWeekdayChart stats={commitWeekdayStats} isLoading={isCommitWeekdayLoading} />
-                  </div>
-
-                  {/* Recent Commits */}
-                  <RecentCommitsList commits={recentCommits} isLoading={isRecentCommitsLoading} />
-
-                  {/* Empty Repos check or Repo List */}
-                  {repos && repos.length === 0 ? (
+                  {/* 9. Repositories List (Render only if repositories exist) */}
+                  {repos && repos.length > 0 ? (
+                    <RepoList
+                      repos={repos}
+                      languagesByRepo={
+                        languagesData?.repoBreakdown
+                          ? Object.fromEntries(languagesData.repoBreakdown.map((r) => [r.repoId, r]))
+                          : undefined
+                      }
+                    />
+                  ) : repos && repos.length === 0 ? (
                     <div className="p-12 text-center bg-zinc-900/30 border border-zinc-800/80 rounded-2xl">
                       <FolderGit2 className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
                       <h3 className="text-sm font-semibold text-zinc-200 mb-1">No Public Repositories Found</h3>
@@ -558,16 +656,7 @@ export default function UserDashboardPage({
                         No public repositories were returned by GitHub for @{normalizedUsername}.
                       </p>
                     </div>
-                  ) : (
-                    <RepoList
-                      repos={repos || []}
-                      languagesByRepo={
-                        languagesData?.repoBreakdown
-                          ? Object.fromEntries(languagesData.repoBreakdown.map((r) => [r.repoId, r]))
-                          : undefined
-                      }
-                    />
-                  )}
+                  ) : null}
 
                   {/* Honest Notes & Caps Footer */}
                   <footer className="mt-20 pt-8 border-t border-zinc-800/80 text-center space-y-3 pb-8">

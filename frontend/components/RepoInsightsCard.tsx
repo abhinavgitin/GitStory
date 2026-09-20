@@ -211,54 +211,59 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       </div>
 
       {/* Topics and Licenses footer */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/[0.06]">
-        {/* Topics */}
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
-            <Tag className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Repository Topics</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {Object.keys(insights.topicCounts).length > 0 ? (
-              Object.entries(insights.topicCounts).map(([topic, count]) => (
-                <span
-                  key={topic}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/5 text-[11px] text-zinc-300"
-                >
-                  <span>#{topic}</span>
-                  <span className="text-zinc-500 font-mono">({count})</span>
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-zinc-500">No repository topics tagged yet</span>
-            )}
-          </div>
-        </div>
+      {(() => {
+        const topicEntries = Object.entries(insights.topicCounts || {});
+        const licenseEntries = Object.entries(insights.licenseCounts || {});
+        const hasTopics = topicEntries.length > 0;
+        const hasLicenses = licenseEntries.length > 0;
 
-        {/* Licenses */}
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
-            <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Open Source Licenses</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {Object.keys(insights.licenseCounts).length > 0 ? (
-              Object.entries(insights.licenseCounts).map(([lic, count]) => (
-                <span
-                  key={lic}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-950/60 border border-white/5 text-xs text-zinc-300 font-mono"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  <span>{lic}</span>
-                  <span className="text-zinc-500">x{count}</span>
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-zinc-500">No license data found</span>
+        if (!hasTopics && !hasLicenses) return null;
+
+        return (
+          <div className={`grid grid-cols-1 ${hasTopics && hasLicenses ? 'md:grid-cols-2' : ''} gap-6 pt-6 border-t border-white/[0.06]`}>
+            {hasTopics && (
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
+                  <Tag className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Repository Topics</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {topicEntries.map(([topic, count]) => (
+                    <span
+                      key={topic}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/5 text-[11px] text-zinc-300"
+                    >
+                      <span>#{topic}</span>
+                      <span className="text-zinc-500 font-mono">({count})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hasLicenses && (
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Open Source Licenses</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {licenseEntries.map(([lic, count]) => (
+                    <span
+                      key={lic}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-950/60 border border-white/5 text-xs text-zinc-300 font-mono"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      <span>{lic}</span>
+                      <span className="text-zinc-500">x{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </div>
+        );
+      })()}
     </section>
   );
 }

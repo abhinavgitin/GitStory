@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RotateCcw, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { RefreshStatus } from '@/types';
+import { getPollingInterval, getFinalSyncLabel } from '@/lib/capabilities';
 
 interface RefreshButtonProps {
   username: string;
@@ -14,8 +15,9 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
   const queryClient = useQueryClient();
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [lastError, setLastError] = useState<string | null>(null);
+  const runningStartRef = useRef<number | null>(null);
 
-  // Poll status every 1000ms while RUNNING
+  // Poll status while RUNNING or PENDING, up to 180 seconds, pauses when tab is hidden
   const { data: status } = useQuery<RefreshStatus>({
     queryKey: ['refreshStatus', username],
     queryFn: async () => {
@@ -24,13 +26,22 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       return res.json();
     },
     refetchInterval: (query) => {
-      return query.state.data?.state === 'RUNNING' ? 1000 : false;
+      const state = query.state.data?.state;
+      if (state === 'RUNNING' || state === 'PENDING') {
+        if (!runningStartRef.current) {
+          runningStartRef.current = Date.now();
+        }
+        const elapsedSec = Math.floor((Date.now() - runningStartRef.current) / 1000);
+        return getPollingInterval(state, elapsedSec);
+      }
+      runningStartRef.current = null;
+      return false;
     },
-    refetchIntervalInBackground: false,
+    refetchIntervalInBackground: false, // Pauses when tab is hidden
     enabled: Boolean(username),
   });
 
-  // Countdown timer effect
+  // Countdown timer effect for cooldown
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
     const interval = setInterval(() => {
@@ -39,24 +50,44 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     return () => clearInterval(interval);
   }, [cooldownRemaining]);
 
+  const prevStatusStateRef = useRef<string | undefined>(undefined);
+
+  // Sync status to parent if changed
   useEffect(() => {
-    if (onStatusChange) {
-      onStatusChange(status);
-    }
-    if (status?.state === 'SUCCESS') {
-      // Invalidate user data queries so dashboard re-renders with fresh data
+    onStatusChange?.(status);
+  }, [status, onStatusChange]);
+
+  // Only invalidate queries when transitioning from an active running sync to completion
+  useEffect(() => {
+    const prevState = prevStatusStateRef.current;
+    const currentState = status?.state;
+    prevStatusStateRef.current = currentState;
+
+    if (
+      (prevState === 'RUNNING' || prevState === 'PENDING') &&
+      (currentState === 'SUCCESS' || currentState === 'PARTIAL')
+    ) {
+      queryClient.invalidateQueries({ queryKey: ['capabilities', username] });
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+      queryClient.invalidateQueries({ queryKey: ['detailedProfile', username] });
       queryClient.invalidateQueries({ queryKey: ['repos', username] });
+      queryClient.invalidateQueries({ queryKey: ['repoInsights', username] });
+      queryClient.invalidateQueries({ queryKey: ['prSummary', username] });
+      queryClient.invalidateQueries({ queryKey: ['issueSummary', username] });
+      queryClient.invalidateQueries({ queryKey: ['userActivity', username] });
+      queryClient.invalidateQueries({ queryKey: ['languages', username] });
+      queryClient.invalidateQueries({ queryKey: ['contributions', username] });
       queryClient.invalidateQueries({ queryKey: ['commitSummary', username] });
       queryClient.invalidateQueries({ queryKey: ['commitHour', username] });
       queryClient.invalidateQueries({ queryKey: ['commitWeekday', username] });
       queryClient.invalidateQueries({ queryKey: ['recentCommits', username] });
     }
-  }, [status, onStatusChange, queryClient, username]);
+  }, [status?.state, queryClient, username]);
 
   const mutation = useMutation({
     mutationFn: async () => {
       setLastError(null);
+      runningStartRef.current = Date.now();
       const res = await fetch(`/api/users/${encodeURIComponent(username)}/refresh`, {
         method: 'POST',
       });
@@ -83,7 +114,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     },
   });
 
-  const isRunning = status?.state === 'RUNNING' || mutation.isPending;
+  const isRunning = status?.state === 'RUNNING' || status?.state === 'PENDING' || mutation.isPending;
   const isCooldown = cooldownRemaining > 0;
 
   const formatCountdown = (seconds: number) => {
@@ -92,35 +123,67 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     return `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
 
-  const getStepLabel = (step: string | null | undefined) => {
-    if (!step) return 'Syncing...';
-    switch (step.toUpperCase()) {
-      case 'PROFILE':
-        return 'Syncing profile...';
-      case 'REPOS':
-        return 'Syncing repositories...';
-      case 'COMMITS':
-        return 'Syncing commits...';
+  // Compute slice progress
+  const slices = status?.slices || [];
+  const completedCount = slices.filter(
+    (s) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
+  ).length;
+  const totalSlices = 9;
+
+  const currentRunningSlice = slices.find((s) => s.state === 'RUNNING');
+  const activeStepName = currentRunningSlice?.name || status?.currentStep || 'Initializing';
+
+  const getStepLabel = (step: string) => {
+    switch (step.toLowerCase()) {
+      case 'profile':
+        return 'Profile';
+      case 'repos':
+        return 'Repositories';
+      case 'repoinsights':
+        return 'Insights';
+      case 'languages':
+        return 'Languages';
+      case 'commits':
+        return 'Commits';
+      case 'calendar':
+        return 'Calendar';
+      case 'pullrequests':
+        return 'Pull Requests';
+      case 'issues':
+        return 'Issues';
+      case 'activity':
+        return 'Activity';
       default:
-        return `Syncing ${step.toLowerCase()}...`;
+        return step;
     }
   };
 
+  const finalLabel = getFinalSyncLabel(status?.state);
+
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-      {/* Step Pill when running */}
-      {status?.state === 'RUNNING' && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm animate-pulse motion-reduce:animate-none">
+      {/* Slice Progress Pill when running */}
+      {isRunning && (
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm animate-pulse motion-reduce:animate-none">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
-          <span className="font-mono">{getStepLabel(status.currentStep)}</span>
+          <span className="font-mono">
+            Syncing {getStepLabel(activeStepName)} ({completedCount}/{totalSlices})
+          </span>
         </span>
       )}
 
-      {/* Success notification badge */}
-      {status?.state === 'SUCCESS' && !isRunning && (
+      {/* Terminal State Badge (Updated just now / Partly updated) */}
+      {!isRunning && !isCooldown && status?.state === 'SUCCESS' && (
         <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Synced</span>
+          <span>{finalLabel || 'Updated just now'}</span>
+        </span>
+      )}
+
+      {!isRunning && !isCooldown && status?.state === 'PARTIAL' && (
+        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span>Partly updated</span>
         </span>
       )}
 

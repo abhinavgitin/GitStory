@@ -35,8 +35,40 @@ export interface UserSummary {
   canRefresh: boolean;
 }
 
+export type CapabilityReason = 'NO_DATA_ON_GITHUB' | 'SYNC_FAILED' | 'NOT_SYNCED_YET' | 'SKIPPED';
+
+export interface CapabilityStatus {
+  hasData: boolean;
+  reason: CapabilityReason | null;
+}
+
+export interface UserCapabilities {
+  username: string;
+  profile: CapabilityStatus;
+  commits: CapabilityStatus;
+  commitRhythm: CapabilityStatus;
+  languages: CapabilityStatus;
+  calendar: CapabilityStatus;
+  repoInsights: CapabilityStatus;
+  pullRequests: CapabilityStatus;
+  issues: CapabilityStatus;
+  activity: CapabilityStatus;
+  organizations: CapabilityStatus;
+  publicEvents: CapabilityStatus;
+}
+
+export type SliceState = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
+
+export interface SliceResult {
+  name: string;
+  state: SliceState;
+  itemCount: number;
+  durationMs: number;
+  reason: string | null;
+}
+
 export interface RefreshStatus {
-  state: 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+  state: 'IDLE' | 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
   currentStep: string | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -46,6 +78,7 @@ export interface RefreshStatus {
   reposFailed: number;
   commitsSynced: number;
   errorMessage: string | null;
+  slices: SliceResult[];
 }
 
 export interface CommitSummary {
