@@ -256,6 +256,21 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         <span>{isQueued ? 'In Line...' : isRunning ? 'Syncing...' : isCooldown ? 'On Cooldown' : 'Refresh Data'}</span>
       </button>
 
+      {/* Small Hard Refresh / Fallback Button */}
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        title="If nothing appears, click to reload or press Ctrl+Shift+R"
+        aria-label="Hard refresh page if nothing appears"
+        className="inline-flex items-center gap-1.5 min-h-[38px] px-2.5 py-1.5 rounded-md text-xs font-medium text-zinc-400 hover:text-zinc-100 bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-zinc-700 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-sm select-none"
+      >
+        <RotateCcw className="w-3 h-3 text-zinc-500" />
+        <span className="text-zinc-300">Hard Refresh</span>
+        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-800/80 border border-zinc-700/60 rounded">
+          Ctrl+Shift+R
+        </kbd>
+      </button>
+
       {lastError && !isCooldown && (
         <div className="w-full text-right text-[11px] text-zinc-400 flex items-center justify-end gap-2 pr-1">
           <span>{lastError}</span>
