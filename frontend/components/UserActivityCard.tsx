@@ -83,7 +83,7 @@ export function UserActivityCard({
 }: UserActivityCardProps) {
   if (isLoading) {
     return (
-      <div className="rounded-3xl p-6 sm:p-8 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] animate-pulse motion-reduce:animate-none">
+      <div className="rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 animate-pulse motion-reduce:animate-none">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-zinc-800/80" />
@@ -160,15 +160,15 @@ export function UserActivityCard({
   const maxMonthlyCommit = Math.max(1, ...monthlyEntries.map(([, v]) => v));
 
   return (
-    <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06] w-full">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 w-full">
       {/* Specular top rim highlight */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
       {/* Card Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm">
+            <span className="inline-flex p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
               <Activity className="w-4 h-4" />
             </span>
             <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
@@ -177,8 +177,8 @@ export function UserActivityCard({
           </div>
         </div>
 
-        <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/60 border border-white/10 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+        <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800">
+          <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
           <span className="font-mono text-xs text-zinc-300">
             {totalCommitsCount} total commits recorded
           </span>
@@ -298,7 +298,7 @@ export function UserActivityCard({
                   </span>
                   <div className="w-full bg-zinc-800/80 group-hover:bg-sky-400 rounded-lg transition-all relative overflow-hidden flex items-end shadow-sm"
                     style={{ height: `${heightPct}%` }}>
-                    <div className="w-full h-full bg-gradient-to-t from-sky-600/30 to-sky-400/80 opacity-90 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-full h-full bg-sky-500 opacity-90 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <span className="text-[11px] font-mono text-zinc-400 group-hover:text-white transition-colors truncate">
                     {label}
@@ -324,7 +324,7 @@ export function UserActivityCard({
                 Recent Public Activity
               </h3>
             </div>
-            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2.5 py-0.5 rounded-md border border-zinc-800">
               {activity.recentEvents.length} public events logged
             </span>
           </div>

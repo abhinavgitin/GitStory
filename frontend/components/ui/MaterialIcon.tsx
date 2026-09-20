@@ -62,7 +62,7 @@ export function MaterialIcon({
   );
 }
 
-// ── Drop-in replacements for Lucide icons mapped to Google Material Symbols ──
+// ── Named icon exports mapped to Google Material Symbols ──
 export type IconProps = Omit<MaterialIconProps, 'name'>;
 
 export const ArrowLeft = (props: IconProps) => <MaterialIcon name="arrow_back" {...props} />;
@@ -97,7 +97,7 @@ export const ChevronDown = (props: IconProps) => <MaterialIcon name="expand_more
 export const ChevronUp = (props: IconProps) => <MaterialIcon name="expand_less" {...props} />;
 export const ServerOff = (props: IconProps) => <MaterialIcon name="cloud_off" {...props} />;
 export const FolderGit2 = (props: IconProps) => <MaterialIcon name="folder_open" {...props} />;
-export const Sparkles = (props: IconProps) => <MaterialIcon name="auto_awesome" {...props} />;
+export const Insights = (props: IconProps) => <MaterialIcon name="insights" {...props} />;
 export const Shield = (props: IconProps) => <MaterialIcon name="shield" {...props} />;
 export const ShieldCheck = (props: IconProps) => <MaterialIcon name="verified_user" {...props} />;
 export const MapPin = (props: IconProps) => <MaterialIcon name="location_on" {...props} />;

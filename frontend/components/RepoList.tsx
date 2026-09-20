@@ -69,7 +69,7 @@ export function RepoList({ repos, languagesByRepo }: RepoListProps) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-zinc-100 tracking-tight">Repositories</h2>
-            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-full border border-zinc-700/50">
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-700/50">
               {filteredRepos.length}
             </span>
           </div>
@@ -97,7 +97,7 @@ export function RepoList({ repos, languagesByRepo }: RepoListProps) {
                 onClick={() => setSortBy(type)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all cursor-pointer select-none ${
                   sortBy === type
-                    ? 'bg-zinc-800 text-zinc-100 shadow-sm'
+                    ? 'bg-zinc-800 text-zinc-100'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -122,7 +122,7 @@ export function RepoList({ repos, languagesByRepo }: RepoListProps) {
             return (
               <div
                 key={repo.id}
-                className="bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/90 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-2xl p-5 flex flex-col justify-between transition-all duration-150 active:scale-[0.99]"
+                className="bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/90 rounded-xl p-5 flex flex-col justify-between transition-all duration-150 active:scale-[0.99]"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">

@@ -63,7 +63,7 @@ export function Navbar({ username, lastSyncedAt }: NavbarProps) {
     <header className="apple-liquid-glass sticky top-0 z-50 w-full transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-sm group-hover:border-zinc-500 transition-colors">
+          <div className="w-8 h-8 rounded-md bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors">
             <GithubIcon className="w-4 h-4" />
           </div>
           <div>
@@ -85,7 +85,7 @@ export function Navbar({ username, lastSyncedAt }: NavbarProps) {
           ) : (
             <Link
               href="/"
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition-all active:scale-[0.97]"
+              className="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 transition-all active:scale-[0.97]"
             >
               Search
             </Link>

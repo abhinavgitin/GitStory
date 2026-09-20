@@ -22,7 +22,7 @@ export function ErrorState({ onRetry, isRetrying }: ErrorStateProps) {
       <button
         onClick={onRetry}
         disabled={isRetrying}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-medium text-sm transition-all duration-150 active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-zinc-200 hover:bg-zinc-100 text-zinc-900 font-medium text-sm transition-all duration-150 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
       >
         <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin motion-reduce:animate-none' : ''}`} />
         <span>{isRetrying ? 'Retrying...' : 'Retry Connection'}</span>

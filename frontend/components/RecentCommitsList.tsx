@@ -39,7 +39,7 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
   const items = commits || [];
 
   return (
-    <section className="bg-zinc-900/50 border border-zinc-800/80 border-t-zinc-700/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] rounded-2xl p-5 mb-8">
+    <section className="bg-zinc-900/50 border border-zinc-800/80 border-t-zinc-700/60 rounded-xl p-5 mb-8">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-blue-400">

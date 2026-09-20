@@ -1,0 +1,25 @@
+# UI Component License
+
+All UI components in this directory are custom-built for the GitStory project
+and are licensed under the MIT License (see the root LICENSE file).
+
+## Third-Party Dependencies Used by UI Components
+
+### Google Material Symbols
+- **License:** Apache License 2.0
+- **Source:** https://fonts.google.com/icons
+- **Usage:** Icon font loaded via Google Fonts CDN
+- MaterialIcon.tsx wraps Google Material Symbols Outlined as React components
+
+### Framer Motion
+- **License:** MIT License
+- **Source:** https://github.com/framer/motion
+- **Usage:** Animation library used for transitions and micro-interactions
+
+### React / React DOM
+- **License:** MIT License
+- **Source:** https://github.com/facebook/react
+
+### Next.js
+- **License:** MIT License
+- **Source:** https://github.com/vercel/next.js

@@ -340,16 +340,16 @@ export default function UserDashboardPage({
         {/* State A: Invalid GitHub Username */}
         {!isValid ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 shadow-lg backdrop-blur-md">
+            <div className="w-14 h-14 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
               <AlertTriangle className="w-7 h-7" />
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Invalid GitHub Username</h1>
             <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-              &quot;{rawUsername}&quot; does not conform to GitHub&apos;s username requirements (1–39 alphanumeric characters with single hyphens).
+              &quot;{rawUsername}&quot; does not conform to GitHub&apos;s username requirements (1-39 alphanumeric characters with single hyphens).
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-zinc-200 hover:bg-zinc-100 text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Search</span>
@@ -363,7 +363,7 @@ export default function UserDashboardPage({
         ) : isProfileError && profileError?.message === 'USER_NOT_FOUND' ? (
           /* State C: User Not Found on GitHub (404) */
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4 shadow-lg backdrop-blur-md">
+            <div className="w-16 h-16 rounded-lg bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4">
               <UserX className="w-8 h-8 text-rose-400" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">User Not Found on GitHub</h1>
@@ -373,7 +373,7 @@ export default function UserDashboardPage({
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-zinc-200 hover:bg-zinc-100 text-zinc-950 font-semibold text-xs transition-all active:scale-[0.97]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Search Another User</span>
@@ -391,14 +391,14 @@ export default function UserDashboardPage({
                   backdropFilter: 'blur(24px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
                 }}
               >
                 {/* Back CTA & User Identity */}
                 <div className="flex items-center gap-3 min-w-0">
                   <Link
                     href="/"
-                    className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white flex items-center justify-center border border-zinc-700/50 transition-colors shrink-0 active:scale-[0.97]"
+                    className="w-8 h-8 rounded-md bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white flex items-center justify-center border border-zinc-700/50 transition-colors shrink-0 active:scale-[0.97]"
                     title="Return to search"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -471,17 +471,17 @@ export default function UserDashboardPage({
 
                   {/* 1. Developer Profile Banner (Render only if profile has data) */}
                   {showProfile && (
-                    <section className="p-6 sm:p-8 rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <section className="p-6 sm:p-8 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                       <div className="flex items-start sm:items-center gap-5">
                         {userProfile?.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={userProfile.avatarUrl}
                             alt={normalizedUsername}
-                            className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 shadow-lg object-cover"
+                            className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg bg-zinc-800 border border-zinc-700/70 object-cover"
                           />
                         ) : (
-                          <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700/70 flex items-center justify-center text-zinc-400 shadow-md">
+                          <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg bg-zinc-800 border border-zinc-700/70 flex items-center justify-center text-zinc-400">
                             <GithubIcon className="w-10 h-10" />
                           </div>
                         )}
@@ -491,7 +491,7 @@ export default function UserDashboardPage({
                             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                               {detailedProfile?.name || userProfile?.displayName || normalizedUsername}
                             </h1>
-                            <span className="font-mono text-xs text-zinc-400 bg-zinc-800/80 px-2.5 py-0.5 rounded-full border border-zinc-700/50">
+                            <span className="font-mono text-xs text-zinc-400 bg-zinc-800/80 px-2.5 py-0.5 rounded-md border border-zinc-700/50">
                               @{normalizedUsername}
                             </span>
                           </div>
@@ -550,7 +550,7 @@ export default function UserDashboardPage({
                       </div>
 
                       <div className="flex items-center gap-3 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
-                        <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
                           Public
                         </span>
                       </div>

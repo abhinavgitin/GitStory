@@ -166,7 +166,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
       {/* Slice Progress Pill when running */}
       {isRunning && (
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm animate-pulse motion-reduce:animate-none">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse motion-reduce:animate-none">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           <span className="font-mono">
             Syncing {getStepLabel(activeStepName)}{completedCount > 0 ? ` (${completedCount}/${totalSlices})` : '...'}
@@ -176,14 +176,14 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Terminal State Badge (Updated just now / Partly updated) */}
       {!isRunning && !isCooldown && status?.state === 'SUCCESS' && (
-        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <CheckCircle2 className="w-3.5 h-3.5" />
           <span>{finalLabel || 'Updated just now'}</span>
         </span>
       )}
 
       {!isRunning && !isCooldown && status?.state === 'PARTIAL' && (
-        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Partly updated</span>
         </span>
@@ -191,7 +191,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Cooldown pill */}
       {isCooldown && !isRunning && (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
           <Clock className="w-3.5 h-3.5 text-zinc-500" />
           <span>Available in {formatCountdown(cooldownRemaining)}</span>
         </span>
@@ -201,7 +201,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       {status?.state === 'FAILED' && !isRunning && !isCooldown && (
         <span
           title={status.errorMessage || 'Sync failed'}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20"
         >
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Sync failed</span>
@@ -213,10 +213,10 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         onClick={() => mutation.mutate()}
         disabled={isRunning || isCooldown}
         aria-label="Refresh developer telemetry"
-        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
+        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-md text-xs font-semibold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
           isRunning || isCooldown
             ? 'bg-zinc-800/60 text-zinc-500 border border-zinc-800/90 shadow-none cursor-not-allowed'
-            : 'bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_12px_rgba(255,255,255,0.15)]'
+            : 'bg-zinc-200 hover:bg-zinc-100 text-zinc-950 border border-zinc-300/40'
         }`}
       >
         <RotateCcw

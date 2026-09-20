@@ -53,7 +53,7 @@ export default function LandingPage() {
           {/* GITSTORY Wordmark (Spans ~85-90% width, single line, soft vertical gradient) */}
           <div className="w-full max-w-[96vw] sm:max-w-[90vw] mx-auto flex items-center justify-center overflow-visible">
             <h2
-              className="w-full text-center font-display font-black tracking-[-0.065em] uppercase select-none leading-[0.85] whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-b from-white/95 via-white/60 to-white/10"
+              className="w-full text-center font-display font-black tracking-[-0.065em] uppercase select-none leading-[0.85] whitespace-nowrap text-white/70"
               style={{
                 fontSize: 'clamp(3.5rem, 18.5vw, 18rem)',
               }}

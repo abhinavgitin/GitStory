@@ -30,7 +30,7 @@ interface PrCardProps {
 export function PrCard({ summary, isLoading }: PrCardProps) {
   if (isLoading) {
     return (
-      <div className="rounded-3xl p-6 sm:p-7 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] animate-pulse motion-reduce:animate-none">
+      <div className="rounded-xl p-6 sm:p-7 bg-zinc-900/85 border border-zinc-800/80 animate-pulse motion-reduce:animate-none">
         <div className="h-6 w-36 bg-zinc-800/80 rounded mb-4" />
         <div className="h-32 bg-zinc-800/30 rounded-2xl" />
       </div>
@@ -43,7 +43,7 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
     mergedPrs: 0,
     closedPrs: 0,
     mergeRate: 0,
-    avgMergeHours: null,
+    avgTimeToMergeHours: 0,
   };
   const prTotal = pr.totalPrs;
   const prMergedPct = prTotal > 0 ? (pr.mergedPrs / prTotal) * 100 : 0;
@@ -51,13 +51,13 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
   const prClosedPct = prTotal > 0 ? (pr.closedPrs / prTotal) * 100 : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl p-6 sm:p-7 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06] flex flex-col justify-between">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+    <div className="relative overflow-hidden rounded-xl p-6 sm:p-7 bg-zinc-900/85 border border-zinc-800/80 flex flex-col justify-between">
+
       
       <div>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm">
+            <span className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
               <GitPullRequest className="w-4 h-4" />
             </span>
             <div>
@@ -66,7 +66,7 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
               </h3>
             </div>
           </div>
-          <span className="font-mono text-xs text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
+          <span className="font-mono text-xs text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-md border border-purple-500/20">
             {prTotal} authored
           </span>
         </div>
@@ -89,7 +89,7 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
                   cy="18"
                   r="15.9155"
                   fill="none"
-                  stroke="url(#prMergeGradient)"
+                  stroke="#a855f6"
                   strokeWidth="3.2"
                   strokeLinecap="round"
                   strokeDasharray={`${pr.mergeRate} ${100 - pr.mergeRate}`}
@@ -97,12 +97,7 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
                   animate={{ strokeDasharray: `${pr.mergeRate} ${100 - pr.mergeRate}` }}
                   transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 />
-                <defs>
-                  <linearGradient id="prMergeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#c084fc" />
-                    <stop offset="100%" stopColor="#818cf8" />
-                  </linearGradient>
-                </defs>
+
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-xs font-bold text-white font-mono leading-none">
@@ -135,25 +130,25 @@ export function PrCard({ summary, isLoading }: PrCardProps) {
                 {pr.mergedPrs}M / {pr.openPrs}O / {pr.closedPrs}C
               </span>
             </div>
-            <div className="h-2 w-full bg-zinc-800/80 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+            <div className="h-2 w-full bg-zinc-800/80 rounded-md overflow-hidden flex gap-0.5 p-0.5">
               {prMergedPct > 0 && (
                 <div
                   style={{ width: `${prMergedPct}%` }}
-                  className="h-full bg-purple-400 rounded-full transition-all"
+                  className="h-full bg-purple-400 rounded-md transition-all"
                   title={`Merged: ${pr.mergedPrs} (${prMergedPct.toFixed(1)}%)`}
                 />
               )}
               {prOpenPct > 0 && (
                 <div
                   style={{ width: `${prOpenPct}%` }}
-                  className="h-full bg-emerald-400 rounded-full transition-all"
+                  className="h-full bg-emerald-400 rounded-md transition-all"
                   title={`Open: ${pr.openPrs} (${prOpenPct.toFixed(1)}%)`}
                 />
               )}
               {prClosedPct > 0 && (
                 <div
                   style={{ width: `${prClosedPct}%` }}
-                  className="h-full bg-zinc-600 rounded-full transition-all"
+                  className="h-full bg-zinc-600 rounded-md transition-all"
                   title={`Closed without merge: ${pr.closedPrs} (${prClosedPct.toFixed(1)}%)`}
                 />
               )}
@@ -215,7 +210,7 @@ interface IssueCardProps {
 export function IssueCard({ summary, isLoading }: IssueCardProps) {
   if (isLoading) {
     return (
-      <div className="rounded-3xl p-6 sm:p-7 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] animate-pulse motion-reduce:animate-none">
+      <div className="rounded-xl p-6 sm:p-7 bg-zinc-900/85 border border-zinc-800/80 animate-pulse motion-reduce:animate-none">
         <div className="h-6 w-36 bg-zinc-800/80 rounded mb-4" />
         <div className="h-32 bg-zinc-800/30 rounded-2xl" />
       </div>
@@ -234,13 +229,13 @@ export function IssueCard({ summary, isLoading }: IssueCardProps) {
   const issueOpenPct = issueTotal > 0 ? (issue.openIssues / issueTotal) * 100 : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl p-6 sm:p-7 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06] flex flex-col justify-between">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+    <div className="relative overflow-hidden rounded-xl p-6 sm:p-7 bg-zinc-900/85 border border-zinc-800/80 flex flex-col justify-between">
+
 
       <div>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm">
+            <span className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <CircleDot className="w-4 h-4" />
             </span>
             <div>
@@ -252,7 +247,7 @@ export function IssueCard({ summary, isLoading }: IssueCardProps) {
               </p>
             </div>
           </div>
-          <span className="font-mono text-xs text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+          <span className="font-mono text-xs text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
             {issueTotal} authored
           </span>
         </div>
@@ -268,9 +263,9 @@ export function IssueCard({ summary, isLoading }: IssueCardProps) {
                 {issue.closeRate}%
               </span>
             </div>
-            <div className="h-2 w-full bg-zinc-800/80 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-zinc-800/80 rounded-md overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 rounded-full"
+                className="h-full bg-amber-400 rounded-md"
                 initial={{ width: '0%' }}
                 animate={{ width: `${issue.closeRate}%` }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -290,18 +285,18 @@ export function IssueCard({ summary, isLoading }: IssueCardProps) {
                 {issueClosedPct.toFixed(0)}% Closed / {issueOpenPct.toFixed(0)}% Open
               </span>
             </div>
-            <div className="h-2 w-full bg-zinc-800/80 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+            <div className="h-2 w-full bg-zinc-800/80 rounded-md overflow-hidden flex gap-0.5 p-0.5">
               {issueClosedPct > 0 && (
                 <div
                   style={{ width: `${issueClosedPct}%` }}
-                  className="h-full bg-amber-400 rounded-full transition-all"
+                  className="h-full bg-amber-400 rounded-md transition-all"
                   title={`Closed: ${issue.closedIssues}`}
                 />
               )}
               {issueOpenPct > 0 && (
                 <div
                   style={{ width: `${issueOpenPct}%` }}
-                  className="h-full bg-emerald-400 rounded-full transition-all"
+                  className="h-full bg-emerald-400 rounded-md transition-all"
                   title={`Open: ${issue.openIssues}`}
                 />
               )}

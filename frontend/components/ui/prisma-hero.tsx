@@ -2,7 +2,7 @@
 
 import { motion, useInView } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Clock, Sparkles } from "@/components/ui/MaterialIcon";
+import { ArrowRight, Clock } from "@/components/ui/MaterialIcon";
 import { useRef } from "react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { RefreshStatus } from "@/types";
@@ -171,14 +171,14 @@ export const PrismaHero = ({
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_170732_8a9ccda6-5cff-4628-b164-059c500a2b41.mp4"
       />
 
-      {/* Noise texture overlay — adds cinematic grain */}
+      {/* Noise texture overlay - adds cinematic grain */}
       <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.35] mix-blend-overlay" />
 
       {/* Subtle transparent dark overlay for general text contrast without creating solid black areas */}
       <div className="pointer-events-none absolute inset-0 bg-black/25" />
 
-      {/* Subtle bottom 35% gradient (transparent to 45% black) for wordmark legibility */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-b from-transparent via-black/20 to-black/45" />
+      {/* Subtle bottom overlay for wordmark legibility */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-black/30" />
 
       {/* ── Top Bar / Navbar (omitted entirely on landing page) ── */}
       {!isLanding && (
@@ -188,21 +188,20 @@ export const PrismaHero = ({
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl md:rounded-full px-5 py-3"
+            className="max-w-6xl mx-auto flex items-center justify-between rounded-lg md:rounded-lg px-5 py-3"
             style={{
               background: 'rgba(18, 18, 23, 0.65)',
               backdropFilter: 'blur(24px) saturate(180%)',
               WebkitBackdropFilter: 'blur(24px) saturate(180%)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
             }}
           >
-            {/* Top specular rim highlight */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
             {/* Brand */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner group-hover:border-zinc-500 transition-colors">
+              <div className="w-8 h-8 rounded-md bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors">
                 <GithubIcon className="w-4 h-4" />
               </div>
               <div>
@@ -230,7 +229,7 @@ export const PrismaHero = ({
               ) : (
                 <a
                   href="#search-section"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 border border-white/40 shadow-sm transition-all duration-150 active:scale-[0.97]"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 border border-zinc-300/40 transition-all duration-150 active:scale-[0.97]"
                 >
                   Search User
                 </a>
@@ -251,10 +250,6 @@ export const PrismaHero = ({
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8 lg:mb-10">
             {/* Left: Codebase Intelligence Pill tag & Subtitle */}
             <div className="max-w-xl space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-zinc-300 font-medium shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Personal Codebase Intelligence</span>
-              </div>
               <motion.p
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -273,13 +268,12 @@ export const PrismaHero = ({
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.35 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative px-4 py-2 rounded-2xl overflow-hidden shadow-lg bg-zinc-900/70 border border-white/[0.12] backdrop-blur-xl"
+                  className="relative px-4 py-2 rounded-lg overflow-hidden bg-zinc-900/70 border border-white/[0.12]"
                   style={{
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
                   }}
                 >
-                  {/* Specular corner highlight */}
-                  <div className="pointer-events-none absolute top-0 left-0 w-8 h-8 bg-gradient-to-br from-white/15 to-transparent rounded-tl-2xl" />
+
                   <div className="flex flex-col">
                     <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
                       {stat.value}
@@ -295,10 +289,10 @@ export const PrismaHero = ({
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                className="group inline-flex items-center gap-3 rounded-full bg-zinc-100 hover:bg-white py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 shadow-[0_4px_32px_rgba(255,255,255,0.22)] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
+                className="group inline-flex items-center gap-3 rounded-md bg-zinc-200 hover:bg-zinc-100 py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
               >
                 <span>{ctaText}</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110 shadow-sm">
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110">
                   <ArrowRight className="h-4 w-4" />
                 </span>
               </motion.a>
@@ -308,7 +302,7 @@ export const PrismaHero = ({
           {/* Tier 2: Giant Display Typography (Clear Bounding Box, No Overlap) */}
           <div className="w-full pt-4 border-t border-white/[0.08]">
             <h1
-              className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)]"
+              className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase"
               style={{ color: "#F4F4F5" }}
             >
               <WordsPullUp text={title} showAsterisk />

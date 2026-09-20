@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  Sparkles,
+  Insights,
   Star,
   GitFork,
   Eye,
@@ -33,7 +33,7 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
   if (isLoading) {
     return (
-      <div className="rounded-3xl p-7 bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.25)] animate-pulse">
+      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
         <div className="h-6 w-48 bg-zinc-800/80 rounded-md mb-3" />
         <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -47,8 +47,8 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
   if (!insights || insights.totalRepos === 0) {
     return (
-      <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06] text-center py-12 mb-8">
-        <Sparkles className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
+      <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80 text-center py-12 mb-8">
+        <Insights className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
         <p className="text-sm font-medium text-zinc-300">No repository insights available</p>
         <p className="text-xs text-zinc-500 mt-1">No public repositories were found to generate intelligence metrics</p>
       </section>
@@ -63,16 +63,16 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       : insights.topBySize;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06] mb-8">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80 mb-8">
       {/* Specular top rim */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
             <span className="inline-flex p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Sparkles className="w-4 h-4" />
+              <Insights className="w-4 h-4" />
             </span>
             <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
               Repository Intelligence & Health
@@ -82,16 +82,16 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
         {/* Health status badges */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>{insights.activeRepos} Active</span>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             <span>{insights.staleRepos} Stale</span>
           </div>
           {insights.archivedRepos > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-xs font-medium">
               <Archive className="w-3 h-3 text-zinc-400" />
               <span>{insights.archivedRepos} Archived</span>
             </div>
@@ -153,7 +153,7 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-zinc-800 text-zinc-100 shadow-sm'
+                    ? 'bg-zinc-800 text-zinc-100'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >

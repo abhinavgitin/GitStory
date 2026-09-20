@@ -14,7 +14,7 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
 
   if (isLoading) {
     return (
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06] animate-pulse motion-reduce:animate-none h-64 w-full" />
+      <div className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 animate-pulse motion-reduce:animate-none h-64 w-full" />
     );
   }
 
@@ -39,9 +39,9 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
     : 'None';
 
   return (
-    <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/85 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.06] w-full">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 w-full">
       {/* Specular top rim highlight */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
       {/* Card Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">

@@ -49,13 +49,13 @@ export function DashboardLoader({
       <div className="w-full max-w-sm flex flex-col items-center">
         {/* Minimal Spinner Ring */}
         <div className="relative w-12 h-12 mb-6 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
-          <div className="absolute inset-0 rounded-full border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-md border-2 border-zinc-800" />
+          <div className="absolute inset-0 rounded-md border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent animate-spin" />
         </div>
 
         {/* Username Tag */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 mb-3 shadow-inner">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-900 border border-zinc-800 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           <span className="text-xs font-mono text-zinc-300">@{username}</span>
         </div>
 
@@ -70,9 +70,9 @@ export function DashboardLoader({
         </p>
 
         {/* Clean Progress Bar */}
-        <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/80 mb-2">
+        <div className="w-full h-1 bg-zinc-900 rounded-md overflow-hidden border border-zinc-800/80 mb-2">
           <motion.div
-            className="h-full bg-gradient-to-r from-zinc-500 via-white to-zinc-400 rounded-full"
+            className="h-full bg-zinc-300 rounded-md"
             initial={{ width: '8%' }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.4, ease: 'easeOut' }}

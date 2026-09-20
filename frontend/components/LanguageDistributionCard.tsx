@@ -17,10 +17,10 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
   if (loading) {
     return (
-      <div className="rounded-3xl p-7 bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.25)] ring-1 ring-inset ring-white/[0.05] animate-pulse">
+      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
         <div className="h-6 w-48 bg-zinc-800/80 rounded-md mb-3" />
         <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
-        <div className="h-4 w-full bg-zinc-800/60 rounded-full mb-6" />
+        <div className="h-4 w-full bg-zinc-800/60 rounded-md mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-12 bg-zinc-800/40 rounded-xl" />
@@ -32,7 +32,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
   if (!data || data.languages.length === 0) {
     return (
-      <div className="rounded-3xl p-7 bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.25)] ring-1 ring-inset ring-white/[0.05] text-center py-12">
+      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 text-center py-12">
         <Code2 className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
         <p className="text-sm font-medium text-zinc-300">No language data available</p>
         <p className="text-xs text-zinc-500 mt-1">Run a sync to analyze repository languages</p>
@@ -52,9 +52,9 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       : data.formattedTotalSize;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06]">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80">
       {/* Specular top sheen */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
       {/* Header & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
@@ -80,7 +80,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               viewMode === 'overall'
-                ? 'bg-zinc-800/90 text-zinc-100 shadow-sm border border-white/10'
+                ? 'bg-zinc-800/90 text-zinc-100 border border-white/10'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -97,7 +97,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               viewMode === 'by-repo'
-                ? 'bg-zinc-800/90 text-zinc-100 shadow-sm border border-white/10'
+                ? 'bg-zinc-800/90 text-zinc-100 border border-white/10'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -130,7 +130,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
       {/* Summary KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 mb-7">
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
+        <div className="p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
             {viewMode === 'by-repo' ? 'Repository Code Volume' : 'Code Volume (Bytes)'}
           </span>
@@ -141,7 +141,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
+        <div className="p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
             Primary Stack
           </span>
@@ -163,7 +163,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
+        <div className="col-span-2 sm:col-span-1 p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
             Active Languages
           </span>
@@ -191,7 +191,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
           )}
         </div>
 
-        <div className="relative h-4 w-full rounded-full overflow-hidden flex bg-zinc-950/80 p-0.5 ring-1 ring-white/10 shadow-inner">
+        <div className="relative h-4 w-full rounded-md overflow-hidden flex bg-zinc-950/80 p-0.5 ring-1 ring-zinc-800">
           {activeLanguages.map((item, idx) => {
             const isHovered = hoveredLang === item.language;
             const isAnyHovered = hoveredLang !== null;
@@ -237,7 +237,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
                 onMouseLeave={() => setHoveredLang(null)}
                 className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-150 cursor-pointer select-none ${
                   isHovered
-                    ? 'bg-zinc-800/90 border-white/20 shadow-md translate-y-[-1px]'
+                    ? 'bg-zinc-800/90 border-white/20 translate-y-[-1px]'
                     : 'bg-zinc-950/30 hover:bg-zinc-800/40 border-white/[0.04]'
                 }`}
               >

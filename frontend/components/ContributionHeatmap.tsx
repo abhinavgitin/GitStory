@@ -102,7 +102,7 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
 
   if (isLoading) {
     return (
-      <div className="rounded-3xl p-7 bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.25)] animate-pulse">
+      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
         <div className="h-6 w-56 bg-zinc-800/80 rounded-md mb-3" />
         <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
         <div className="h-32 bg-zinc-800/40 rounded-2xl mb-6" />
@@ -121,9 +121,9 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
   const accountAge = profile?.accountAgeFormatted ?? 'N/A';
 
   return (
-    <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-zinc-900/50 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_48px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/[0.06]">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80">
       {/* Specular top rim sheen */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
 
       {/* Header & Bio */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

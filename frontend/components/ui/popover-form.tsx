@@ -47,7 +47,7 @@ export function PopoverForm({
         layoutId={shouldReduceMotion ? undefined : `${title}-wrapper`}
         onClick={() => setOpen(true)}
         style={{ borderRadius: 10, visibility: open ? "hidden" : "visible" }}
-        className="flex h-10 items-center border border-zinc-700/80 bg-[#121212] px-4 text-sm font-medium text-zinc-100 outline-none hover:border-zinc-500 hover:bg-zinc-900 transition-colors focus:ring-1 focus:ring-zinc-500 cursor-pointer shadow-md active:scale-[0.97]"
+        className="flex h-10 items-center border border-zinc-700/80 bg-[#121212] px-4 text-sm font-medium text-zinc-100 outline-none hover:border-zinc-500 hover:bg-zinc-900 transition-colors focus:ring-1 focus:ring-zinc-500 cursor-pointer active:scale-[0.97]"
       >
         <motion.span layoutId={shouldReduceMotion ? undefined : `${title}-title`}>{title}</motion.span>
       </motion.button>
@@ -55,7 +55,7 @@ export function PopoverForm({
         {open && (
           <motion.div
             layoutId={shouldReduceMotion ? undefined : `${title}-wrapper`}
-            className="absolute top-0 left-1/2 -translate-x-1/2 p-1 overflow-hidden bg-muted shadow-[0_0_0_1px_rgba(255,255,255,0.1),0px_16px_48px_rgba(0,0,0,0.7)] outline-none z-40"
+            className="absolute top-0 left-1/2 -translate-x-1/2 p-1 overflow-hidden bg-muted outline-none z-40 border border-zinc-700/80"
             ref={ref}
             style={{ borderRadius: 14, width, height, maxWidth: "calc(100vw - 32px)" }}
           >
@@ -142,7 +142,7 @@ export function PopoverFormButton({
   return (
     <button
       type="submit"
-      className="ml-auto flex h-8 min-w-[128px] px-4 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-xs font-semibold text-white whitespace-nowrap shadow-[0_0_1px_1px_rgba(255,255,255,0.15)_inset,0_2px_4px_rgba(0,0,0,0.35)] cursor-pointer active:scale-[0.97] transition-all"
+      className="ml-auto flex h-8 min-w-[128px] px-4 items-center justify-center overflow-hidden rounded-md bg-blue-500 hover:bg-blue-400 text-xs font-semibold text-white whitespace-nowrap cursor-pointer active:scale-[0.97] transition-all"
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span

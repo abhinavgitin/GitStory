@@ -210,7 +210,7 @@ export function ProfileSyncPanel({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md mx-auto my-16 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0b0b0e]/95 shadow-2xl backdrop-blur-md"
+      className="relative w-full max-w-md mx-auto my-16 overflow-hidden rounded-xl border border-zinc-800/80 bg-[#0b0b0e]/95"
     >
       <canvas
         ref={canvasRef}
@@ -240,7 +240,7 @@ export function ProfileSyncPanel({
             <button
               onClick={onStartSync}
               disabled={isStarting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition-all active:scale-[0.97] cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 transition-all active:scale-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isStarting ? 'animate-spin' : ''}`} />
               <span>{isStarting ? 'Starting...' : 'Sync Profile'}</span>
