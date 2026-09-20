@@ -2,7 +2,8 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ProfileSyncPanel } from '@/components/ProfileSyncPanel';
 import {
   UserSummary,
   Repository,
@@ -96,6 +97,23 @@ export default function UserDashboardPage({
   const normalizedUsername = isValid ? normalizeUsername(rawUsername) : '';
 
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
+  const queryClient = useQueryClient();
+
+  const startSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || 'Failed to start refresh');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['refreshStatus', normalizedUsername] });
+    },
+  });
 
   // ── 1. User Summary & Freshness Query ──
   const {
@@ -426,55 +444,17 @@ export default function UserDashboardPage({
               {/* State 1: Initial Skeleton Loading */}
               {isProfileLoading ? (
                 <DashboardSkeleton />
-              ) : !hasData && !isSyncRunning ? (
-                /* State 2: Unsynced / First Visit State */
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="my-16 max-w-lg mx-auto text-center p-8 sm:p-12 rounded-3xl"
-                  style={{
-                    background: 'rgba(18, 18, 23, 0.75)',
-                    backdropFilter: 'blur(28px) saturate(190%)',
-                    WebkitBackdropFilter: 'blur(28px) saturate(190%)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 16px 48px rgba(0, 0, 0, 0.6)',
-                  }}
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 border border-zinc-700/60 mx-auto flex items-center justify-center text-blue-400 mb-6 shadow-inner">
-                    <Sparkles className="w-8 h-8 text-amber-400" />
-                  </div>
-
-                  <h2 className="text-2xl font-bold text-white mb-2">
-                    First Visit for @{normalizedUsername}
-                  </h2>
-                  <p className="text-sm text-zinc-400 leading-relaxed mb-8">
-                    No cached telemetry exists for this developer. Ingesting public repositories, commits, and profile analytics will reveal each panel as its slice completes.
-                  </p>
-
-                  <div className="flex justify-center">
-                    <RefreshButton
-                      username={normalizedUsername}
-                      onStatusChange={setRefreshStatus}
-                    />
-                  </div>
-
-                  <p className="text-[11px] text-zinc-500 font-mono mt-6">
-                    Respects 15-minute sync cooldown. Public data only.
-                  </p>
-                </motion.div>
+              ) : !hasData ? (
+                /* State 2: Unsynced / First Visit State - Redesigned Minimal Technical Panel */
+                <ProfileSyncPanel
+                  username={normalizedUsername}
+                  status={isSyncRunning ? 'syncing' : 'idle'}
+                  onStartSync={() => startSyncMutation.mutate()}
+                  isStarting={startSyncMutation.isPending}
+                />
               ) : (
                 /* State 3: Active Telemetry Dashboard */
                 <div className="space-y-8">
-                  {/* Live Syncing Progress Banner during First-Visit / In-Progress sync */}
-                  {isSyncRunning && (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between shadow-sm animate-pulse motion-reduce:animate-none">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-400" />
-                        <span>Sync in progress: telemetry panels will reveal automatically as each slice completes.</span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* 1. Developer Profile Banner (Render only if profile has data) */}
                   {showProfile && (
