@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/popover-form";
 import { isValidGitHubUsername, cleanUsername } from "@/lib/username";
 
-const SAMPLE_CHIPS = ["abhinavgitin", "octocat"];
-
 export function UsernamePopover() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -68,10 +66,6 @@ export function UsernamePopover() {
     }, 350);
   };
 
-  const handleChipClick = (chipUser: string) => {
-    setUsername(chipUser);
-    setErrorMsg(null);
-  };
 
   const cleanedUsername = cleanUsername(username) || username;
 
@@ -114,7 +108,7 @@ export function UsernamePopover() {
                 autoFocus
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="octocat"
+                placeholder=""
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
@@ -124,22 +118,8 @@ export function UsernamePopover() {
               />
             </div>
 
-            {errorMsg ? (
+            {errorMsg && (
               <p className="text-xs font-medium text-rose-400 leading-tight">{errorMsg}</p>
-            ) : (
-              <div className="flex items-center gap-2 pt-0.5">
-                <span className="text-xs text-zinc-500 font-mono">Quick:</span>
-                {SAMPLE_CHIPS.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => handleChipClick(chip)}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 text-xs font-mono transition-all cursor-pointer active:scale-[0.97]"
-                  >
-                    @{chip}
-                  </button>
-                ))}
-              </div>
             )}
           </div>
 

@@ -125,10 +125,9 @@ export function DashboardLoader({
         </div>
 
         {/* Progress details */}
-        <div className="w-full flex items-center justify-between text-[11px] font-mono text-zinc-500 px-0.5">
-          <span>{statusState === 'QUEUED' ? 'Waiting in queue' : 'Ingesting GitHub data'}</span>
+        {/* <div className="w-full flex items-center justify-between text-[11px] font-mono text-zinc-500 px-0.5">
           <span>{completedSlices > 0 ? `${completedSlices}/${totalSlices} slices` : 'Connecting...'}</span>
-        </div>
+        </div> */}
 
         {/* 60-Second Reassurance Notice */}
         {elapsedSeconds >= 60 && (
