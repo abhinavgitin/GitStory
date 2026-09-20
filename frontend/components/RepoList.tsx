@@ -73,9 +73,6 @@ export function RepoList({ repos, languagesByRepo }: RepoListProps) {
               {filteredRepos.length}
             </span>
           </div>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Public repositories indexed with real-time commit telemetry
-          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">

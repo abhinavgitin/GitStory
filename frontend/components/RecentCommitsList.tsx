@@ -47,7 +47,6 @@ export function RecentCommitsList({ commits, isLoading }: RecentCommitsListProps
           </div>
           <div>
             <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">Recent Commits</h3>
-            <p className="text-[11px] text-zinc-500">Latest activity across all repositories</p>
           </div>
         </div>
 
