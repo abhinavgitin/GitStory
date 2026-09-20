@@ -21,25 +21,25 @@ export function UsernamePopover() {
   const [username, setUsername] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setFormState("idle");
+      setErrorMsg(null);
+    }
+  };
+
   // Close on Escape keydown
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setOpen(false);
+        handleOpenChange(false);
       }
     };
     if (open) {
       window.addEventListener("keydown", handleKeyDown);
     }
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
-
-  // Reset form when closed
-  useEffect(() => {
-    if (!open) {
-      setFormState("idle");
-      setErrorMsg(null);
-    }
   }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,7 +79,7 @@ export function UsernamePopover() {
     <PopoverForm
       title="Enter GitHub username"
       open={open}
-      setOpen={setOpen}
+      setOpen={handleOpenChange}
       width="480px"
       height="285px"
       showCloseButton={formState !== "success"}

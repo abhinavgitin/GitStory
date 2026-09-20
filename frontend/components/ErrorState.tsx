@@ -14,18 +14,10 @@ export function ErrorState({ onRetry, isRetrying }: ErrorStateProps) {
         <ServerOff className="w-7 h-7" />
       </div>
       <h2 className="text-xl font-semibold text-zinc-100 tracking-tight mb-2">
-        Backend Not Reachable
+        Service Temporarily Unavailable
       </h2>
       <p className="text-sm text-zinc-400 leading-relaxed mb-6">
-        Unable to communicate with the Spring Boot backend at{' '}
-        <code className="text-xs bg-zinc-800/80 px-1.5 py-0.5 rounded text-zinc-300 font-mono">
-          http://localhost:8080
-        </code>
-        . Please verify that the backend is running with{' '}
-        <code className="text-xs bg-zinc-800/80 px-1.5 py-0.5 rounded text-zinc-300 font-mono">
-          .\gradlew.bat bootRun
-        </code>
-        .
+        The analytics service is currently unreachable. Please check your network connection and try again in a moment.
       </p>
       <button
         onClick={onRetry}

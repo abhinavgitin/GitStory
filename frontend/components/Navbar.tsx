@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { RefreshStatus } from '@/types';
 import { RefreshButton } from './RefreshButton';
 import { Clock } from '@/components/ui/MaterialIcon';
@@ -37,6 +38,7 @@ function formatRelativeTime(dateString: string | null | undefined): string {
   const now = new Date();
   const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+  if (diffSec < 0) return 'Just now';
   if (diffSec < 10) return 'Just now';
   if (diffSec < 60) return `${diffSec}s ago`;
   const diffMin = Math.floor(diffSec / 60);
@@ -47,7 +49,7 @@ function formatRelativeTime(dateString: string | null | undefined): string {
 }
 
 export function Navbar({ username, lastSyncedAt }: NavbarProps) {
-  const [, setCurrentTime] = useState<number>(Date.now());
+  const [, setCurrentTime] = useState<number>(0);
   const [liveStatus, setLiveStatus] = useState<RefreshStatus | undefined>();
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export function Navbar({ username, lastSyncedAt }: NavbarProps) {
   return (
     <header className="apple-liquid-glass sticky top-0 z-50 w-full transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-3 group">
           <div className="w-8 h-8 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-sm group-hover:border-zinc-500 transition-colors">
             <GithubIcon className="w-4 h-4" />
           </div>
@@ -70,7 +72,7 @@ export function Navbar({ username, lastSyncedAt }: NavbarProps) {
             </h1>
             <p className="text-[11px] text-zinc-400 font-medium">Public Developer Intelligence</p>
           </div>
-        </a>
+        </Link>
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/60 px-2.5 py-1 rounded-md border border-zinc-800/80">
@@ -81,12 +83,12 @@ export function Navbar({ username, lastSyncedAt }: NavbarProps) {
           {username ? (
             <RefreshButton username={username} onStatusChange={setLiveStatus} />
           ) : (
-            <a
+            <Link
               href="/"
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition-all active:scale-[0.97]"
             >
               Search
-            </a>
+            </Link>
           )}
         </div>
       </div>

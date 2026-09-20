@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useInView } from "framer-motion";
+import Link from "next/link";
 import { ArrowRight, Clock, Sparkles } from "@/components/ui/MaterialIcon";
 import { useRef } from "react";
 import { RefreshButton } from "@/components/RefreshButton";
@@ -152,9 +153,7 @@ export const PrismaHero = ({
   lastSyncedAt,
   username,
   onStatusChange,
-  showIntegratedNav = false,
   variant,
-  sourceHref = "#",
   children,
   className,
 }: PrismaHeroProps) => {
@@ -202,7 +201,7 @@ export const PrismaHero = ({
             <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-t-2xl md:rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* Brand */}
-            <a href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group">
               <div className="w-8 h-8 rounded-xl bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner group-hover:border-zinc-500 transition-colors">
                 <GithubIcon className="w-4 h-4" />
               </div>
@@ -215,7 +214,7 @@ export const PrismaHero = ({
                 </h2>
                 <p className="text-[11px] text-zinc-400 font-medium">Read any developer&apos;s commits</p>
               </div>
-            </a>
+            </Link>
 
             {/* Right Nav Actions */}
             <div className="flex items-center gap-3 sm:gap-4">
