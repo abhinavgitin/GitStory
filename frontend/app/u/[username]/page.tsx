@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProfileSyncPanel } from '@/components/ProfileSyncPanel';
@@ -25,6 +25,7 @@ import { isValidGitHubUsername, normalizeUsername } from '@/lib/username';
 import { shouldRenderPanel, getFailedSlicesNotice } from '@/lib/capabilities';
 import { RefreshButton } from '@/components/RefreshButton';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { DashboardLoader } from '@/components/DashboardLoader';
 import { ErrorState } from '@/components/ErrorState';
 import { CommitSummaryCard } from '@/components/CommitSummaryCard';
 import { CommitHourChart } from '@/components/CommitHourChart';
@@ -153,6 +154,30 @@ export default function UserDashboardPage({
 
   const isSyncRunning = refreshStatus?.state === 'RUNNING' || refreshStatus?.state === 'PENDING';
   const hasData = Boolean(userProfile?.hasData || (capabilities && Object.values(capabilities).some((c: any) => c?.hasData)));
+
+  // Auto-start sync if first visit has no cached data
+  useEffect(() => {
+    if (
+      isValid &&
+      !isProfileLoading &&
+      !hasData &&
+      !isSyncRunning &&
+      refreshStatus?.state !== 'SUCCESS' &&
+      refreshStatus?.state !== 'FAILED' &&
+      !startSyncMutation.isPending &&
+      !startSyncMutation.isSuccess &&
+      !startSyncMutation.isError
+    ) {
+      startSyncMutation.mutate();
+    }
+  }, [isValid, isProfileLoading, hasData, isSyncRunning, refreshStatus?.state, startSyncMutation]);
+
+  const slices = refreshStatus?.slices || [];
+  const completedSlices = slices.filter(
+    (s: any) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
+  ).length;
+
+  const isInitialSyncOrLoading = isProfileLoading || isSyncRunning || (!hasData && refreshStatus?.state !== 'FAILED' && refreshStatus?.state !== 'SUCCESS');
 
   // ── 3. Detailed Profile Query ──
   const shouldFetchProfile = shouldRenderPanel(capabilities?.profile) || hasData;
@@ -441,19 +466,24 @@ export default function UserDashboardPage({
                 </div>
               )}
 
-              {/* State 1: Initial Skeleton Loading */}
-              {isProfileLoading ? (
-                <DashboardSkeleton />
+              {/* State 1: Clean Minimal Loader during sync and loading */}
+              {isInitialSyncOrLoading ? (
+                <DashboardLoader
+                  username={normalizedUsername}
+                  step={refreshStatus?.currentStep}
+                  completedSlices={completedSlices}
+                  totalSlices={9}
+                />
               ) : !hasData ? (
-                /* State 2: Unsynced / First Visit State - Redesigned Minimal Technical Panel */
+                /* State 2: Unsynced or Empty account */
                 <ProfileSyncPanel
                   username={normalizedUsername}
-                  status={isSyncRunning ? 'syncing' : 'idle'}
+                  status={refreshStatus?.state === 'FAILED' ? 'error' : 'idle'}
                   onStartSync={() => startSyncMutation.mutate()}
                   isStarting={startSyncMutation.isPending}
                 />
               ) : (
-                /* State 3: Active Telemetry Dashboard */
+                /* State 3: Complete Telemetry Dashboard with all results */
                 <div className="space-y-8">
 
                   {/* 1. Developer Profile Banner (Render only if profile has data) */}

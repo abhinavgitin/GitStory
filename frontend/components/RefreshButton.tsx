@@ -153,8 +153,10 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         return 'Issues';
       case 'activity':
         return 'Activity';
+      case 'independent_slices':
+        return 'Analytics';
       default:
-        return step;
+        return 'Analytics';
     }
   };
 
@@ -167,7 +169,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm animate-pulse motion-reduce:animate-none">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           <span className="font-mono">
-            Syncing {getStepLabel(activeStepName)} ({completedCount}/{totalSlices})
+            Syncing {getStepLabel(activeStepName)}{completedCount > 0 ? ` (${completedCount}/${totalSlices})` : '...'}
           </span>
         </span>
       )}
