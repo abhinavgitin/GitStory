@@ -20,6 +20,7 @@ import com.analytics.github.service.RepoInsightsAnalyticsService;
 import com.analytics.github.service.RepositorySyncService;
 import com.analytics.github.service.UserActivityAnalyticsService;
 import com.analytics.github.service.UsernameValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +47,33 @@ public class UserAnalyticsController {
     private final PrIssueAnalyticsService prIssueAnalyticsService;
     private final UserActivityAnalyticsService userActivityAnalyticsService;
     private final UsernameValidator usernameValidator;
+    private final com.analytics.github.repository.UserMongoRepository userMongoRepository;
+    private final com.analytics.github.repository.SyncMetadataMongoRepository syncMetadataMongoRepository;
+
+    @Autowired
+    public UserAnalyticsController(
+        RepositorySyncService repositorySyncService,
+        CommitAnalyticsService commitAnalyticsService,
+        LanguageAnalyticsService languageAnalyticsService,
+        ProfileAnalyticsService profileAnalyticsService,
+        RepoInsightsAnalyticsService repoInsightsAnalyticsService,
+        PrIssueAnalyticsService prIssueAnalyticsService,
+        UserActivityAnalyticsService userActivityAnalyticsService,
+        UsernameValidator usernameValidator,
+        com.analytics.github.repository.UserMongoRepository userMongoRepository,
+        com.analytics.github.repository.SyncMetadataMongoRepository syncMetadataMongoRepository
+    ) {
+        this.repositorySyncService = repositorySyncService;
+        this.commitAnalyticsService = commitAnalyticsService;
+        this.languageAnalyticsService = languageAnalyticsService;
+        this.profileAnalyticsService = profileAnalyticsService;
+        this.repoInsightsAnalyticsService = repoInsightsAnalyticsService;
+        this.prIssueAnalyticsService = prIssueAnalyticsService;
+        this.userActivityAnalyticsService = userActivityAnalyticsService;
+        this.usernameValidator = usernameValidator;
+        this.userMongoRepository = userMongoRepository;
+        this.syncMetadataMongoRepository = syncMetadataMongoRepository;
+    }
 
     public UserAnalyticsController(
         RepositorySyncService repositorySyncService,
@@ -57,14 +85,7 @@ public class UserAnalyticsController {
         UserActivityAnalyticsService userActivityAnalyticsService,
         UsernameValidator usernameValidator
     ) {
-        this.repositorySyncService = repositorySyncService;
-        this.commitAnalyticsService = commitAnalyticsService;
-        this.languageAnalyticsService = languageAnalyticsService;
-        this.profileAnalyticsService = profileAnalyticsService;
-        this.repoInsightsAnalyticsService = repoInsightsAnalyticsService;
-        this.prIssueAnalyticsService = prIssueAnalyticsService;
-        this.userActivityAnalyticsService = userActivityAnalyticsService;
-        this.usernameValidator = usernameValidator;
+        this(repositorySyncService, commitAnalyticsService, languageAnalyticsService, profileAnalyticsService, repoInsightsAnalyticsService, prIssueAnalyticsService, userActivityAnalyticsService, usernameValidator, null, null);
     }
 
     @GetMapping("/repos")
@@ -78,10 +99,14 @@ public class UserAnalyticsController {
     public ResponseEntity<UserProfileResponse> getProfile(@PathVariable String username) {
         String normalized = usernameValidator.validateAndNormalize(username);
         UserProfileResponse profile = profileAnalyticsService.getUserProfile(normalized);
-        if (profile == null) {
-            return ResponseEntity.notFound().build();
+        if (profile != null) {
+            return ResponseEntity.ok(profile);
         }
-        return ResponseEntity.ok(profile);
+        if ((userMongoRepository != null && userMongoRepository.existsById(normalized))
+                || (syncMetadataMongoRepository != null && syncMetadataMongoRepository.existsById(normalized))) {
+            return ResponseEntity.ok(UserProfileResponse.empty(normalized));
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/analytics/contributions")

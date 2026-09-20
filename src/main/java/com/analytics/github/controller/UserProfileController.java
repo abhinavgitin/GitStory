@@ -6,7 +6,9 @@ import com.analytics.github.model.UserDocument;
 import com.analytics.github.repository.SyncMetadataMongoRepository;
 import com.analytics.github.repository.UserMongoRepository;
 import com.analytics.github.service.RefreshManager;
+import com.analytics.github.service.UserCapabilitiesService;
 import com.analytics.github.service.UsernameValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,16 +31,39 @@ public class UserProfileController {
     private final RefreshManager refreshManager;
     private final UsernameValidator usernameValidator;
 
+    private final UserCapabilitiesService userCapabilitiesService;
+
+    @Autowired
+    public UserProfileController(
+        UserMongoRepository userMongoRepository,
+        SyncMetadataMongoRepository syncMetadataMongoRepository,
+        RefreshManager refreshManager,
+        UsernameValidator usernameValidator,
+        UserCapabilitiesService userCapabilitiesService
+    ) {
+        this.userMongoRepository = userMongoRepository;
+        this.syncMetadataMongoRepository = syncMetadataMongoRepository;
+        this.refreshManager = refreshManager;
+        this.usernameValidator = usernameValidator;
+        this.userCapabilitiesService = userCapabilitiesService;
+    }
+
     public UserProfileController(
         UserMongoRepository userMongoRepository,
         SyncMetadataMongoRepository syncMetadataMongoRepository,
         RefreshManager refreshManager,
         UsernameValidator usernameValidator
     ) {
-        this.userMongoRepository = userMongoRepository;
-        this.syncMetadataMongoRepository = syncMetadataMongoRepository;
-        this.refreshManager = refreshManager;
-        this.usernameValidator = usernameValidator;
+        this(userMongoRepository, syncMetadataMongoRepository, refreshManager, usernameValidator, null);
+    }
+
+    @GetMapping("/{username}/capabilities")
+    public ResponseEntity<com.analytics.github.dto.UserCapabilitiesResponse> getCapabilities(@PathVariable String username) {
+        String normalized = usernameValidator.validateAndNormalize(username);
+        if (userCapabilitiesService == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(userCapabilitiesService.getCapabilities(normalized));
     }
 
     @GetMapping("/{username}")

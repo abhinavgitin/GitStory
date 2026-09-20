@@ -21,4 +21,24 @@ public record UserProfileResponse(
     Instant accountCreatedAt,
     String accountAgeFormatted,
     Instant syncedAt
-) {}
+) {
+    public static UserProfileResponse empty(String username) {
+        return new UserProfileResponse(
+            username,
+            username,
+            null,
+            null,
+            "https://github.com/" + username,
+            null,
+            null,
+            null,
+            0,
+            0,
+            0,
+            0,
+            null,
+            "N/A",
+            null
+        );
+    }
+}
