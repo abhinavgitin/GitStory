@@ -4,21 +4,35 @@ import { Providers } from '@/components/Providers';
 import { CookieConsent } from '@/components/CookieConsent';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://gitstory.onslate.in'),
   title: {
     default: 'GitStory | Public Developer Analytics',
     template: '%s | GitStory',
   },
   description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
+  alternates: {
+    canonical: 'https://gitstory.onslate.in',
+  },
   openGraph: {
     title: 'GitStory | Public Developer Analytics',
     description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
-    type: 'website',
+    url: 'https://gitstory.onslate.in',
     siteName: 'GitStory',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'GitStory | Public Developer Analytics',
+      },
+    ],
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'GitStory | Public Developer Analytics',
     description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
+    images: ['/og-image.png'],
   },
   icons: {
     icon: [

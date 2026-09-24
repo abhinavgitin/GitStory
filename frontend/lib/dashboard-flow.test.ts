@@ -175,7 +175,7 @@ describe('Part 2 - Frontend Tests (24-27)', () => {
 
       const result = await executeUserRoute('OctoCat', mockFetch as unknown as typeof fetch);
       assert.strictEqual(result.status, 200);
-      assert.strictEqual(calledUrl, 'http://localhost:8080/api/users/octocat');
+      assert.strictEqual(calledUrl, 'http://localhost:9000/api/users/octocat');
     });
   });
 

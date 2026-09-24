@@ -12,6 +12,10 @@ export async function generateMetadata({
   return {
     title: `@${username}'s Developer Telemetry`,
     description: `Public GitHub analytics, commit distribution, and activity cadence for @${username}.`,
+    robots: {
+      index: false,
+      follow: false,
+    },
     openGraph: {
       title: `@${username} | GitStory Developer Analytics`,
       description: `Public GitHub analytics, commit distribution, and activity cadence for @${username}.`,
