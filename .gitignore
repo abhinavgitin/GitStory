@@ -21,3 +21,5 @@ frontend/out/
 !.env.example
 *.log
 
+#Refercne
+Reference Only/
