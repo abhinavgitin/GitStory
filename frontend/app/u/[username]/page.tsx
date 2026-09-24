@@ -484,6 +484,17 @@ export default function UserDashboardPage({
 
   const handleTokenApply = async (token: string) => {
     setEphemeralToken(token);
+    try {
+      if (typeof window !== 'undefined') {
+        if (token) {
+          sessionStorage.setItem('gitstory_token', token);
+        } else {
+          sessionStorage.removeItem('gitstory_token');
+        }
+      }
+    } catch {
+      // ignore
+    }
     setTokenError(null);
     if (!token) {
       setTokenStoryData(null);
@@ -501,6 +512,20 @@ export default function UserDashboardPage({
       setIsTokenLoading(false);
     }
   };
+
+  // Auto-apply token from sessionStorage (e.g. entered in username popover) on mount
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem('gitstory_token');
+        if (stored && !ephemeralToken) {
+          handleTokenApply(stored);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [normalizedUsername]);
 
   // Single top notice for sync failures
   const failedSlicesNotice = getFailedSlicesNotice(capabilities);
