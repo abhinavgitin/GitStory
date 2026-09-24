@@ -1,9 +1,15 @@
 'use client';
 
-import { use, useState, useEffect, useReducer } from 'react';
+import { use, useState, useEffect, useReducer, useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
+import { StoryContainer } from '@/components/story/StoryContainer';
+import { StoryTriggerButton } from '@/components/story/StoryTriggerButton';
+import { EphemeralTokenModal } from '@/components/story/EphemeralTokenModal';
+import { buildStoryDataFromTelemetry } from '@/lib/story-calculator';
+import { fetchLiveStoryWithToken } from '@/lib/github-token-service';
+import type { StoryData } from '@/types/story';
 import { ProfileSyncPanel } from '@/components/ProfileSyncPanel';
 import {
   UserSummary,
@@ -90,6 +96,12 @@ export default function UserDashboardPage({
   const [stateCtx, dispatch] = useReducer(transitionDashboardState, INITIAL_DASHBOARD_CONTEXT);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
   const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
+  const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [ephemeralToken, setEphemeralToken] = useState('');
+  const [tokenStoryData, setTokenStoryData] = useState<StoryData | null>(null);
+  const [isTokenLoading, setIsTokenLoading] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const startSyncMutation = useMutation({
@@ -435,6 +447,61 @@ export default function UserDashboardPage({
     placeholderData: (prev) => prev,
   });
 
+  // Hydrate all-time story data directly from telemetry (instant 0ms load)
+  const defaultStoryData = useMemo(() => {
+    if (!normalizedUsername) return null;
+    return buildStoryDataFromTelemetry({
+      username: normalizedUsername,
+      userSummary: userProfile,
+      userProfile: detailedProfile,
+      commitSummary,
+      commitHourStats,
+      commitWeekdayStats,
+      languageOverview: languagesData,
+      repoInsights,
+      prSummary,
+      issueSummary,
+      calendar: contributionCalendar,
+      repos,
+    });
+  }, [
+    normalizedUsername,
+    userProfile,
+    detailedProfile,
+    commitSummary,
+    commitHourStats,
+    commitWeekdayStats,
+    languagesData,
+    repoInsights,
+    prSummary,
+    issueSummary,
+    contributionCalendar,
+    repos,
+  ]);
+
+  // Active story data: prefers token-authenticated private data if present, otherwise uses Spring Boot cached data
+  const activeStoryData = tokenStoryData || defaultStoryData;
+
+  const handleTokenApply = async (token: string) => {
+    setEphemeralToken(token);
+    setTokenError(null);
+    if (!token) {
+      setTokenStoryData(null);
+      return;
+    }
+
+    setIsTokenLoading(true);
+    try {
+      const liveData = await fetchLiveStoryWithToken(normalizedUsername, token);
+      setTokenStoryData(liveData);
+    } catch (err: any) {
+      console.error('Failed to load private story telemetry with token:', err);
+      setTokenError(err.message || 'Failed to fetch private telemetry with token');
+    } finally {
+      setIsTokenLoading(false);
+    }
+  };
+
   // Single top notice for sync failures
   const failedSlicesNotice = getFailedSlicesNotice(capabilities);
 
@@ -558,8 +625,39 @@ export default function UserDashboardPage({
                   </div>
                 </div>
 
-                {/* Right Header Actions: Authoritative Refresh & Status */}
-                <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                {/* Right Header Actions: Authoritative Refresh, Story, & Token */}
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                  {hasData && (
+                    <StoryTriggerButton
+                      onClick={() => setIsStoryOpen(true)}
+                      label={
+                        isTokenLoading
+                          ? 'Syncing Token...'
+                          : tokenStoryData
+                          ? 'See Story (Private)'
+                          : 'See Story'
+                      }
+                      disabled={isTokenLoading}
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsTokenModalOpen(true)}
+                    title={
+                      ephemeralToken
+                        ? 'Custom GitHub token active (Private repositories & GraphQL unlocked)'
+                        : 'Add custom GitHub token (ephemeral)'
+                    }
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all active:scale-95 text-xs font-mono cursor-pointer ${
+                      ephemeralToken
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                        : 'bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-400 hover:text-white border-zinc-700/50'
+                    }`}
+                  >
+                    {isTokenLoading ? '⏳' : '🔑'}
+                  </button>
+
                   <RefreshButton
                     username={normalizedUsername}
                     onStatusChange={setRefreshStatus}
@@ -814,6 +912,21 @@ export default function UserDashboardPage({
           </>
         )}
       </div>
+
+      {/* ── Story Modal & Ephemeral Token Modal ── */}
+      {isStoryOpen && activeStoryData && (
+        <StoryContainer
+          data={activeStoryData}
+          onClose={() => setIsStoryOpen(false)}
+        />
+      )}
+
+      <EphemeralTokenModal
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
+        onTokenApply={handleTokenApply}
+        currentToken={ephemeralToken}
+      />
     </div>
   );
 }

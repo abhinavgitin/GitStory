@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/username.test.ts lib/dashboard-flow.test.ts lib/capabilities-visibility.test.ts lib/rate-limit.test.ts lib/cooldown-and-errors.test.ts lib/state-machine.test.ts lib/fresh-data-and-cache.test.ts"
+    "test": "node --experimental-strip-types --test lib/username.test.ts lib/dashboard-flow.test.ts lib/capabilities-visibility.test.ts lib/rate-limit.test.ts lib/cooldown-and-errors.test.ts lib/state-machine.test.ts lib/fresh-data-and-cache.test.ts lib/story-engine.test.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",
@@ -26,6 +26,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5"
   }
