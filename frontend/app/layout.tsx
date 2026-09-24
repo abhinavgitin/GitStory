@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://gitstory.onslate.in',
   },
+  verification: {
+    google: 'pkU6MeHmBFRMX4-G0UpZryN4f6GpCRYG0LZg_xyv-CQ',
+  },
   openGraph: {
     title: 'GitStory | Public Developer Analytics',
     description: 'Public GitHub commit, language distribution, and activity cadence analytics for any developer username.',
