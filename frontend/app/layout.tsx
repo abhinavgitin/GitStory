@@ -69,7 +69,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen antialiased selection:bg-zinc-800 selection:text-zinc-100">
+      <body className="bg-[#09090b] text-[#F2F5F3] min-h-screen antialiased selection:bg-[#0FBF3E]/30 selection:text-[#5FED83]">
         <Providers>{children}</Providers>
         <CookieConsent />
       </body>

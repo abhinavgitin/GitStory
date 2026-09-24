@@ -24,7 +24,7 @@ interface ConstellationGridProps {
 
 export default function ConstellationGrid({
     children,
-    className = "relative w-full overflow-hidden select-none bg-zinc-950",
+    className = "relative w-full overflow-hidden select-none bg-[#09090b]",
     showVignette = false,
 }: ConstellationGridProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -141,8 +141,8 @@ export default function ConstellationGrid({
             const speed = Math.sqrt(mouse.vx * mouse.vx + mouse.vy * mouse.vy);
 
             const bgColor = '#09090b';
-            const nodeColor = '255, 255, 255';
-            const accentColor = '56, 189, 248'; // Sky Cyan Accent
+            const nodeColor = '182, 191, 184'; // Sage Gray 3
+            const accentColor = '15, 191, 62'; // GitHub Green Brand (#0FBF3E)
 
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, width, height);
@@ -283,8 +283,8 @@ export default function ConstellationGrid({
             {/* Optional gradient transition overlays (disabled by default for full-page background) */}
             {showVignette && (
                 <>
-                    <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
-                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent pointer-events-none z-[1]" />
+                    <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#09090b] via-[#09090b]/50 to-transparent pointer-events-none z-[1]" />
+                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent pointer-events-none z-[1]" />
                 </>
             )}
 

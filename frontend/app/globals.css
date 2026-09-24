@@ -7,22 +7,42 @@
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
 
+  /* Custom Brand & Ecosystem Tokens (docs/ColorPallate.md) */
+  --color-brand: #0FBF3E;
+
+  /* Grayscale Spectrum (Sage-tinted neutrals) */
+  --color-gray-100: #F2F5F3;
+  --color-gray-200: #E4EBE6;
+  --color-gray-300: #B6BFB8;
+  --color-gray-400: #909692;
+  --color-gray-500: #232925;
+  --color-gray-600: #101411;
+
+  /* Green Scale (Sequential ramp from mint to deep forest) */
+  --color-green-100: #BFFFD1;
+  --color-green-200: #8CF2A6;
+  --color-green-300: #5FED83;
+  --color-green-400: #0FBF3E;
+  --color-green-500: #08872B;
+  --color-green-600: #0A241B;
+
+  --color-background: #09090b;
+  --color-foreground: var(--color-gray-100);
   --color-muted: #18181b;
-  --color-muted-foreground: #a1a1aa;
-  --color-foreground: #fafafa;
-  --color-primary: #3b82f6;
-  --color-primary-foreground: #ffffff;
-  --color-border: rgba(255, 255, 255, 0.12);
+  --color-muted-foreground: var(--color-gray-300);
+  --color-primary: var(--color-brand);
+  --color-primary-foreground: var(--color-gray-600);
+  --color-border: rgba(255, 255, 255, 0.1);
 }
 
 :root {
   --background: #09090b;
-  --foreground: #fafafa;
+  --foreground: #F2F5F3;
   --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.12);
+  --muted-foreground: #B6BFB8;
+  --primary: #0FBF3E;
+  --primary-foreground: #101411;
+  --border: rgba(255, 255, 255, 0.1);
 }
 
 body {
@@ -41,7 +61,7 @@ body {
   font-family: var(--font-display) !important;
 }
 
-/* Apple Liquid Glass for Dark Appearance */
+/* Apple Liquid Glass with Clean Dark Obsidian Depth (No Green Tint) */
 .apple-liquid-glass {
   background: rgba(18, 18, 23, 0.75);
   backdrop-filter: blur(24px) saturate(180%);

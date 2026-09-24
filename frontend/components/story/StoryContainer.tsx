@@ -223,22 +223,21 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
 
   return (
     <div
-      className="fixed inset-0 z-50 w-full h-[100dvh] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none"
+      className="fixed inset-0 z-50 w-full h-[100dvh] bg-[#09090b] text-[#F2F5F3] flex flex-col justify-between overflow-hidden select-none"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={() => !isLastSlide && setIsPaused(false)}
     >
       {/* ── 1. PERSISTENT CONSTELLATION GRID BACKGROUND ── */}
-      <ConstellationGrid className="absolute inset-0 w-full h-full pointer-events-none select-none bg-zinc-950" />
+      <ConstellationGrid className="absolute inset-0 w-full h-full pointer-events-none select-none bg-[#09090b]" />
 
       {/* ── 2. SCREEN PERIMETER BOX PROGRESS BAR ── */}
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-50 overflow-visible">
         <defs>
           <linearGradient id="boxPerimeterGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="35%" stopColor="#3b82f6" />
-            <stop offset="70%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="#0FBF3E" />
+            <stop offset="50%" stopColor="#5FED83" />
+            <stop offset="100%" stopColor="#0FBF3E" />
           </linearGradient>
         </defs>
 
@@ -250,7 +249,7 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
           height="calc(100% - 24px)"
           rx="18"
           fill="none"
-          stroke="rgba(255, 255, 255, 0.08)"
+          stroke="rgba(182, 191, 184, 0.12)"
           strokeWidth="3"
         />
 
@@ -270,15 +269,15 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
             strokeDasharray: perimeterLength,
             strokeDashoffset: strokeOffset,
             transition: 'stroke-dashoffset 90ms linear',
-            filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.65))',
+            filter: 'drop-shadow(0 0 10px rgba(15, 191, 62, 0.75))',
           }}
         />
       </svg>
 
       {/* ── 3. TOP CONTROLS & SLIDE INDEX COUNTER ── */}
       <div className="absolute top-6 left-6 z-50 flex items-center gap-2 pointer-events-none">
-        <div className="px-3.5 py-1.5 rounded-full bg-zinc-900/85 border border-white/10 backdrop-blur-md text-xs font-mono text-zinc-300 shadow-md flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <div className="px-3.5 py-1.5 rounded-full bg-zinc-950/85 border border-white/10 backdrop-blur-md text-xs font-mono text-[#B6BFB8] shadow-md flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#0FBF3E] animate-pulse" />
           <span>
             {String(currentSlide + 1).padStart(2, '0')} / {String(TOTAL_SLIDES).padStart(2, '0')}
           </span>
@@ -293,7 +292,7 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
               setIsPaused((p) => !p);
             }}
             aria-label={isPaused ? 'Resume' : 'Pause'}
-            className="w-9 h-9 rounded-full bg-zinc-900/85 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center justify-center border border-white/10 backdrop-blur-md transition-all active:scale-95 text-xs font-mono shadow-md cursor-pointer"
+            className="w-9 h-9 rounded-full bg-zinc-900/85 hover:bg-zinc-800 text-[#B6BFB8] hover:text-[#5FED83] flex items-center justify-center border border-zinc-800 hover:border-[#0FBF3E]/40 backdrop-blur-md transition-all active:scale-95 text-xs font-mono shadow-md cursor-pointer"
           >
             {isPaused ? '▶' : '❚❚'}
           </button>
@@ -305,7 +304,7 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
             onClose();
           }}
           aria-label="Close Story"
-          className="w-9 h-9 rounded-full bg-zinc-900/85 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center justify-center border border-white/10 backdrop-blur-md transition-all active:scale-95 text-xs font-mono font-bold shadow-md cursor-pointer"
+          className="w-9 h-9 rounded-full bg-zinc-900/85 hover:bg-zinc-800 text-[#B6BFB8] hover:text-[#5FED83] flex items-center justify-center border border-zinc-800 hover:border-[#0FBF3E]/40 backdrop-blur-md transition-all active:scale-95 text-xs font-mono font-bold shadow-md cursor-pointer"
         >
           ✕
         </button>
@@ -320,7 +319,7 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
           }}
           disabled={currentSlide === 0}
           aria-label="Previous Slide (Up)"
-          className="w-10 h-10 rounded-full bg-zinc-900/85 hover:bg-zinc-800 disabled:opacity-25 disabled:pointer-events-none text-zinc-300 hover:text-white flex items-center justify-center border border-white/10 backdrop-blur-md transition-all active:scale-95 shadow-md cursor-pointer"
+          className="w-10 h-10 rounded-full bg-zinc-900/85 hover:bg-zinc-800 disabled:opacity-25 disabled:pointer-events-none text-[#B6BFB8] hover:text-[#5FED83] flex items-center justify-center border border-zinc-800 hover:border-[#0FBF3E]/40 backdrop-blur-md transition-all active:scale-95 shadow-md cursor-pointer"
         >
           ▲
         </button>
@@ -331,7 +330,7 @@ export const StoryContainer: React.FC<StoryContainerProps> = ({ data, onClose })
           }}
           disabled={isLastSlide}
           aria-label="Next Slide (Down)"
-          className="w-10 h-10 rounded-full bg-zinc-900/85 hover:bg-zinc-800 disabled:opacity-25 disabled:pointer-events-none text-zinc-300 hover:text-white flex items-center justify-center border border-white/10 backdrop-blur-md transition-all active:scale-95 shadow-md cursor-pointer"
+          className="w-10 h-10 rounded-full bg-zinc-900/85 hover:bg-zinc-800 disabled:opacity-25 disabled:pointer-events-none text-[#B6BFB8] hover:text-[#5FED83] flex items-center justify-center border border-zinc-800 hover:border-[#0FBF3E]/40 backdrop-blur-md transition-all active:scale-95 shadow-md cursor-pointer"
         >
           ▼
         </button>

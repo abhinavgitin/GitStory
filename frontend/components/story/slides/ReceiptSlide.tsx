@@ -29,7 +29,7 @@ export const ReceiptSlide: React.FC<
         spread: 360,
         ticks: 65,
         origin: { x: Math.random(), y: Math.random() * 0.4 },
-        colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'],
+        colors: ['#0FBF3E', '#5FED83', '#8CF2A6', '#BFFFD1', '#F2F5F3', '#08872B'],
       });
     }, 280);
 
@@ -88,19 +88,19 @@ export const ReceiptSlide: React.FC<
 
   return (
     <StoryLayout
-      gradientStart="#09090b"
-      gradientEnd="#18181b"
+      gradientStart="#0FBF3E"
+      gradientEnd="#5FED83"
       direction={direction}
     >
       <div className="flex-1 flex flex-col items-center justify-center text-center overflow-y-auto py-2 max-w-4xl mx-auto w-full">
         <div className="mb-4">
           <StoryTextReveal
             text="The Global Story Receipt"
-            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-primary mb-1 block font-semibold"
+            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-[#5FED83] mb-1 block font-semibold"
           />
           <StoryTextReveal
             text="Your Verified Odyssey"
-            className="text-3xl sm:text-5xl font-display font-extrabold text-white block"
+            className="text-3xl sm:text-5xl font-display font-extrabold text-[#F2F5F3] block"
             delay={0.15}
           />
         </div>
@@ -111,35 +111,35 @@ export const ReceiptSlide: React.FC<
           initial={{ opacity: 0, scale: 0.92, y: 25 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: 'spring', damping: 22, stiffness: 140, delay: 0.35 }}
-          className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-3xl bg-zinc-900 border border-white/20 shadow-[0_30px_70px_rgba(0,0,0,0.85)] text-left relative overflow-hidden"
+          className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-[0_30px_70px_rgba(0,0,0,0.85)] text-left relative overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, #18181b 0%, #09090b 100%)',
           }}
         >
           {/* Card Top Branding */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-5">
             <div className="flex items-center gap-3.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={data.avatarUrl}
                 alt={data.username}
                 crossOrigin="anonymous"
-                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border border-white/25 object-cover"
+                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border border-[#0FBF3E]/40 object-cover"
               />
               <div>
-                <div className="text-base sm:text-lg font-display font-bold text-white leading-tight">
+                <div className="text-base sm:text-lg font-display font-bold text-[#F2F5F3] leading-tight">
                   {data.displayName}
                 </div>
-                <div className="text-xs font-mono text-zinc-400">
+                <div className="text-xs font-mono text-[#5FED83]">
                   @{data.username}
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-display font-black text-primary tracking-wider">
+              <div className="text-sm font-display font-black text-[#0FBF3E] tracking-wider">
                 GITSTORY
               </div>
-              <div className="text-[11px] font-mono text-zinc-400">
+              <div className="text-[11px] font-mono text-[#B6BFB8]">
                 {data.milestoneHorizon}
               </div>
             </div>
@@ -148,61 +148,61 @@ export const ReceiptSlide: React.FC<
           {/* Archetype & Stats */}
           <div className="space-y-4 mb-5">
             <div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-zinc-400">
+              <div className="text-[11px] font-mono uppercase tracking-widest text-[#909692]">
                 Developer Archetype
               </div>
-              <div className="text-lg sm:text-2xl font-display font-black text-white mt-0.5">
+              <div className="text-lg sm:text-2xl font-display font-black text-[#F2F5F3] mt-0.5">
                 {data.archetype}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 text-xs font-mono">
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-zinc-400 block text-[10px]">TOTAL COMMITS</span>
-                <span className="text-white font-bold text-sm sm:text-base">
+              <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                <span className="text-[#909692] block text-[10px]">TOTAL COMMITS</span>
+                <span className="text-[#5FED83] font-bold text-sm sm:text-base">
                   {data.totalCommits.toLocaleString()}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-zinc-400 block text-[10px]">LONGEST STREAK</span>
-                <span className="text-white font-bold text-sm sm:text-base">
+              <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                <span className="text-[#909692] block text-[10px]">LONGEST STREAK</span>
+                <span className="text-[#5FED83] font-bold text-sm sm:text-base">
                   {data.longestStreak} Days
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-zinc-400 block text-[10px]">TOP LANGUAGE</span>
-                <span className="text-white font-bold text-sm sm:text-base truncate block">
+              <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                <span className="text-[#909692] block text-[10px]">TOP LANGUAGE</span>
+                <span className="text-[#5FED83] font-bold text-sm sm:text-base truncate block">
                   {data.topLanguages[0]?.name || 'Code'}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-zinc-400 block text-[10px]">PEAK HOUR</span>
-                <span className="text-white font-bold text-sm sm:text-base">
+              <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                <span className="text-[#909692] block text-[10px]">PEAK HOUR</span>
+                <span className="text-[#5FED83] font-bold text-sm sm:text-base">
                   {data.productivity.peakHour}:00 UTC
                 </span>
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-[#909692]">
                 FLAGSHIP REPOSITORY
               </div>
-              <div className="text-sm sm:text-base font-bold text-zinc-200 truncate mt-0.5">
+              <div className="text-sm sm:text-base font-bold text-[#F2F5F3] truncate mt-0.5">
                 {data.flagshipRepo.name} ({data.flagshipRepo.stars} ★)
               </div>
             </div>
           </div>
 
           {/* Barcode & Footer Stamp */}
-          <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+          <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
             <div
-              className="h-7 w-32 bg-white/70"
+              className="h-7 w-32 bg-[#B6BFB8]"
               style={{
                 backgroundImage:
-                  'repeating-linear-gradient(90deg, #09090b 0, #09090b 2px, transparent 2px, transparent 4px)',
+                  'repeating-linear-gradient(90deg, #18181b 0, #18181b 2px, transparent 2px, transparent 4px)',
               }}
             />
-            <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#909692]">
               Verified by GitStory
             </div>
           </div>
@@ -213,7 +213,7 @@ export const ReceiptSlide: React.FC<
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className="px-5 py-2.5 rounded-full bg-white text-zinc-950 font-bold text-xs sm:text-sm hover:bg-zinc-200 transition-all active:scale-95 shadow-xl flex items-center gap-2 cursor-pointer"
+            className="px-5 py-2.5 rounded-full bg-[#0FBF3E] hover:bg-[#08872B] text-[#101411] font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-xl flex items-center gap-2 cursor-pointer"
           >
             {isDownloading
               ? 'Generating...'
@@ -225,7 +225,7 @@ export const ReceiptSlide: React.FC<
           {onReplay && (
             <button
               onClick={onReplay}
-              className="px-5 py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-white text-xs sm:text-sm font-mono border border-white/10 transition-all active:scale-95 cursor-pointer"
+              className="px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-[#F2F5F3] text-xs sm:text-sm font-mono border border-zinc-700 transition-all active:scale-95 cursor-pointer"
             >
               Replay Story
             </button>
@@ -234,7 +234,7 @@ export const ReceiptSlide: React.FC<
           {onClose && (
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-white text-xs sm:text-sm font-mono border border-white/10 transition-all active:scale-95 cursor-pointer"
+              className="px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-[#F2F5F3] text-xs sm:text-sm font-mono border border-zinc-700 transition-all active:scale-95 cursor-pointer"
             >
               Exit
             </button>
@@ -247,14 +247,14 @@ export const ReceiptSlide: React.FC<
 
         {/* Social Share Links */}
         <div className="mt-4 flex items-center justify-center gap-2">
-          <span className="text-xs font-mono text-zinc-400 mr-1">Share:</span>
+          <span className="text-xs font-mono text-[#909692] mr-1">Share:</span>
           {socialLinks.map((s) => (
             <a
               key={s.name}
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono border border-white/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-[#B6BFB8] hover:text-[#5FED83] text-xs font-mono border border-zinc-700/80 transition-colors"
             >
               {s.name}
             </a>
@@ -262,7 +262,7 @@ export const ReceiptSlide: React.FC<
         </div>
       </div>
 
-      <div className="text-center text-xs font-mono uppercase tracking-widest text-zinc-400">
+      <div className="text-center text-xs font-mono uppercase tracking-widest text-[#909692]">
         All-Time GitStory Receipt
       </div>
     </StoryLayout>

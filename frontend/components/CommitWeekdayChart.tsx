@@ -32,9 +32,9 @@ export function CommitWeekdayChart({ stats, isLoading }: CommitWeekdayChartProps
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
+            {/* <span className="inline-flex p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
               <BarChart3 className="w-4 h-4" />
-            </span>
+            </span> */}
             <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
               Weekly Commit Distribution
             </h2>
@@ -42,8 +42,8 @@ export function CommitWeekdayChart({ stats, isLoading }: CommitWeekdayChartProps
         </div>
 
         <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/60 border border-white/10 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-mono text-xs text-zinc-300">
+          {/* <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> */}
+          <span className="font-mono text-zinc-300 text-[14px]">
             {total} total commits across week
           </span>
         </div>
@@ -93,8 +93,8 @@ export function CommitWeekdayChart({ stats, isLoading }: CommitWeekdayChartProps
 
       {/* Footer Info */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-3 border-t border-white/[0.06] text-xs text-zinc-400">
-        <span>Monday &mdash; Sunday weekly cadence</span>
-        <div className="font-mono text-[11px]">
+        {/* <span>Monday &mdash; Sunday weekly cadence</span> */}
+        <div className="font-mono text-[15px]">
           Peak Coding Day: <strong className="text-emerald-400">{peakDayName}</strong>{' '}
           <span className="text-zinc-500">({peakPercent}% of weekly volume)</span>
         </div>

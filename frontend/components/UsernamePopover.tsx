@@ -114,7 +114,7 @@ export function UsernamePopover() {
                   setUsername(e.target.value);
                   if (errorMsg) setErrorMsg(null);
                 }}
-                className="w-full h-11 bg-zinc-950 text-white placeholder-zinc-500 font-mono text-sm rounded-md pl-8 pr-4 border border-zinc-800 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-colors"
+                className="w-full h-11 bg-zinc-950 text-[#F2F5F3] placeholder-[#909692] font-mono text-sm rounded-md pl-8 pr-4 border border-zinc-800 focus:outline-none focus:border-[#0FBF3E] focus:ring-1 focus:ring-[#0FBF3E] transition-colors"
               />
             </div>
 

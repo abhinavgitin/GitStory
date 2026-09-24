@@ -205,8 +205,8 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Terminal State Badge (Updated just now / Partly updated) */}
       {!isRunning && !isQueued && !isCooldown && status?.state === 'SUCCESS' && (
-        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <CheckCircle2 className="w-3.5 h-3.5" />
+        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-[#0A241B] text-[#5FED83] border border-[#0FBF3E]/30">
+          <CheckCircle2 className="w-3.5 h-3.5 text-[#0FBF3E]" />
           <span>{finalLabel || 'Updated just now'}</span>
         </span>
       )}
@@ -220,8 +220,8 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Cooldown pill */}
       {isCooldown && !isRunning && (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
-          <Clock className="w-3.5 h-3.5 text-zinc-500" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md bg-zinc-950/70 text-[#B6BFB8] border border-white/10">
+          <Clock className="w-3.5 h-3.5 text-[#909692]" />
           <span>Available in {formatCountdown(cooldownRemaining)}</span>
         </span>
       )}
@@ -242,15 +242,15 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         onClick={() => mutation.mutate()}
         disabled={isRunning || isQueued || isCooldown}
         aria-label="Refresh developer telemetry"
-        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-md text-xs font-semibold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
+        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-md text-xs font-bold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#0FBF3E]/30 ${
           isRunning || isQueued || isCooldown
-            ? 'bg-zinc-800/60 text-zinc-500 border border-zinc-800/90 shadow-none cursor-not-allowed'
-            : 'bg-zinc-200 hover:bg-zinc-100 text-zinc-950 border border-zinc-300/40'
+            ? 'bg-zinc-800/60 text-[#909692] border border-zinc-700/60 shadow-none cursor-not-allowed'
+            : 'bg-[#0FBF3E] hover:bg-[#5FED83] text-[#101411] border border-[#0FBF3E]'
         }`}
       >
         <RotateCcw
           className={`w-3.5 h-3.5 ${
-            isRunning ? 'animate-spin motion-reduce:animate-none text-zinc-400' : 'text-zinc-900'
+            isRunning ? 'animate-spin motion-reduce:animate-none text-[#909692]' : 'text-[#101411]'
           }`}
         />
         <span>{isQueued ? 'In Line...' : isRunning ? 'Syncing...' : isCooldown ? 'On Cooldown' : 'Refresh Data'}</span>
@@ -262,11 +262,11 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         onClick={() => window.location.reload()}
         title="If nothing appears, click to reload or press Ctrl+Shift+R"
         aria-label="Hard refresh page if nothing appears"
-        className="inline-flex items-center gap-1.5 min-h-[38px] px-2.5 py-1.5 rounded-md text-xs font-medium text-zinc-400 hover:text-zinc-100 bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-zinc-700 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-sm select-none"
+        className="inline-flex items-center gap-1.5 min-h-[38px] px-2.5 py-1.5 rounded-md text-xs font-medium text-[#B6BFB8] hover:text-[#F2F5F3] bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#B6BFB8]/30 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-sm select-none"
       >
-        <RotateCcw className="w-3 h-3 text-zinc-500" />
-        <span className="text-zinc-300">Hard Refresh</span>
-        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-800/80 border border-zinc-700/60 rounded">
+        <RotateCcw className="w-3 h-3 text-[#909692]" />
+        <span className="text-[#E4EBE6]">Hard Refresh</span>
+        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-[#B6BFB8] bg-zinc-800 border border-[#B6BFB8]/20 rounded">
           Ctrl+Shift+R
         </kbd>
       </button>

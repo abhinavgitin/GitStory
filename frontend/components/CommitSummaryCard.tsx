@@ -36,18 +36,15 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-sm">
-              <GitCommit className="w-4 h-4" />
-            </span>
-            <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
+            <h2 className="text-lg font-semibold text-[#F2F5F3] tracking-tight">
               Commit Activity & Volume
             </h2>
           </div>
         </div>
 
         <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/60 border border-white/10 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <span className="font-mono text-xs text-zinc-300">
+          {/* <span className="w-1.5 h-1.5 rounded-full bg-[#0FBF3E] animate-pulse" /> */}
+          <span className="font-mono text-s text-[#E4EBE6]">
             {activeRepos} active {activeRepos === 1 ? 'repository' : 'repositories'}
           </span>
         </div>
@@ -55,10 +52,10 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
 
       {total === 0 ? (
         <div className="p-8 rounded-2xl bg-zinc-950/60 border border-white/[0.06] text-center mb-6">
-          <div className="text-xl font-semibold text-zinc-300 tracking-tight mb-2">
+          <div className="text-xl font-semibold text-[#E4EBE6] tracking-tight mb-2">
             No Commits Recorded Yet
           </div>
-          <p className="text-xs text-zinc-500 max-w-md mx-auto">
+          <p className="text-xs text-[#909692] max-w-md mx-auto">
             Click Refresh Data to ingest and aggregate commits from GitHub.
           </p>
         </div>
@@ -68,27 +65,27 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
           {/* Metric 1: Total Commits */}
           <div className="p-5 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] text-zinc-400 font-medium">Total Commits</span>
-              <GitCommit className="w-4 h-4 text-blue-400" />
+              <span className="text-[11px] text-[#B6BFB8] font-medium">Total Commits</span>
+              <GitCommit className="w-4 h-4 text-[#0FBF3E]" />
             </div>
-            <div className="text-3xl font-bold text-white font-mono tracking-tight">
+            <div className="text-3xl font-bold text-[#F2F5F3] font-mono tracking-tight">
               {total.toLocaleString()}
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono truncate mt-2">
-              across <strong className="text-zinc-200">{activeRepos}</strong> {activeRepos === 1 ? 'repository' : 'repositories'}
+            <div className="text-[11px] text-[#909692] font-mono truncate mt-2">
+              across <strong className="text-[#E4EBE6]">{activeRepos}</strong> {activeRepos === 1 ? 'repository' : 'repositories'}
             </div>
           </div>
 
           {/* Metric 2: Active Repositories */}
           <div className="p-5 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] text-zinc-400 font-medium">Repository Scope</span>
-              <FolderGit2 className="w-4 h-4 text-sky-400" />
+              <span className="text-[11px] text-[#B6BFB8] font-medium">Repository Scope</span>
+              <FolderGit2 className="w-4 h-4 text-[#5FED83]" />
             </div>
-            <div className="text-3xl font-bold text-white font-mono tracking-tight">
+            <div className="text-3xl font-bold text-[#F2F5F3] font-mono tracking-tight">
               {activeRepos}
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono truncate mt-2">
+            <div className="text-[11px] text-[#909692] font-mono truncate mt-2">
               Repositories with synced commit history
             </div>
           </div>
@@ -96,13 +93,13 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
           {/* Metric 3: Commit Horizon Range */}
           <div className="p-5 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] text-zinc-400 font-medium">Commit Horizon</span>
-              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="text-[11px] text-[#B6BFB8] font-medium">Commit Horizon</span>
+              <Calendar className="w-4 h-4 text-[#8CF2A6]" />
             </div>
-            <div className="text-sm sm:text-base font-bold text-white font-mono tracking-tight">
-              {earliest} &mdash; {latest}
+            <div className="text-sm sm:text-base font-bold text-[#F2F5F3] font-mono tracking-tight">
+              {earliest} - {latest}
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono truncate mt-2">
+            <div className="text-[11px] text-[#909692] font-mono truncate mt-2">
               Verified public Git history timeline
             </div>
           </div>
@@ -110,7 +107,7 @@ export function CommitSummaryCard({ summary, isLoading }: CommitSummaryCardProps
       )}
 
       {/* Footnote */}
-      <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06] text-[11px] text-zinc-500">
+      <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06] text-[11px] text-[#909692]">
         <Info className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
         <span>Commits matched by GitHub handle; commits under unlinked git emails are omitted.</span>
       </div>

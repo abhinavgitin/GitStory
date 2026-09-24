@@ -47,9 +47,9 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm">
+            {/* <span className="inline-flex p-1.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm">
               <Clock className="w-4 h-4" />
-            </span>
+            </span> */}
             <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
               24-Hour Productivity Rhythm
             </h2>
@@ -82,7 +82,7 @@ export function CommitHourChart({ stats, isLoading }: CommitHourChartProps) {
               }}
               className="absolute -top-9 -translate-x-1/2 bg-zinc-800 text-zinc-100 px-2.5 py-1 rounded-lg text-xs font-mono border border-zinc-700 shadow-xl pointer-events-none transition-all duration-100 ease-out whitespace-nowrap z-20"
             >
-              <strong className="text-white">{String(hovered.hour).padStart(2, '0')}:00</strong> &mdash; {hovered.count} {hovered.count === 1 ? 'commit' : 'commits'}
+              <strong className="text-white">{String(hovered.hour).padStart(2, '0')}:00</strong> - {hovered.count} {hovered.count === 1 ? 'commit' : 'commits'}
               {totalCommits > 0 && (
                 <span className="text-zinc-400 ml-1.5">
                   ({Math.round((hovered.count / totalCommits) * 100)}%)

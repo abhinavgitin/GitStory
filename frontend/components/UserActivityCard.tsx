@@ -168,18 +168,17 @@ export function UserActivityCard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              <Activity className="w-4 h-4" />
-            </span>
-            <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
+            {/* <span className="inline-flex p-1.5 rounded-lg bg-[#0FBF3E]/10 text-[#0FBF3E] border border-[#0FBF3E]/20">
+              <Activity className="w-4 h-4 text-[#0FBF3E]" />
+            </span> */}
+            <h2 className="text-xl font-semibold text-[#F2F5F3] tracking-tight">
               Developer Rhythm & Public Activity
             </h2>
           </div>
         </div>
 
-        <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-          <span className="font-mono text-xs text-zinc-300">
+        <div className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-950/60 border border-white/10">
+          <span className="font-mono text-xs text-[#E4EBE6]">
             {totalCommitsCount} total commits recorded
           </span>
         </div>
@@ -190,19 +189,19 @@ export function UserActivityCard({
         {/* Metric 1: Habit Archetype */}
         <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-zinc-400 font-medium">Habit Archetype</span>
+            <span className="text-[11px] text-[#B6BFB8] font-medium">Habit Archetype</span>
             {isNightOwl ? (
-              <Moon className="w-4 h-4 text-indigo-400" />
+              <Moon className="w-4 h-4 text-[#8CF2A6]" />
             ) : isEarlyBird ? (
-              <Sun className="w-4 h-4 text-amber-400" />
+              <Sun className="w-4 h-4 text-[#5FED83]" />
             ) : (
-              <Calendar className="w-4 h-4 text-emerald-400" />
+              <Calendar className="w-4 h-4 text-[#0FBF3E]" />
             )}
           </div>
-          <div className="text-base font-bold text-white tracking-tight truncate">
+          <div className="text-base font-bold text-[#F2F5F3] tracking-tight truncate">
             {pattern}
           </div>
-          <div className="text-[11px] text-zinc-400 mt-1 truncate">
+          <div className="text-[11px] text-[#909692] mt-1 truncate">
             {isNightOwl
               ? 'Late hours peak'
               : isEarlyBird
@@ -214,13 +213,13 @@ export function UserActivityCard({
         {/* Metric 2: Peak Coding Day */}
         <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-zinc-400 font-medium">Peak Coding Day</span>
-            <Calendar className="w-4 h-4 text-teal-400" />
+            <span className="text-[11px] text-[#B6BFB8] font-medium">Peak Coding Day</span>
+            <Calendar className="w-4 h-4 text-[#5FED83]" />
           </div>
-          <div className="text-base font-bold text-white font-mono truncate">
+          <div className="text-base font-bold text-[#F2F5F3] font-mono truncate">
             {peakDayName}
           </div>
-          <div className="text-[11px] text-zinc-400 font-mono truncate mt-1">
+          <div className="text-[11px] text-[#909692] font-mono truncate mt-1">
             {peakDayDetail}
           </div>
         </div>
@@ -228,13 +227,13 @@ export function UserActivityCard({
         {/* Metric 3: Peak Coding Hour */}
         <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-zinc-400 font-medium">Peak Coding Hour</span>
-            <Clock className="w-4 h-4 text-sky-400" />
+            <span className="text-[11px] text-[#B6BFB8] font-medium">Peak Coding Hour</span>
+            <Clock className="w-4 h-4 text-[#0FBF3E]" />
           </div>
-          <div className="text-base font-bold text-white font-mono truncate">
+          <div className="text-base font-bold text-[#F2F5F3] font-mono truncate">
             {peakHourTitle}
           </div>
-          <div className="text-[11px] text-zinc-400 font-mono truncate mt-1">
+          <div className="text-[11px] text-[#909692] font-mono truncate mt-1">
             {peakHourDetail}
           </div>
         </div>
@@ -242,13 +241,13 @@ export function UserActivityCard({
         {/* Metric 4: Current Streak */}
         <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-zinc-400 font-medium">Current Streak</span>
-            <Flame className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11px] text-[#B6BFB8] font-medium">Current Streak</span>
+            <Flame className="w-4 h-4 text-[#0FBF3E]" />
           </div>
-          <div className="text-base font-bold font-mono text-emerald-400 truncate">
+          <div className="text-base font-bold font-mono text-[#5FED83] truncate">
             {currentStreak} {currentStreak === 1 ? 'day' : 'days'}
           </div>
-          <div className="text-[11px] text-zinc-400 font-mono truncate mt-1">
+          <div className="text-[11px] text-[#909692] font-mono truncate mt-1">
             {currentStreak > 0 ? 'Active commit streak' : 'Streak reset'}
           </div>
         </div>
@@ -256,13 +255,13 @@ export function UserActivityCard({
         {/* Metric 5: Longest Streak */}
         <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-zinc-400 font-medium">Longest Streak</span>
-            <Trophy className="w-4 h-4 text-amber-400" />
+            <span className="text-[11px] text-[#B6BFB8] font-medium">Longest Streak</span>
+            <Trophy className="w-4 h-4 text-[#8CF2A6]" />
           </div>
-          <div className="text-base font-bold font-mono text-zinc-200 truncate">
+          <div className="text-base font-bold font-mono text-[#E4EBE6] truncate">
             {longestStreak} {longestStreak === 1 ? 'day' : 'days'}
           </div>
-          <div className="text-[11px] text-zinc-400 font-mono truncate mt-1">
+          <div className="text-[11px] text-[#909692] font-mono truncate mt-1">
             All-time streak record
           </div>
         </div>
@@ -273,12 +272,12 @@ export function UserActivityCard({
         <div className="flex items-center justify-between mb-5 text-xs">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-sky-400" />
-            <span className="text-sm font-semibold text-zinc-200">
+            <span className="text-xl font-semibold text-zinc-200">
               12-Month Commit Cadence
             </span>
           </div>
           <span className="font-mono text-xs text-zinc-400">
-            {totalCommitsCount} commits across 12 months
+            Total commits across 12 months
           </span>
         </div>
 
@@ -319,12 +318,12 @@ export function UserActivityCard({
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-sky-400" />
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              {/* <Activity className="w-4 h-4 text-[#0FBF3E]" /> */}
+              <h3 className="text-lg font-semibold uppercase tracking-wider text-[#F2F5F3]">
                 Recent Public Activity
               </h3>
             </div>
-            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2.5 py-0.5 rounded-md border border-zinc-800">
+            <span className="text-[14px] font-mono text-[#B6BFB8] bg-zinc-950/60 px-2.5 py-0.5 rounded-md border border-white/10">
               {activity.recentEvents.length} public events logged
             </span>
           </div>
@@ -333,18 +332,18 @@ export function UserActivityCard({
             {activity.recentEvents.slice(0, 8).map((evt) => (
               <div
                 key={evt.id}
-                className="p-3.5 rounded-xl bg-zinc-950/50 hover:bg-zinc-900/60 border border-white/[0.04] hover:border-white/[0.08] flex items-center justify-between text-xs gap-3 transition-colors"
+                className="p-4.5 rounded-xl bg-zinc-950/40 hover:bg-zinc-800/40 border border-white/[0.04] hover:border-white/10 flex items-center justify-between text-xs gap-3 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="p-2 rounded-lg bg-zinc-900 border border-white/5 shrink-0">
+                  <span className="p-2 rounded-lg bg-zinc-900 border border-white/5 shrink-0 text-[#0FBF3E] text-xl">
                     {getEventIcon(evt.type)}
                   </span>
                   <div className="truncate">
-                    <p className="text-zinc-200 font-medium text-xs truncate">{evt.details}</p>
-                    <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">{evt.repoName}</p>
+                    <p className="text-[#F2F5F3] font-medium text-lg truncate">{evt.details}</p>
+                    <p className="text-[14px] text-[#909692] font-mono truncate mt-0.5">{evt.repoName}</p>
                   </div>
                 </div>
-                <span className="text-[11px] text-zinc-400 font-mono shrink-0 ml-2">
+                <span className="text-[11px] text-[#B6BFB8] font-mono shrink-0 ml-2">
                   {formatRelativeTime(evt.createdAt)}
                 </span>
               </div>

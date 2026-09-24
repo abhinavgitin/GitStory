@@ -17,24 +17,24 @@ export const ZenithDaySlide: React.FC<StorySlideProps & { direction?: number }> 
 
   return (
     <StoryLayout
-      gradientStart="#475569"
-      gradientEnd="#1e293b"
+      gradientStart="#0FBF3E"
+      gradientEnd="#5FED83"
       direction={direction}
     >
       <div className="flex-1 flex flex-col items-center justify-center text-center max-w-4xl mx-auto w-full">
         <div className="mb-8">
           <StoryTextReveal
             text="The Zenith Day"
-            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-amber-400 mb-2 block font-semibold"
+            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-[#5FED83] mb-2 block font-semibold"
           />
           <StoryTextReveal
             text="When You Peak"
-            className="text-5xl sm:text-7xl font-display font-extrabold text-white mb-3 block"
+            className="text-5xl sm:text-7xl font-display font-extrabold text-[#F2F5F3] mb-3 block"
             delay={0.15}
           />
           <StoryTextReveal
             text={`${data.busiestDay}. Unrivaled Shipping Power.`}
-            className="text-2xl sm:text-3xl font-display font-bold text-amber-300"
+            className="text-2xl sm:text-3xl font-display font-bold text-[#5FED83]"
             highlight={data.busiestDay}
             delay={0.35}
           />
@@ -52,7 +52,7 @@ export const ZenithDaySlide: React.FC<StorySlideProps & { direction?: number }> 
                 key={index}
                 className="flex flex-col items-center gap-3 flex-1"
               >
-                <span className="text-xs font-mono text-zinc-300">
+                <span className="text-xs font-mono text-[#B6BFB8]">
                   {count > 0 ? count : ''}
                 </span>
 
@@ -68,14 +68,14 @@ export const ZenithDaySlide: React.FC<StorySlideProps & { direction?: number }> 
                   }}
                   className={`w-full max-w-12 sm:max-w-16 rounded-2xl transition-all ${
                     isMax
-                      ? 'bg-gradient-to-t from-amber-500 to-amber-300 shadow-[0_0_35px_rgba(245,158,11,0.65)]'
-                      : 'bg-zinc-800/80 border border-white/10'
+                      ? 'bg-[#0FBF3E] shadow-[0_0_35px_rgba(15,191,62,0.65)]'
+                      : 'bg-zinc-800 border border-zinc-700/50'
                   }`}
                 />
 
                 <span
                   className={`text-xs sm:text-sm font-mono font-medium ${
-                    isMax ? 'text-amber-300 font-bold' : 'text-zinc-400'
+                    isMax ? 'text-[#5FED83] font-bold' : 'text-[#909692]'
                   }`}
                 >
                   {days[index]}
@@ -89,13 +89,13 @@ export const ZenithDaySlide: React.FC<StorySlideProps & { direction?: number }> 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.4, duration: 0.5 }}
-          className="mt-8 text-sm sm:text-base text-zinc-300 font-mono"
+          className="mt-8 text-sm sm:text-base text-[#B6BFB8] font-mono"
         >
           Your creative rhythm peaks on {data.busiestDay}
         </motion.p>
       </div>
 
-      <div className="text-center text-xs font-mono uppercase tracking-widest text-zinc-400">
+      <div className="text-center text-xs font-mono uppercase tracking-widest text-[#909692]">
         Weekly Cadence
       </div>
     </StoryLayout>

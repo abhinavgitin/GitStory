@@ -177,8 +177,6 @@ export const PrismaHero = ({
       {/* Subtle transparent dark overlay for general text contrast without creating solid black areas */}
       <div className="pointer-events-none absolute inset-0 bg-black/25" />
 
-      {/* Subtle bottom overlay for wordmark legibility */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-black/30" />
 
       {/* ── Top Bar / Navbar (omitted entirely on landing page) ── */}
       {!isLanding && (
@@ -190,36 +188,36 @@ export const PrismaHero = ({
             transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-6xl mx-auto flex items-center justify-between rounded-lg md:rounded-lg px-5 py-3"
             style={{
-              background: 'rgba(18, 18, 23, 0.65)',
+              background: 'rgba(18, 18, 23, 0.75)',
               backdropFilter: 'blur(24px) saturate(180%)',
               WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
             }}
           >
 
 
             {/* Brand */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-8 h-8 rounded-md bg-zinc-800/90 border border-zinc-700/60 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors">
-                <GithubIcon className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#F2F5F3] group-hover:border-[#0FBF3E] transition-colors">
+                <GithubIcon className="w-4 h-4 text-[#0FBF3E]" />
               </div>
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                <h2 className="text-sm font-bold tracking-tight text-[#F2F5F3] flex items-center gap-1.5">
                   <span>GitStory</span>
-                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold tracking-wider">
+                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-[#0FBF3E]/15 text-[#5FED83] border border-[#0FBF3E]/30 font-semibold tracking-wider">
                     BETA
                   </span>
                 </h2>
-                <p className="text-[11px] text-zinc-400 font-medium">Read any developer&apos;s commits</p>
+                <p className="text-[11px] text-[#B6BFB8] font-medium">Read any developer&apos;s commits</p>
               </div>
             </Link>
 
             {/* Right Nav Actions */}
             <div className="flex items-center gap-3 sm:gap-4">
               {lastSyncedAt !== undefined && lastSyncedAt !== null && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800/80 font-mono">
-                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#B6BFB8] bg-zinc-950/80 px-3 py-1 rounded-full border border-white/10 font-mono">
+                  <Clock className="w-3.5 h-3.5 text-[#909692]" />
                   <span>{formatRelativeTime(lastSyncedAt)}</span>
                 </div>
               )}
@@ -229,7 +227,7 @@ export const PrismaHero = ({
               ) : (
                 <a
                   href="#search-section"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 border border-zinc-300/40 transition-all duration-150 active:scale-[0.97]"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold bg-[#0FBF3E] hover:bg-[#5FED83] text-[#101411] transition-all duration-150 active:scale-[0.97]"
                 >
                   Search User
                 </a>
@@ -254,7 +252,7 @@ export const PrismaHero = ({
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed"
+                className="text-sm sm:text-base text-[#E4EBE6] font-normal leading-relaxed"
               >
                 {subtitle}
               </motion.p>
@@ -268,17 +266,17 @@ export const PrismaHero = ({
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.35 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative px-4 py-2 rounded-lg overflow-hidden bg-zinc-900/70 border border-white/[0.12]"
+                  className="relative px-4 py-2 rounded-lg overflow-hidden bg-zinc-900/85 border border-white/10"
                   style={{
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
                   }}
                 >
 
                   <div className="flex flex-col">
-                    <span className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
+                    <span className="text-base sm:text-lg font-bold text-[#F2F5F3] font-mono tabular-nums leading-tight">
                       {stat.value}
                     </span>
-                    <span className="text-[11px] text-zinc-400 font-medium">{stat.label}</span>
+                    <span className="text-[11px] text-[#B6BFB8] font-medium">{stat.label}</span>
                   </div>
                 </motion.div>
               ))}
@@ -289,21 +287,21 @@ export const PrismaHero = ({
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                className="group inline-flex items-center gap-3 rounded-md bg-zinc-200 hover:bg-zinc-100 py-2 pl-5 pr-2 text-sm font-bold text-zinc-950 transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
+                className="group inline-flex items-center gap-3 rounded-md bg-[#0FBF3E] hover:bg-[#5FED83] py-2 pl-5 pr-2 text-sm font-bold text-[#101411] transition-all duration-200 hover:gap-4 cursor-pointer active:scale-[0.97]"
               >
                 <span>{ctaText}</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-950 text-white transition-transform duration-200 group-hover:scale-110">
-                  <ArrowRight className="h-4 w-4" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#101411] text-[#F2F5F3] transition-transform duration-200 group-hover:scale-110">
+                  <ArrowRight className="h-4 w-4 text-[#0FBF3E]" />
                 </span>
               </motion.a>
             </div>
           </div>
 
           {/* Tier 2: Giant Display Typography (Clear Bounding Box, No Overlap) */}
-          <div className="w-full pt-4 border-t border-white/[0.08]">
+          <div className="w-full pt-4 border-t border-[#B6BFB8]/15">
             <h1
               className="font-black leading-[0.85] tracking-[-0.05em] text-[14vw] sm:text-[12vw] md:text-[10vw] lg:text-[8.5vw] xl:text-[8vw] select-none uppercase"
-              style={{ color: "#F4F4F5" }}
+              style={{ color: "#F2F5F3" }}
             >
               <WordsPullUp text={title} showAsterisk />
             </h1>

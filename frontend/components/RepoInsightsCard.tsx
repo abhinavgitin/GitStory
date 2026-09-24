@@ -33,9 +33,9 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
   if (isLoading) {
     return (
-      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
-        <div className="h-6 w-48 bg-zinc-800/80 rounded-md mb-3" />
-        <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
+      <div className="rounded-xl p-7 bg-zinc-900/85 border border-zinc-800/80 animate-pulse">
+        <div className="h-6 w-48 bg-zinc-800/60 rounded-md mb-3" />
+        <div className="h-4 w-72 bg-zinc-800/40 rounded-md mb-8" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-20 bg-zinc-800/40 rounded-2xl" />
@@ -47,10 +47,10 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
   if (!insights || insights.totalRepos === 0) {
     return (
-      <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80 text-center py-12 mb-8">
-        <Insights className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
-        <p className="text-sm font-medium text-zinc-300">No repository insights available</p>
-        <p className="text-xs text-zinc-500 mt-1">No public repositories were found to generate intelligence metrics</p>
+      <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 text-center py-12 mb-8">
+        <Insights className="w-8 h-8 text-[#909692] mx-auto mb-3" />
+        <p className="text-sm font-medium text-[#E4EBE6]">No repository insights available</p>
+        <p className="text-xs text-[#909692] mt-1">No public repositories were found to generate intelligence metrics</p>
       </section>
     );
   }
@@ -63,7 +63,7 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       : insights.topBySize;
 
   return (
-    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80 mb-8">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80 mb-8">
       {/* Specular top rim */}
 
 
@@ -71,10 +71,10 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            {/* <span className="inline-flex p-1.5 rounded-lg bg-[#0FBF3E]/10 text-[#0FBF3E] border border-[#0FBF3E]/20">
               <Insights className="w-4 h-4" />
-            </span>
-            <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
+            </span> */}
+            <h2 className="text-lg font-semibold text-[#F2F5F3] tracking-tight">
               Repository Intelligence & Health
             </h2>
           </div>
@@ -82,17 +82,17 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
         {/* Health status badges */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#0A241B] border border-[#0FBF3E]/30 text-[#5FED83] text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0FBF3E]" />
             <span>{insights.activeRepos} Active</span>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-950/60 border border-white/10 text-[#E4EBE6] text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#B6BFB8]" />
             <span>{insights.staleRepos} Stale</span>
           </div>
           {insights.archivedRepos > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-xs font-medium">
-              <Archive className="w-3 h-3 text-zinc-400" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-950/60 border border-white/10 text-[#909692] text-xs font-medium">
+              <Archive className="w-3 h-3 text-[#909692]" />
               <span>{insights.archivedRepos} Archived</span>
             </div>
           )}
@@ -101,36 +101,36 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
       {/* Metric Tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8">
-        <div className="rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
-            <Star className="w-3.5 h-3.5 text-amber-400" />
+        <div className="rounded-2xl p-4 bg-zinc-950/60 border border-white/[0.06]">
+          <div className="flex items-center gap-2 text-[#B6BFB8] text-xs mb-1.5">
+            <Star className="w-3.5 h-3.5 text-[#0FBF3E]" />
             <span>Total Stars</span>
           </div>
-          <p className="text-xl font-bold font-mono text-zinc-100">{insights.totalStars.toLocaleString()}</p>
+          <p className="text-xl font-bold font-mono text-[#F2F5F3]">{insights.totalStars.toLocaleString()}</p>
         </div>
 
-        <div className="rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
-            <GitFork className="w-3.5 h-3.5 text-sky-400" />
+        <div className="rounded-2xl p-4 bg-zinc-950/60 border border-white/[0.06]">
+          <div className="flex items-center gap-2 text-[#B6BFB8] text-xs mb-1.5">
+            <GitFork className="w-3.5 h-3.5 text-[#5FED83]" />
             <span>Total Forks</span>
           </div>
-          <p className="text-xl font-bold font-mono text-zinc-100">{insights.totalForks.toLocaleString()}</p>
+          <p className="text-xl font-bold font-mono text-[#F2F5F3]">{insights.totalForks.toLocaleString()}</p>
         </div>
 
-        <div className="rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
-            <Eye className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="rounded-2xl p-4 bg-zinc-950/60 border border-white/[0.06]">
+          <div className="flex items-center gap-2 text-[#B6BFB8] text-xs mb-1.5">
+            <Eye className="w-3.5 h-3.5 text-[#8CF2A6]" />
             <span>Watchers</span>
           </div>
-          <p className="text-xl font-bold font-mono text-zinc-100">{insights.totalWatchers.toLocaleString()}</p>
+          <p className="text-xl font-bold font-mono text-[#F2F5F3]">{insights.totalWatchers.toLocaleString()}</p>
         </div>
 
-        <div className="rounded-2xl p-4 bg-zinc-950/40 border border-white/[0.04]">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1.5">
-            <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+        <div className="rounded-2xl p-4 bg-zinc-950/60 border border-white/[0.06]">
+          <div className="flex items-center gap-2 text-[#B6BFB8] text-xs mb-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-[#909692]" />
             <span>Open Issues</span>
           </div>
-          <p className="text-xl font-bold font-mono text-zinc-100">{insights.totalOpenIssues.toLocaleString()}</p>
+          <p className="text-xl font-bold font-mono text-[#F2F5F3]">{insights.totalOpenIssues.toLocaleString()}</p>
         </div>
 
       </div>
@@ -138,8 +138,8 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
       {/* Top Repos highlight tabbed section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-zinc-200">Featured Repositories</h3>
-          <div className="flex items-center bg-zinc-950/60 p-1 rounded-xl border border-white/5">
+          <h3 className="text-sm font-semibold text-[#F2F5F3]">Featured Repositories</h3>
+          <div className="flex items-center bg-zinc-950/60 p-1 rounded-xl border border-white/10">
             {(
               [
                 { id: 'stars', label: 'Top Stars' },
@@ -153,8 +153,8 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-zinc-800 text-zinc-100'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-[#0FBF3E]/15 text-[#5FED83] border border-[#0FBF3E]/30 font-semibold'
+                    : 'text-[#B6BFB8] hover:text-[#F2F5F3]'
                 }`}
               >
                 {tab.label}
@@ -170,32 +170,32 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
               href={repo.htmlUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group p-4 rounded-2xl bg-zinc-950/40 hover:bg-zinc-800/40 border border-white/[0.04] hover:border-white/[0.1] transition-all"
+              className="group p-4 rounded-2xl bg-zinc-950/40 hover:bg-zinc-800/40 border border-white/[0.04] hover:border-[#0FBF3E]/40 transition-all"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="font-semibold text-sm text-zinc-200 group-hover:text-emerald-400 transition-colors truncate">
+                <span className="font-semibold text-sm text-[#F2F5F3] group-hover:text-[#5FED83] transition-colors truncate">
                   {repo.name}
                 </span>
-                <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ExternalLink className="w-3.5 h-3.5 text-[#909692] group-hover:text-[#5FED83] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <div className="flex items-center gap-3 text-xs text-zinc-400">
+              <div className="flex items-center gap-3 text-xs text-[#909692]">
                 {activeTab === 'stars' && (
-                  <span className="inline-flex items-center gap-1 text-amber-300 font-mono">
-                    <Star className="w-3 h-3" />
+                  <span className="inline-flex items-center gap-1 text-[#5FED83] font-mono">
+                    <Star className="w-3 h-3 fill-[#5FED83]/20" />
                     {repo.stars}
                   </span>
                 )}
                 {activeTab === 'size' && (
-                  <span className="text-zinc-300 font-mono">{formatSize(repo.sizeKb)}</span>
+                  <span className="text-[#B6BFB8] font-mono">{formatSize(repo.sizeKb)}</span>
                 )}
                 {activeTab === 'recent' && (
-                  <span className="inline-flex items-center gap-1 text-zinc-400">
+                  <span className="inline-flex items-center gap-1 text-[#909692]">
                     <Clock className="w-3 h-3" />
                     {new Date(repo.pushedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
                 )}
                 {repo.primaryLanguage && (
-                  <span className="text-zinc-400 font-mono text-[11px] truncate">
+                  <span className="text-[#909692] font-mono text-[11px] truncate">
                     {repo.primaryLanguage}
                   </span>
                 )}
@@ -218,18 +218,18 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
           <div className={`grid grid-cols-1 ${hasTopics && hasLicenses ? 'md:grid-cols-2' : ''} gap-6 pt-6 border-t border-white/[0.06]`}>
             {hasTopics && (
               <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
-                  <Tag className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Repository Topics</span>
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#B6BFB8] mb-3">
+                  {/* <Tag className="w-3.5 h-3.5 text-[#909692]" /> */}
+                  <span className="text-lg">Repository Topics</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {topicEntries.map(([topic, count]) => (
                     <span
                       key={topic}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/5 text-[11px] text-zinc-300"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/10 text-[11px] text-[#B6BFB8]"
                     >
-                      <span>#{topic}</span>
-                      <span className="text-zinc-500 font-mono">({count})</span>
+                      <span className="text-[#00000]">#{topic}</span>
+                      <span className="text-[#00000] font-mono">({count})</span>
                     </span>
                   ))}
                 </div>
@@ -238,19 +238,19 @@ export function RepoInsightsCard({ insights, isLoading }: RepoInsightsCardProps)
 
             {hasLicenses && (
               <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 mb-3">
-                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Open Source Licenses</span>
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#B6BFB8] mb-3">
+                  {/* <ShieldCheck className="w-3.5 h-3.5 text-[#909692]" /> */}
+                  <span className="text-lg">Open Source Licenses</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {licenseEntries.map(([lic, count]) => (
                     <span
                       key={lic}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-950/60 border border-white/5 text-xs text-zinc-300 font-mono"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-950/60 border border-white/10 text-xs text-[#B6BFB8] font-mono"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0FBF3E]" />
                       <span>{lic}</span>
-                      <span className="text-zinc-500">x{count}</span>
+                      <span className="text-[#909692]">x{count}</span>
                     </span>
                   ))}
                 </div>

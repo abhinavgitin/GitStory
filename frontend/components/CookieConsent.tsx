@@ -33,21 +33,21 @@ export function CookieConsent() {
       role="alert"
       aria-label="Cookie consent notice"
     >
-      <div className="max-w-lg mx-auto pointer-events-auto bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-xs text-zinc-400 leading-relaxed">
+      <div className="max-w-lg mx-auto pointer-events-auto bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 flex items-center justify-between gap-4 shadow-xl">
+        <p className="text-xs text-[#B6BFB8] leading-relaxed">
           This site uses essential cookies only. No tracking.{' '}
           <a
             href="https://github.com/abhinavgitin/GitStory/blob/main/legal/cookie-policy.md"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-zinc-300 underline underline-offset-2 hover:text-white transition-colors"
+            className="text-[#E4EBE6] underline underline-offset-2 hover:text-[#5FED83] transition-colors"
           >
             Cookie Policy
           </a>
         </p>
         <button
           onClick={handleAccept}
-          className="shrink-0 px-3 py-1.5 text-xs font-medium bg-zinc-200 hover:bg-zinc-100 text-zinc-950 rounded-md transition-colors active:scale-[0.97]"
+          className="shrink-0 px-3.5 py-1.5 text-xs font-bold bg-[#0FBF3E] hover:bg-[#5FED83] text-[#101411] rounded-md transition-all active:scale-[0.97]"
         >
           OK
         </button>

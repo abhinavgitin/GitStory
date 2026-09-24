@@ -120,9 +120,9 @@ class SyncAnimation {
       const x = centerX + Math.cos(angle) * radius * particle.depth;
       const y = centerY + Math.sin(angle) * radius * particle.depth;
 
-      const alpha = 0.06 + particle.depth * 0.26;
+      const alpha = 0.08 + particle.depth * 0.32;
 
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.fillStyle = `rgba(95, 237, 131, ${alpha})`;
       ctx.beginPath();
       ctx.arc(x, y, particle.size, 0, Math.PI * 2);
       ctx.fill();
@@ -213,7 +213,7 @@ export function ProfileSyncPanel({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md mx-auto my-16 overflow-hidden rounded-xl border border-zinc-800/80 bg-[#0b0b0e]/95"
+      className="relative w-full max-w-md mx-auto my-16 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/90"
     >
       <canvas
         ref={canvasRef}
@@ -223,17 +223,17 @@ export function ProfileSyncPanel({
 
       <div className="relative z-10 flex min-h-[280px] flex-col items-center justify-center px-8 py-12 text-center select-none">
         {/* Subtle accent rule */}
-        <div className="mb-5 h-px w-14 bg-white/20" />
+        <div className="mb-5 h-px w-14 bg-[#0FBF3E]/40" />
 
-        <h2 className="text-base font-semibold tracking-tight text-white">
+        <h2 className="text-base font-semibold tracking-tight text-[#F2F5F3]">
           {title}
         </h2>
 
-        <p className="mt-1.5 text-xs font-mono text-white/50">
+        <p className="mt-1.5 text-xs font-mono text-[#5FED83]">
           @{username}
         </p>
 
-        <p className="mt-4 text-[11px] text-white/35 max-w-xs leading-relaxed">
+        <p className="mt-4 text-[11px] text-[#909692] max-w-xs leading-relaxed">
           {subtitle}
         </p>
 
@@ -243,7 +243,7 @@ export function ProfileSyncPanel({
             <button
               onClick={onStartSync}
               disabled={isStarting}
-              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-md text-xs font-semibold bg-zinc-200 hover:bg-zinc-100 text-zinc-950 transition-all duration-150 active:scale-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus:outline-none focus:ring-2 focus:ring-zinc-400/20"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#0FBF3E] hover:bg-[#08872B] text-[#101411] transition-all duration-150 active:scale-[0.97] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus:outline-none focus:ring-2 focus:ring-[#0FBF3E]/40 shadow-lg shadow-[#0FBF3E]/15"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isStarting ? 'animate-spin motion-reduce:animate-none' : ''}`} />
               <span>{isStarting ? 'Starting...' : status === 'error' ? 'Try Again' : 'Sync Profile'}</span>
@@ -253,9 +253,9 @@ export function ProfileSyncPanel({
 
         {status === 'syncing' && (
           <div className="mt-6 flex items-center justify-center gap-1.5" aria-hidden="true">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse [animation-delay:200ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse [animation-delay:400ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#5FED83] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#5FED83] animate-pulse [animation-delay:200ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#5FED83] animate-pulse [animation-delay:400ms]" />
           </div>
         )}
       </div>

@@ -17,10 +17,10 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
   if (loading) {
     return (
-      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
-        <div className="h-6 w-48 bg-zinc-800/80 rounded-md mb-3" />
-        <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
-        <div className="h-4 w-full bg-zinc-800/60 rounded-md mb-6" />
+      <div className="rounded-xl p-7 bg-zinc-900/85 border border-zinc-800/80 animate-pulse">
+        <div className="h-6 w-48 bg-zinc-800/60 rounded-md mb-3" />
+        <div className="h-4 w-72 bg-zinc-800/40 rounded-md mb-8" />
+        <div className="h-4 w-full bg-zinc-800/30 rounded-md mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-12 bg-zinc-800/40 rounded-xl" />
@@ -32,10 +32,10 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
   if (!data || data.languages.length === 0) {
     return (
-      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 text-center py-12">
-        <Code2 className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
-        <p className="text-sm font-medium text-zinc-300">No language data available</p>
-        <p className="text-xs text-zinc-500 mt-1">Run a sync to analyze repository languages</p>
+      <div className="rounded-xl p-7 bg-zinc-900/85 border border-zinc-800/80 text-center py-12">
+        <Code2 className="w-8 h-8 text-[#909692] mx-auto mb-3" />
+        <p className="text-sm font-medium text-[#E4EBE6]">No language data available</p>
+        <p className="text-xs text-[#909692] mt-1">Run a sync to analyze repository languages</p>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       : data.formattedTotalSize;
 
   return (
-    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80">
       {/* Specular top sheen */}
 
 
@@ -60,18 +60,15 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            {/* <span className="inline-flex p-1.5 rounded-lg bg-[#0FBF3E]/10 text-[#0FBF3E] border border-[#0FBF3E]/20">
               <Code2 className="w-4 h-4" />
-            </span>
-            <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">Codebase Composition</h2>
+            </span> */}
+            <h2 className="text-xl font-semibold text-[#F2F5F3] tracking-tight">Codebase Composition</h2>
           </div>
-          <p className="text-xs text-zinc-400">
-            Byte-level language proportion across {data.repoBreakdown.length} public repositories
-          </p>
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="inline-flex p-1 rounded-xl bg-zinc-950/60 border border-white/5 self-start sm:self-auto">
+        <div className="inline-flex p-1 rounded-xl bg-zinc-950/60 border border-white/10 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => {
@@ -80,11 +77,11 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               viewMode === 'overall'
-                ? 'bg-zinc-800/90 text-zinc-100 border border-white/10'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#0FBF3E]/15 text-[#5FED83] border border-[#0FBF3E]/30 font-semibold'
+                : 'text-[#B6BFB8] hover:text-[#F2F5F3]'
             }`}
           >
-            <PieChart className="w-3.5 h-3.5" />
+            <PieChart className="w-3.5 h-2.8" />
             <span>Aggregate</span>
           </button>
           <button
@@ -97,8 +94,8 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               viewMode === 'by-repo'
-                ? 'bg-zinc-800/90 text-zinc-100 border border-white/10'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[#0FBF3E]/15 text-[#5FED83] border border-[#0FBF3E]/30 font-semibold'
+                : 'text-[#B6BFB8] hover:text-[#F2F5F3]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -110,12 +107,12 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
       {/* Per-repo selector dropdown when in 'by-repo' view */}
       {viewMode === 'by-repo' && (
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-400">Select repository:</span>
+          <span className="text-xs text-[#B6BFB8]">Select repository:</span>
           <div className="relative">
             <select
               value={selectedRepoId ?? ''}
               onChange={(e) => setSelectedRepoId(Number(e.target.value))}
-              className="appearance-none bg-zinc-800/90 hover:bg-zinc-800 text-zinc-200 text-xs font-medium rounded-xl px-3 py-1.5 pr-8 border border-white/10 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="appearance-none bg-zinc-950 hover:bg-zinc-900 text-[#F2F5F3] text-xs font-medium rounded-xl px-3 py-1.5 pr-8 border border-zinc-800 focus:outline-none focus:ring-1 focus:ring-[#0FBF3E] cursor-pointer"
             >
               {data.repoBreakdown.map((r) => (
                 <option key={r.repoId} value={r.repoId}>
@@ -123,26 +120,26 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#909692] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
       )}
 
       {/* Summary KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 mb-7">
-        <div className="p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+        <div className="p-4 rounded-lg bg-zinc-950/60 border border-white/[0.06]">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[#909692] block mb-1">
             {viewMode === 'by-repo' ? 'Repository Code Volume' : 'Code Volume (Bytes)'}
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-semibold text-zinc-100 font-mono tabular-nums">
+            <span className="text-xl font-semibold text-[#F2F5F3] font-mono tabular-nums">
               {activeTotalFormatted}
             </span>
           </div>
         </div>
 
-        <div className="p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+        <div className="p-4 rounded-lg bg-zinc-950/60 border border-white/[0.06]">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[#909692] block mb-1">
             Primary Stack
           </span>
           <div className="flex items-center gap-2">
@@ -152,26 +149,26 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
                 style={{ backgroundColor: activeLanguages[0]?.color || '#888' }}
               />
             )}
-            <span className="text-xl font-semibold text-zinc-100 truncate">
+            <span className="text-xl font-semibold text-[#F2F5F3] truncate">
               {activeLanguages.length > 0 ? activeLanguages[0].language : 'None'}
             </span>
             {activeLanguages.length > 0 && (
-              <span className="text-xs font-mono text-zinc-400">
+              <span className="text-xs font-mono text-[#B6BFB8]">
                 ({activeLanguages[0].percentage}%)
               </span>
             )}
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 p-4 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+        <div className="col-span-2 sm:col-span-1 p-4 rounded-lg bg-zinc-950/60 border border-white/[0.06]">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[#909692] block mb-1">
             Active Languages
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-semibold text-zinc-100 font-mono tabular-nums">
+            <span className="text-xl font-semibold text-[#F2F5F3] font-mono tabular-nums">
               {activeLanguages.length}
             </span>
-            <span className="text-xs text-zinc-400">
+            <span className="text-xs text-[#B6BFB8]">
               {viewMode === 'by-repo' ? 'in this repository' : 'across all repositories'}
             </span>
           </div>
@@ -180,10 +177,10 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
 
       {/* Multi-Segment Proportional Bar */}
       <div className="mb-7">
-        <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+        <div className="flex items-center justify-between text-xs text-[#B6BFB8] mb-2">
           <span>Language Distribution</span>
           {hoveredLang && (
-            <span className="font-mono text-zinc-200">
+            <span className="font-mono text-[#F2F5F3]">
               {hoveredLang}:{' '}
               {activeLanguages.find((l) => l.language === hoveredLang)?.percentage}% (
               {activeLanguages.find((l) => l.language === hoveredLang)?.formattedSize})
@@ -191,7 +188,7 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
           )}
         </div>
 
-        <div className="relative h-4 w-full rounded-md overflow-hidden flex bg-zinc-950/80 p-0.5 ring-1 ring-zinc-800">
+        <div className="relative h-4 w-full rounded-md overflow-hidden flex bg-zinc-950 p-0.5 ring-1 ring-white/10">
           {activeLanguages.map((item, idx) => {
             const isHovered = hoveredLang === item.language;
             const isAnyHovered = hoveredLang !== null;
@@ -237,8 +234,8 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
                 onMouseLeave={() => setHoveredLang(null)}
                 className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-150 cursor-pointer select-none ${
                   isHovered
-                    ? 'bg-zinc-800/90 border-white/20 translate-y-[-1px]'
-                    : 'bg-zinc-950/30 hover:bg-zinc-800/40 border-white/[0.04]'
+                    ? 'bg-zinc-800 border-[#0FBF3E]/40 translate-y-[-1px]'
+                    : 'bg-zinc-950/40 hover:bg-zinc-800/40 border-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -246,13 +243,13 @@ export function LanguageDistributionCard({ data, loading }: LanguageDistribution
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-xs font-medium text-zinc-200 truncate">{item.language}</span>
+                  <span className="text-xs font-medium text-[#F2F5F3] truncate">{item.language}</span>
                 </div>
                 <div className="flex flex-col items-end shrink-0 ml-2">
-                  <span className="text-xs font-semibold text-zinc-100 font-mono tabular-nums">
+                  <span className="text-xs font-semibold text-[#F2F5F3] font-mono tabular-nums">
                     {item.percentage}%
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-mono">{item.formattedSize}</span>
+                  <span className="text-[10px] text-[#909692] font-mono">{item.formattedSize}</span>
                 </div>
               </motion.div>
             );

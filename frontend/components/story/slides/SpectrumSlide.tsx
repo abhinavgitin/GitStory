@@ -18,8 +18,8 @@ export const SpectrumSlide: React.FC<StorySlideProps & { direction?: number }> =
 
   return (
     <StoryLayout
-      gradientStart={topLang.color}
-      gradientEnd="#0f172a"
+      gradientStart="#0FBF3E"
+      gradientEnd="#5FED83"
       direction={direction}
     >
       <div className="flex-1 flex flex-col justify-center relative max-w-4xl mx-auto w-full">
@@ -54,18 +54,18 @@ export const SpectrumSlide: React.FC<StorySlideProps & { direction?: number }> =
         <div className="relative z-10 text-center mb-10">
           <StoryTextReveal
             text="The Linguistic Spectrum"
-            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-zinc-400 mb-2 block font-semibold"
+            className="text-xs sm:text-sm font-mono uppercase tracking-[0.25em] text-[#5FED83] mb-2 block font-semibold"
           />
           <StoryTextReveal
             text={`Fluent in ${topLang.name}`}
-            className="text-5xl sm:text-7xl font-display font-black text-white mb-3 block"
+            className="text-5xl sm:text-7xl font-display font-black text-[#F2F5F3] mb-3 block"
             highlight={topLang.name}
-            highlightClass="text-primary font-black"
+            highlightClass="text-[#5FED83] font-black"
             delay={0.15}
           />
           <StoryTextReveal
             text="Your primary dialect for translating ideas into working software."
-            className="text-base sm:text-xl text-zinc-300 max-w-xl mx-auto"
+            className="text-base sm:text-xl text-[#B6BFB8] max-w-xl mx-auto"
             delay={0.35}
           />
         </div>
@@ -78,7 +78,7 @@ export const SpectrumSlide: React.FC<StorySlideProps & { direction?: number }> =
               initial={{ opacity: 0, x: -25 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 + i * 0.1 }}
-              className="p-4 sm:p-5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg"
+              className="p-4 sm:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-xl shadow-lg"
             >
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-3">
@@ -86,17 +86,17 @@ export const SpectrumSlide: React.FC<StorySlideProps & { direction?: number }> =
                     className="w-3.5 h-3.5 rounded-full shadow-sm"
                     style={{ backgroundColor: lang.color }}
                   />
-                  <span className="text-base sm:text-lg font-semibold text-white">
+                  <span className="text-base sm:text-lg font-semibold text-[#F2F5F3]">
                     {lang.name}
                   </span>
                 </div>
-                <span className="text-sm sm:text-base font-mono font-bold text-zinc-200">
+                <span className="text-sm sm:text-base font-mono font-bold text-[#5FED83]">
                   {lang.percentage}%
                 </span>
               </div>
 
               {/* Progress Track */}
-              <div className="w-full h-2 rounded-full bg-zinc-800/90 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-zinc-950 border border-white/10 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${lang.percentage}%` }}
@@ -110,7 +110,7 @@ export const SpectrumSlide: React.FC<StorySlideProps & { direction?: number }> =
         </div>
       </div>
 
-      <div className="text-center text-xs font-mono uppercase tracking-widest text-zinc-400">
+      <div className="text-center text-xs font-mono uppercase tracking-widest text-[#909692]">
         Language Mastery
       </div>
     </StoryLayout>

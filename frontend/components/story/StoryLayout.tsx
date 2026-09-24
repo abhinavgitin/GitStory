@@ -12,8 +12,8 @@ interface StoryLayoutProps {
 
 export const StoryLayout: React.FC<StoryLayoutProps> = ({
   children,
-  gradientStart = '#3b82f6',
-  gradientEnd = '#8b5cf6',
+  gradientStart = '#0FBF3E',
+  gradientEnd = '#5FED83',
   direction = 1,
 }) => {
   return (
@@ -49,13 +49,13 @@ export const StoryLayout: React.FC<StoryLayoutProps> = ({
       initial="enter"
       animate="center"
       exit="exit"
-      className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden bg-transparent text-zinc-100 select-none pointer-events-auto"
+      className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden bg-transparent text-[#F2F5F3] select-none pointer-events-auto"
     >
       {/* Subtle atmospheric radial spotlight behind the slide content */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-25"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${gradientStart}30 0%, ${gradientEnd}15 45%, transparent 70%)`,
+          background: `radial-gradient(circle at 50% 50%, ${gradientStart}25 0%, ${gradientEnd}10 45%, transparent 70%)`,
         }}
       />
 

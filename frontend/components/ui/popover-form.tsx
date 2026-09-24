@@ -47,7 +47,7 @@ export function PopoverForm({
         layoutId={shouldReduceMotion ? undefined : `${title}-wrapper`}
         onClick={() => setOpen(true)}
         style={{ borderRadius: 10, visibility: open ? "hidden" : "visible" }}
-        className="flex h-10 items-center border border-zinc-700/80 bg-[#121212] px-4 text-sm font-medium text-zinc-100 outline-none hover:border-zinc-500 hover:bg-zinc-900 transition-colors focus:ring-1 focus:ring-zinc-500 cursor-pointer active:scale-[0.97]"
+        className="flex h-10 items-center border border-zinc-800 bg-zinc-900 px-4 text-sm font-medium text-[#F2F5F3] outline-none hover:border-[#0FBF3E]/60 hover:bg-zinc-850 transition-colors focus:ring-1 focus:ring-[#0FBF3E] cursor-pointer active:scale-[0.97]"
       >
         <motion.span layoutId={shouldReduceMotion ? undefined : `${title}-title`}>{title}</motion.span>
       </motion.button>
@@ -55,7 +55,7 @@ export function PopoverForm({
         {open && (
           <motion.div
             layoutId={shouldReduceMotion ? undefined : `${title}-wrapper`}
-            className="absolute top-0 left-1/2 -translate-x-1/2 p-1 overflow-hidden bg-muted outline-none z-40 border border-zinc-700/80"
+            className="absolute top-0 left-1/2 -translate-x-1/2 p-1 overflow-hidden bg-zinc-900 outline-none z-40 border border-zinc-800"
             ref={ref}
             style={{ borderRadius: 14, width, height, maxWidth: "calc(100vw - 32px)" }}
           >
@@ -119,7 +119,7 @@ export function PopoverForm({
                   }
                   key="open-child"
                   style={{ borderRadius: 10 }}
-                  className="h-full border border-zinc-800 bg-[#121212] z-20"
+                  className="h-full border border-zinc-800 bg-zinc-950 z-20"
                 >
                   {openChild}
                 </motion.div>
@@ -142,7 +142,7 @@ export function PopoverFormButton({
   return (
     <button
       type="submit"
-      className="ml-auto flex h-8 min-w-[128px] px-4 items-center justify-center overflow-hidden rounded-md bg-blue-500 hover:bg-blue-400 text-xs font-semibold text-white whitespace-nowrap cursor-pointer active:scale-[0.97] transition-all"
+      className="ml-auto flex h-8 min-w-[128px] px-4 items-center justify-center overflow-hidden rounded-md bg-[#0FBF3E] hover:bg-[#5FED83] text-xs font-bold text-[#101411] whitespace-nowrap cursor-pointer active:scale-[0.97] transition-all"
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
@@ -207,12 +207,12 @@ export function PopoverFormSuccess({
       >
         <path
           d="M27.6 16C27.6 17.5234 27.3 19.0318 26.717 20.4392C26.1341 21.8465 25.2796 23.1253 24.2025 24.2025C23.1253 25.2796 21.8465 26.1341 20.4392 26.717C19.0318 27.3 17.5234 27.6 16 27.6C14.4767 27.6 12.9683 27.3 11.5609 26.717C10.1535 26.1341 8.87475 25.2796 7.79759 24.2025C6.72043 23.1253 5.86598 21.8465 5.28302 20.4392C4.70007 19.0318 4.40002 17.5234 4.40002 16C4.40002 12.9235 5.62216 9.97301 7.79759 7.79759C9.97301 5.62216 12.9235 4.40002 16 4.40002C19.0765 4.40002 22.027 5.62216 24.2025 7.79759C26.3779 9.97301 27.6 12.9235 27.6 16Z"
-          fill="#2090FF"
+          fill="#0FBF3E"
           fillOpacity="0.16"
         />
         <path
           d="M12.1334 16.9667L15.0334 19.8667L19.8667 13.1M27.6 16C27.6 17.5234 27.3 19.0318 26.717 20.4392C26.1341 21.8465 25.2796 23.1253 24.2025 24.2025C23.1253 25.2796 21.8465 26.1341 20.4392 26.717C19.0318 27.3 17.5234 27.6 16 27.6C14.4767 27.6 12.9683 27.3 11.5609 26.717C10.1535 26.1341 8.87475 25.2796 7.79759 24.2025C6.72043 23.1253 5.86598 21.8465 5.28302 20.4392C4.70007 19.0318 4.40002 17.5234 4.40002 16C4.40002 12.9235 5.62216 9.97301 7.79759 7.79759C9.97301 5.62216 12.9235 4.40002 16 4.40002C19.0765 4.40002 22.027 5.62216 24.2025 7.79759C26.3779 9.97301 27.6 12.9235 27.6 16Z"
-          stroke="#2090FF"
+          stroke="#0FBF3E"
           strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"

@@ -77,57 +77,52 @@ export function DashboardLoader({
       <div
         className="w-full max-w-sm flex flex-col items-center p-8 rounded-2xl relative overflow-hidden"
         style={{
-          background: 'rgba(18, 18, 23, 0.7)',
+          background: 'rgba(18, 18, 23, 0.85)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)',
         }}
       >
         {/* Minimal Spinner Ring */}
         <div className="relative w-12 h-12 mb-6 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
-          <div className="absolute inset-0 rounded-full border-2 border-t-zinc-200 border-r-transparent border-b-transparent border-l-transparent animate-spin motion-reduce:animate-none" />
+          <div className="absolute inset-0 rounded-full border-2 border-t-[#0FBF3E] border-r-transparent border-b-transparent border-l-transparent animate-spin motion-reduce:animate-none" />
         </div>
 
         {/* Username Tag with Elapsed Time */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-900/90 border border-zinc-800 mb-3 shadow-inner">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-xs font-mono text-zinc-300">@{username}</span>
-          <span className="text-[10px] font-mono text-zinc-500">|</span>
-          <span className="text-[11px] font-mono text-zinc-400">{elapsedSeconds}s</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#0A241B] border border-[#0FBF3E]/30 mb-3 shadow-inner">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#5FED83]" />
+          <span className="text-xs font-mono text-[#5FED83]">@{username}</span>
+          <span className="text-[10px] font-mono text-[#909692]">|</span>
+          <span className="text-[11px] font-mono text-[#B6BFB8]">{elapsedSeconds}s</span>
         </div>
 
         {/* Main Title */}
-        <h2 className="text-lg font-semibold text-white tracking-tight mb-1.5">
+        <h2 className="text-lg font-semibold text-[#F2F5F3] tracking-tight mb-1.5">
           Loading developer telemetry
         </h2>
 
         {/* Current Step Description */}
-        <p className="text-xs text-zinc-400 max-w-xs mb-6 font-mono leading-relaxed min-h-[2.5rem] flex items-center justify-center">
+        <p className="text-xs text-[#909692] max-w-xs mb-6 font-mono leading-relaxed min-h-[2.5rem] flex items-center justify-center">
           {stepText}
         </p>
 
         {/* Forward-only Progress Bar */}
         <div
-          className="w-full h-1.5 bg-zinc-900 rounded-md overflow-hidden border border-zinc-800/80 mb-2"
+          className="w-full h-1.5 bg-zinc-950 rounded-md overflow-hidden border border-white/[0.06] mb-2"
           role="progressbar"
           aria-valuenow={progressPercent}
           aria-valuemin={0}
           aria-valuemax={100}
         >
           <motion.div
-            className="h-full bg-zinc-200 rounded-md"
+            className="h-full bg-[#0FBF3E] rounded-md"
             initial={{ width: '8%' }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ type: 'spring', damping: 1.0, stiffness: 100 }}
           />
         </div>
-
-        {/* Progress details */}
-        {/* <div className="w-full flex items-center justify-between text-[11px] font-mono text-zinc-500 px-0.5">
-          <span>{completedSlices > 0 ? `${completedSlices}/${totalSlices} slices` : 'Connecting...'}</span>
-        </div> */}
 
         {/* 60-Second Reassurance Notice */}
         {elapsedSeconds >= 60 && (
@@ -135,7 +130,7 @@ export function DashboardLoader({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] text-zinc-400 font-mono text-center"
+            className="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-[#909692] font-mono text-center"
           >
             First visits can take up to a minute or two.
           </motion.div>

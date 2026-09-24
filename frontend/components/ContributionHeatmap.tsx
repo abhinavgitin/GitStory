@@ -16,10 +16,10 @@ const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
 function getIntensityColor(count: number): string {
   if (count === 0) return 'bg-white/[0.04] border-white/[0.03]';
-  if (count <= 2) return 'bg-emerald-950/80 border-emerald-800/40 text-emerald-300';
-  if (count <= 5) return 'bg-emerald-800/90 border-emerald-700/60 text-emerald-200';
-  if (count <= 9) return 'bg-emerald-600 border-emerald-500/80 text-white';
-  return 'bg-emerald-400 border-emerald-300 text-black shadow-[0_0_8px_rgba(52,211,153,0.4)]';
+  if (count <= 2) return 'bg-[#0A241B] border-[#08872B]/40 text-[#BFFFD1]';
+  if (count <= 5) return 'bg-[#08872B] border-[#0FBF3E]/50 text-[#F2F5F3]';
+  if (count <= 9) return 'bg-[#0FBF3E] border-[#5FED83]/70 text-[#101411]';
+  return 'bg-[#5FED83] border-[#BFFFD1] text-[#101411] shadow-[0_0_10px_rgba(95,237,131,0.5)]';
 }
 
 function formatDateDisplay(dateStr: string): string {
@@ -102,10 +102,10 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
 
   if (isLoading) {
     return (
-      <div className="rounded-xl p-7 bg-zinc-900/40 border border-zinc-800/80 animate-pulse">
-        <div className="h-6 w-56 bg-zinc-800/80 rounded-md mb-3" />
-        <div className="h-4 w-72 bg-zinc-800/50 rounded-md mb-8" />
-        <div className="h-32 bg-zinc-800/40 rounded-2xl mb-6" />
+      <div className="rounded-xl p-7 bg-zinc-900/50 border border-zinc-800/80 animate-pulse">
+        <div className="h-6 w-56 bg-zinc-800/60 rounded-md mb-3" />
+        <div className="h-4 w-72 bg-zinc-800/40 rounded-md mb-8" />
+        <div className="h-32 bg-zinc-800/30 rounded-2xl mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-16 bg-zinc-800/40 rounded-xl" />
@@ -121,7 +121,7 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
   const accountAge = profile?.accountAgeFormatted ?? 'N/A';
 
   return (
-    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800/80">
+    <section className="relative overflow-hidden rounded-xl p-6 sm:p-8 bg-zinc-900/85 border border-zinc-800/80">
       {/* Specular top rim sheen */}
 
 
@@ -129,10 +129,10 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="inline-flex p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {/* <span className="inline-flex p-1.5 rounded-lg bg-[#0FBF3E]/10 text-[#0FBF3E] border border-[#0FBF3E]/20">
               <Calendar className="w-4 h-4" />
-            </span>
-            <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
+            </span> */}
+            <h2 className="text-xl font-semibold text-[#F2F5F3] tracking-tight">
               Contribution Cadence
             </h2>
           </div>
@@ -141,48 +141,48 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
 
       {/* KPI Ribbon: Contributions, Current Streak, Longest Streak, Account Age */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
-            <Calendar className="w-3 h-3 text-emerald-400" />
+        <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] shadow-inner">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-[#909692] mb-1">
+            <Calendar className="w-3 h-3 text-[#0FBF3E]" />
             <span>Annual Commits</span>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-zinc-100 font-mono tabular-nums">
+          <div className="text-xl sm:text-2xl font-bold text-[#F2F5F3] font-mono tabular-nums">
             {totalContributions}
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
-            <Flame className="w-3 h-3 text-amber-400" />
+        <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] shadow-inner">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-[#909692] mb-1">
+            <Flame className="w-3 h-3 text-[#5FED83]" />
             <span>Current Streak</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl sm:text-2xl font-bold text-amber-300 font-mono tabular-nums">
+            <span className="text-xl sm:text-2xl font-bold text-[#5FED83] font-mono tabular-nums">
               {currentStreak}
             </span>
-            <span className="text-xs text-zinc-400">days</span>
+            <span className="text-xs text-[#B6BFB8]">days</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
-            <Trophy className="w-3 h-3 text-sky-400" />
+        <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] shadow-inner">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-[#909692] mb-1">
+            <Trophy className="w-3 h-3 text-[#8CF2A6]" />
             <span>Longest Streak</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl sm:text-2xl font-bold text-sky-300 font-mono tabular-nums">
+            <span className="text-xl sm:text-2xl font-bold text-[#8CF2A6] font-mono tabular-nums">
               {longestStreak}
             </span>
-            <span className="text-xs text-zinc-400">days</span>
+            <span className="text-xs text-[#B6BFB8]">days</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-950/40 border border-white/[0.06] shadow-inner">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
-            <Clock className="w-3 h-3 text-indigo-400" />
+        <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/[0.06] shadow-inner">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-[#909692] mb-1">
+            <Clock className="w-3 h-3 text-[#5FED83]" />
             <span>Account Age</span>
           </div>
-          <div className="text-sm sm:text-base font-semibold text-zinc-200 mt-1 truncate">
+          <div className="text-sm sm:text-base font-semibold text-[#F2F5F3] mt-1 truncate">
             {accountAge}
           </div>
         </div>
@@ -240,7 +240,7 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
                           whileHover={{ scale: 1.35 }}
                           transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                           className={`w-2.5 h-2.5 rounded-[2.5px] border transition-colors duration-100 cursor-pointer ${colorClass} ${
-                            isHovered ? 'ring-2 ring-emerald-300 z-10' : ''
+                            isHovered ? 'ring-2 ring-[#5FED83] z-10' : ''
                           }`}
                         />
                       );
@@ -252,29 +252,29 @@ export function ContributionHeatmap({ calendar, profile, isLoading }: Contributi
           </div>
 
           {/* Footer legend and live tooltip */}
-          <div className="flex items-center justify-between mt-4 text-xs text-zinc-400">
-            <div className="h-4 font-mono text-[11px] text-zinc-300">
+          <div className="flex items-center justify-between mt-4 text-xs text-[#B6BFB8]">
+            <div className="h-4 font-mono text-[11px] text-[#E4EBE6]">
               {hoveredDay && hoveredDay.date ? (
                 <span>
-                  <strong className="text-zinc-100">
+                  <strong className="text-[#F2F5F3]">
                     {hoveredDay.count} {hoveredDay.count === 1 ? 'contribution' : 'contributions'}
                   </strong>{' '}
                   on {formatDateDisplay(hoveredDay.date)}
                 </span>
               ) : (
-                <span className="text-zinc-500 text-[10px]">Hover any day to view contribution telemetry</span>
+                <span className="text-[#909692] text-[10px]">Hover any day to view contribution telemetry</span>
               )}
             </div>
 
             {/* Intensity Scale Legend */}
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#909692] font-mono">
               <span>Less</span>
               <div className="flex gap-1">
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-white/[0.04] border border-white/[0.03]" />
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-950/80 border border-emerald-800/40" />
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-800/90 border border-emerald-700/60" />
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-600 border border-emerald-500/80" />
-                <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-400 border border-emerald-300" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-[#0A241B] border border-[#08872B]/40" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-[#08872B] border border-[#0FBF3E]/50" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-[#0FBF3E] border border-[#5FED83]/70" />
+                <span className="w-2.5 h-2.5 rounded-[2px] bg-[#5FED83] border border-[#BFFFD1]" />
               </div>
               <span>More</span>
             </div>

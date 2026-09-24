@@ -16,7 +16,7 @@ export const StoryTextReveal: React.FC<StoryTextRevealProps> = ({
   className = '',
   delay = 0,
   highlight,
-  highlightClass = 'text-primary font-bold',
+  highlightClass = 'text-[#5FED83] font-bold',
 }) => {
   const words = text.split(' ');
 

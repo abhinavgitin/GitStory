@@ -78,20 +78,20 @@ export const EphemeralTokenModal: React.FC<EphemeralTokenModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 15 }}
             transition={{ type: 'spring', damping: 25, stiffness: 260 }}
-            className="w-full max-w-md p-6 rounded-2xl bg-zinc-900 border border-white/10 shadow-2xl relative text-left"
+            className="w-full max-w-md p-6 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl relative text-left"
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-display font-bold text-white">
+                <h3 className="text-base font-display font-bold text-[#F2F5F3]">
                   Add GitHub Access Token
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-[#909692] mt-0.5">
                   Stored strictly in browser memory for this session only.
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center border border-white/10 text-xs font-mono"
+                className="w-7 h-7 rounded-full bg-zinc-950 text-[#909692] hover:text-[#5FED83] flex items-center justify-center border border-zinc-800 text-xs font-mono"
               >
                 ✕
               </button>
@@ -99,7 +99,7 @@ export const EphemeralTokenModal: React.FC<EphemeralTokenModalProps> = ({
 
             <form onSubmit={handleValidateAndSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-zinc-300 mb-1.5">
+                <label className="block text-xs font-mono text-[#B6BFB8] mb-1.5">
                   Personal Access Token (classic or fine-grained)
                 </label>
                 <input
@@ -107,12 +107,12 @@ export const EphemeralTokenModal: React.FC<EphemeralTokenModalProps> = ({
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxx"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-white/15 text-sm font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-primary transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm font-mono text-[#F2F5F3] placeholder-[#909692] focus:outline-none focus:border-[#0FBF3E] transition-colors"
                 />
               </div>
 
               {validatedUser && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-300 flex items-center gap-2.5">
+                <div className="p-3 rounded-xl bg-[#0A241B] border border-[#0FBF3E]/30 text-xs font-mono text-[#5FED83] flex items-center gap-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={validatedUser.avatarUrl}
@@ -129,7 +129,7 @@ export const EphemeralTokenModal: React.FC<EphemeralTokenModalProps> = ({
                 </div>
               )}
 
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-zinc-400 leading-relaxed">
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-[#909692] leading-relaxed">
                 Tokens grant 5,000 GitHub requests per hour. Your token is never sent to our servers or stored in any database. It is cleared the second you close or refresh this tab.
               </div>
 
@@ -147,14 +147,14 @@ export const EphemeralTokenModal: React.FC<EphemeralTokenModalProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-mono text-zinc-400 hover:text-white"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-mono text-[#909692] hover:text-[#F2F5F3]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isValidating}
-                    className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-semibold shadow-md disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-[#0FBF3E] hover:bg-[#08872B] text-[#101411] text-xs font-semibold shadow-md disabled:opacity-50"
                   >
                     {isValidating ? 'Validating...' : 'Apply Token'}
                   </button>
