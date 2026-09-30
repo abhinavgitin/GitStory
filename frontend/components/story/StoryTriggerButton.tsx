@@ -19,10 +19,9 @@ export const StoryTriggerButton: React.FC<StoryTriggerButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       title="View your all-time GitHub Story"
-      className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#5FED83] bg-[#0A241B] hover:bg-[#0FBF3E] hover:text-[#101411] border border-[#0FBF3E]/40 hover:border-[#5FED83] shadow-md shadow-[#0FBF3E]/10 backdrop-blur-md transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+      className="inline-flex items-center justify-center min-h-[38px] px-3.5 sm:px-4 rounded-md text-xs font-semibold text-[#5FED83] hover:text-[#101411] bg-[#0A241B]/80 hover:bg-[#0FBF3E] border border-[#0FBF3E]/40 hover:border-[#5FED83] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none"
     >
-      <span className="text-[#5FED83] group-hover:text-[#101411] transition-colors font-bold text-xs">✦</span>
-      <span className="transition-colors">{label}</span>
+      <span>{label}</span>
     </button>
   );
 };

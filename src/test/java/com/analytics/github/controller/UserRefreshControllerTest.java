@@ -156,4 +156,19 @@ class UserRefreshControllerTest {
                 .andExpect(jsonPath("$.reposSynced").value(8))
                 .andExpect(jsonPath("$.commitsSynced").value(100));
     }
+
+    @Test
+    void unhandledException_doesNotLeakRawExceptionDetailsToClient() throws Exception {
+        when(userMongoRepository.existsById("abhinavgitin")).thenReturn(true);
+        when(refreshManager.startRefresh("abhinavgitin"))
+                .thenThrow(new RuntimeException("Connection failed to mongodb+srv://admin:superSecretPass@cluster.internal:27017"));
+
+        mockMvc.perform(post("/api/users/abhinavgitin/refresh")
+                        .header("X-Refresh-Secret", SECRET))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred. Please try again later."))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("mongodb+srv"))))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("superSecretPass"))));
+    }
 }

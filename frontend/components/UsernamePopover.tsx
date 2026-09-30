@@ -17,7 +17,6 @@ export function UsernamePopover() {
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState<"idle" | "loading" | "success">("idle");
   const [username, setUsername] = useState("");
-  const [token, setToken] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -41,18 +40,6 @@ export function UsernamePopover() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  // Load existing token from sessionStorage if present
-  useEffect(() => {
-    if (open && typeof window !== "undefined") {
-      try {
-        const stored = sessionStorage.getItem("gitstory_token");
-        if (stored) setToken(stored);
-      } catch {
-        // ignore
-      }
-    }
-  }, [open]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = cleanUsername(username);
@@ -70,19 +57,6 @@ export function UsernamePopover() {
     setErrorMsg(null);
     setFormState("loading");
 
-    const cleanToken = token.trim();
-    if (typeof window !== "undefined") {
-      try {
-        if (cleanToken) {
-          sessionStorage.setItem("gitstory_token", cleanToken);
-        } else {
-          sessionStorage.removeItem("gitstory_token");
-        }
-      } catch {
-        // ignore
-      }
-    }
-
     // Fast transition to success state and navigation
     setTimeout(() => {
       setFormState("success");
@@ -99,8 +73,8 @@ export function UsernamePopover() {
       title="Enter GitHub username"
       open={open}
       setOpen={handleOpenChange}
-      width="480px"
-      height="285px"
+      width="440px"
+      height="190px"
       showCloseButton={formState !== "success"}
       showSuccess={formState === "success"}
       className="relative flex flex-col items-center justify-start w-full z-30"
@@ -135,40 +109,13 @@ export function UsernamePopover() {
                   autoFocus
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="e.g. torvalds"
+                  placeholder="Type your Fav Dev uname =)"
                   value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
                     if (errorMsg) setErrorMsg(null);
                   }}
                   className="w-full h-10 bg-zinc-950 text-[#F2F5F3] placeholder-[#909692]/60 font-mono text-sm rounded-md pl-8 pr-4 border border-zinc-800 focus:outline-none focus:border-[#0FBF3E] focus:ring-1 focus:ring-[#0FBF3E] transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Key / Access Token Option */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="popover-token-input"
-                  className="text-xs sm:text-sm font-semibold text-foreground tracking-tight flex items-center gap-1.5"
-                >
-                  <span>Access token</span>
-                  <span className="text-[13px] font-normal text-muted-foreground">(optional)</span>
-                </label>
-                <span className="text-[11px] text-muted-foreground font-mono">session memory only</span>
-              </div>
-
-              <div className="relative flex items-center">
-                <input
-                  id="popover-token-input"
-                  type="password"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="ghp_... for private repos or rate limits"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  className="w-full h-10 bg-zinc-950 text-[#F2F5F3] placeholder-[#909692]/60 font-mono text-xs rounded-md px-3 border border-zinc-800 focus:outline-none focus:border-[#0FBF3E] focus:ring-1 focus:ring-[#0FBF3E] transition-colors"
                 />
               </div>
             </div>
@@ -188,12 +135,7 @@ export function UsernamePopover() {
               <PopoverFormCutOutRightIcon />
             </div>
             <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground pl-1">
-              {token.trim() ? (
-                <span className="text-[#5FED83] flex items-center gap-1">
-                  <span>●</span>
-                  <span>Token attached</span>
-                </span>
-              ) : null}
+              <span>Public analytics</span>
             </div>
             <PopoverFormButton
               loading={formState === "loading"}

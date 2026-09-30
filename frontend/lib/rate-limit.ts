@@ -8,6 +8,7 @@ const ipRefreshMap = new Map<string, RateLimitRecord>();
 
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const DEFAULT_RATE_LIMIT_PER_HOUR = 60;
+export const SHARED_ANONYMOUS_BUCKET = '__SHARED_ANONYMOUS_CLIENT__';
 
 export function getRateLimitPerHour(): number {
   const envVal = process.env.RATE_LIMIT_PER_HOUR;
@@ -20,7 +21,6 @@ export function getRateLimitPerHour(): number {
 
 /**
  * Checks whether an IP address belongs to a local, loopback, or private range.
- * Shared/private IPs behind proxies must never be used as a shared rate-limit key.
  */
 function isSharedOrPrivateIp(ip: string): boolean {
   const trimmed = ip.trim().toLowerCase();
@@ -52,30 +52,27 @@ function isSharedOrPrivateIp(ip: string): boolean {
 }
 
 /**
- * Extracts the real client IP only when TRUST_PROXY_HEADER is true.
- * If the switch is off, or no usable IP is found, or the value looks shared/local,
- * returns null so the limiter is safely disabled.
- *
- * Behind a proxy every visitor can look like one IP, and one visitor would block everyone.
+ * Extracts client IP address.
+ * Fails closed: if TRUST_PROXY_HEADER is off, or no usable IP header exists,
+ * or the value looks private/spoofed, falls back to SHARED_ANONYMOUS_BUCKET so
+ * requests are still strictly rate-limited rather than unrestricted.
  */
-export function extractClientIp(request: Request): string | null {
+export function extractClientIp(request: Request): string {
   const trustProxy = process.env.TRUST_PROXY_HEADER === 'true';
   if (!trustProxy) {
-    // Proxy headers not explicitly trusted; disable per-IP limiting to avoid blocking all visitors
-    return null;
+    return SHARED_ANONYMOUS_BUCKET;
   }
 
   const headerName = (process.env.TRUST_PROXY_HEADER_NAME || 'x-forwarded-for').toLowerCase();
   const rawValue = request.headers.get(headerName);
   if (!rawValue) {
-    return null;
+    return SHARED_ANONYMOUS_BUCKET;
   }
 
   // Use the first (leftmost) IP in the forwarded chain
   const firstIp = rawValue.split(',')[0].trim();
   if (!firstIp || isSharedOrPrivateIp(firstIp)) {
-    // Behind a proxy every visitor can look like one IP, and one visitor would block everyone.
-    return null;
+    return SHARED_ANONYMOUS_BUCKET;
   }
 
   return firstIp;
@@ -83,11 +80,11 @@ export function extractClientIp(request: Request): string | null {
 
 /**
  * Checks rate limit for refresh requests.
- * - NEVER blocks or counts a first-time refresh of a username (isFirstVisit === true).
- * - Disables rate limiting if clientIp is null (switch off, missing, or shared IP).
+ * - Server-verified first-time refreshes (isFirstVisit === true) are permitted.
+ * - Unknown, unverified, or private IPs are grouped into SHARED_ANONYMOUS_BUCKET (fail closed).
  */
 export function checkRefreshRateLimit(
-  clientIp: string | null,
+  clientIp: string | null | undefined,
   isFirstVisit: boolean = false
 ): {
   allowed: boolean;
@@ -96,18 +93,14 @@ export function checkRefreshRateLimit(
 } {
   const limit = getRateLimitPerHour();
 
-  // First-time refreshes must never be blocked or counted
+  // Server-verified first-time refreshes are not blocked
   if (isFirstVisit) {
     return { allowed: true, remaining: limit };
   }
 
-  // If per-IP limiting is disabled or IP is unverified/shared, allow request
-  if (!clientIp) {
-    return { allowed: true, remaining: limit };
-  }
-
+  const key = clientIp && clientIp !== 'unknown' ? clientIp : SHARED_ANONYMOUS_BUCKET;
   const now = Date.now();
-  const record = ipRefreshMap.get(clientIp) || { timestamps: [] };
+  const record = ipRefreshMap.get(key) || { timestamps: [] };
 
   // Filter timestamps older than 1 hour
   record.timestamps = record.timestamps.filter((t) => now - t < WINDOW_MS);
@@ -124,10 +117,10 @@ export function checkRefreshRateLimit(
 
   // Periodic cleanup of stale entries
   if (ipRefreshMap.size > 5000) {
-    for (const [key, value] of ipRefreshMap.entries()) {
+    for (const [k, value] of ipRefreshMap.entries()) {
       value.timestamps = value.timestamps.filter((t) => now - t < WINDOW_MS);
       if (value.timestamps.length === 0) {
-        ipRefreshMap.delete(key);
+        ipRefreshMap.delete(k);
       }
     }
   }
@@ -139,22 +132,23 @@ export function checkRefreshRateLimit(
 }
 
 /**
- * Records a successful refresh initiation for the client IP.
- * Does not record if isFirstVisit is true or clientIp is null.
+ * Records a successful refresh initiation for the client IP / shared bucket.
+ * Does not count if isFirstVisit is true.
  */
 export function recordRefreshSuccess(
-  clientIp: string | null,
+  clientIp: string | null | undefined,
   isFirstVisit: boolean = false
 ): void {
-  if (isFirstVisit || !clientIp) {
+  if (isFirstVisit) {
     return;
   }
 
+  const key = clientIp && clientIp !== 'unknown' ? clientIp : SHARED_ANONYMOUS_BUCKET;
   const now = Date.now();
-  const record = ipRefreshMap.get(clientIp) || { timestamps: [] };
+  const record = ipRefreshMap.get(key) || { timestamps: [] };
   record.timestamps = record.timestamps.filter((t) => now - t < WINDOW_MS);
   record.timestamps.push(now);
-  ipRefreshMap.set(clientIp, record);
+  ipRefreshMap.set(key, record);
 }
 
 /**

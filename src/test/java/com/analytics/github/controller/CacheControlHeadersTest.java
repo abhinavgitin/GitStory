@@ -93,6 +93,7 @@ class CacheControlHeadersTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(profileController, analyticsController, refreshController)
                 .setControllerAdvice(cacheAdvice, exceptionHandler)
+                .addFilters(new CacheControlFilter())
                 .build();
     }
 
@@ -105,6 +106,20 @@ class CacheControlHeadersTest {
         mockMvc.perform(get("/api/users/user-a"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
+    }
+
+    @Test
+    void userSummary_returnsAllSecurityHeaders() throws Exception {
+        when(userMongoRepository.findById("user-a")).thenReturn(Optional.empty());
+        when(syncMetadataMongoRepository.findById("user-a")).thenReturn(Optional.empty());
+        when(refreshManager.getCooldownRemainingSeconds("user-a")).thenReturn(0L);
+
+        mockMvc.perform(get("/api/users/user-a"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload"))
+                .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"));
     }
 
     @Test

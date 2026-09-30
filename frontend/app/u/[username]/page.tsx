@@ -1,14 +1,12 @@
 'use client';
 
-import { use, useState, useEffect, useReducer, useMemo } from 'react';
+import { use, useState, useEffect, useReducer, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { StoryContainer } from '@/components/story/StoryContainer';
 import { StoryTriggerButton } from '@/components/story/StoryTriggerButton';
-import { EphemeralTokenModal } from '@/components/story/EphemeralTokenModal';
 import { buildStoryDataFromTelemetry } from '@/lib/story-calculator';
-import { fetchLiveStoryWithToken } from '@/lib/github-token-service';
 import type { StoryData } from '@/types/story';
 import { ProfileSyncPanel } from '@/components/ProfileSyncPanel';
 import {
@@ -94,26 +92,39 @@ export default function UserDashboardPage({
   const normalizedUsername = isValid ? normalizeUsername(rawUsername) : '';
 
   const [stateCtx, dispatch] = useReducer(transitionDashboardState, INITIAL_DASHBOARD_CONTEXT);
-  const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
+  const [rawRefreshStatus, setRawRefreshStatus] = useState<RefreshStatus | undefined>(undefined);
   const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
-  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-  const [ephemeralToken, setEphemeralToken] = useState('');
-  const [tokenStoryData, setTokenStoryData] = useState<StoryData | null>(null);
-  const [isTokenLoading, setIsTokenLoading] = useState(false);
-  const [tokenError, setTokenError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const autoSyncTriggeredRef = useRef(false);
+
+  // Directly poll refresh status independently of RefreshButton component
+  const { data: polledRefreshStatus } = useQuery<RefreshStatus>({
+    queryKey: ['refreshStatus', normalizedUsername],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh/status`);
+      if (!res.ok) throw new Error('Status check failed');
+      return res.json();
+    },
+    refetchInterval: (query) => {
+      const state = query.state.data?.state;
+      if (state === 'RUNNING' || state === 'PENDING' || state === 'QUEUED') {
+        return 1000;
+      }
+      return false;
+    },
+    refetchIntervalInBackground: false,
+    enabled: isValid && Boolean(normalizedUsername),
+  });
+
+  const refreshStatus = polledRefreshStatus || rawRefreshStatus;
 
   const startSyncMutation = useMutation({
     mutationFn: async () => {
       setSyncStartTime(Date.now());
       dispatch({ type: 'START_SYNC' });
-      const isFirst = !hasData;
-      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh${isFirst ? '?first=true' : ''}`, {
+      const res = await fetch(`/api/users/${encodeURIComponent(normalizedUsername)}/refresh`, {
         method: 'POST',
-        headers: {
-          ...(isFirst ? { 'x-first-visit': 'true' } : {}),
-        },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -125,6 +136,7 @@ export default function UserDashboardPage({
       queryClient.invalidateQueries({ queryKey: ['refreshStatus', normalizedUsername] });
     },
     onError: () => {
+      autoSyncTriggeredRef.current = false;
       dispatch({
         type: 'POLL_ERROR',
         errorTimestamp: Date.now(),
@@ -173,7 +185,8 @@ export default function UserDashboardPage({
   const isSyncRunning =
     refreshStatus?.state === 'RUNNING' ||
     refreshStatus?.state === 'PENDING' ||
-    refreshStatus?.state === 'QUEUED';
+    refreshStatus?.state === 'QUEUED' ||
+    startSyncMutation.isPending;
 
   const hasData = Boolean(
     userProfile?.hasData ||
@@ -235,20 +248,17 @@ export default function UserDashboardPage({
 
   // Auto-start sync if first visit has no cached data
   useEffect(() => {
+    if (!isValid || hasData || isSyncRunning) return;
+
     if (
-      isValid &&
       stateCtx.state === 'SYNCING' &&
-      !hasData &&
-      !isSyncRunning &&
-      refreshStatus?.state !== 'SUCCESS' &&
-      refreshStatus?.state !== 'FAILED' &&
-      !startSyncMutation.isPending &&
-      !startSyncMutation.isSuccess &&
-      !startSyncMutation.isError
+      !autoSyncTriggeredRef.current &&
+      !startSyncMutation.isPending
     ) {
+      autoSyncTriggeredRef.current = true;
       startSyncMutation.mutate();
     }
-  }, [isValid, stateCtx.state, hasData, isSyncRunning, refreshStatus?.state, startSyncMutation]);
+  }, [isValid, stateCtx.state, hasData, isSyncRunning, startSyncMutation]);
 
   // In LOADING_DATA state: invalidate and refetch all queries concurrently before READY
   useEffect(() => {
@@ -479,53 +489,8 @@ export default function UserDashboardPage({
     repos,
   ]);
 
-  // Active story data: prefers token-authenticated private data if present, otherwise uses Spring Boot cached data
-  const activeStoryData = tokenStoryData || defaultStoryData;
-
-  const handleTokenApply = async (token: string) => {
-    setEphemeralToken(token);
-    try {
-      if (typeof window !== 'undefined') {
-        if (token) {
-          sessionStorage.setItem('gitstory_token', token);
-        } else {
-          sessionStorage.removeItem('gitstory_token');
-        }
-      }
-    } catch {
-      // ignore
-    }
-    setTokenError(null);
-    if (!token) {
-      setTokenStoryData(null);
-      return;
-    }
-
-    setIsTokenLoading(true);
-    try {
-      const liveData = await fetchLiveStoryWithToken(normalizedUsername, token);
-      setTokenStoryData(liveData);
-    } catch (err: any) {
-      console.error('Failed to load private story telemetry with token:', err);
-      setTokenError(err.message || 'Failed to fetch private telemetry with token');
-    } finally {
-      setIsTokenLoading(false);
-    }
-  };
-
-  // Auto-apply token from sessionStorage (e.g. entered in username popover) on mount
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = sessionStorage.getItem('gitstory_token');
-        if (stored && !ephemeralToken) {
-          handleTokenApply(stored);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [normalizedUsername]);
+  // Active story data: generated directly from Spring Boot MongoDB telemetry
+  const activeStoryData = defaultStoryData;
 
   // Single top notice for sync failures
   const failedSlicesNotice = getFailedSlicesNotice(capabilities);
@@ -650,42 +615,19 @@ export default function UserDashboardPage({
                   </div>
                 </div>
 
-                {/* Right Header Actions: Authoritative Refresh, Story, & Token */}
+                {/* Right Header Actions: Authoritative Refresh & Story */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                   {hasData && (
                     <StoryTriggerButton
                       onClick={() => setIsStoryOpen(true)}
-                      label={
-                        isTokenLoading
-                          ? 'Syncing Token...'
-                          : tokenStoryData
-                          ? 'See Story (Private)'
-                          : 'See Story'
-                      }
-                      disabled={isTokenLoading}
+                      label="See Story"
                     />
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setIsTokenModalOpen(true)}
-                    title={
-                      ephemeralToken
-                        ? 'Custom GitHub token active (Private repositories & GraphQL unlocked)'
-                        : 'Add custom GitHub token (ephemeral)'
-                    }
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all active:scale-95 text-xs font-mono cursor-pointer ${
-                      ephemeralToken
-                        ? 'bg-[#0A241B] text-[#5FED83] border-[#0FBF3E]/50 shadow-[0_0_12px_rgba(15,191,62,0.35)]'
-                        : 'bg-zinc-900 hover:bg-zinc-800 text-[#909692] hover:text-[#F2F5F3] border-zinc-800'
-                    }`}
-                  >
-                    {isTokenLoading ? '⏳' : '🔑'}
-                  </button>
-
                   <RefreshButton
                     username={normalizedUsername}
-                    onStatusChange={setRefreshStatus}
+                    onStatusChange={setRawRefreshStatus}
+                    onRefreshStart={() => dispatch({ type: 'USER_TRIGGERED_REFRESH' })}
                   />
                 </div>
               </div>
@@ -701,9 +643,23 @@ export default function UserDashboardPage({
                 </div>
               )}
 
-              {/* State 1: Checking with existing data shows Skeleton */}
-              {stateCtx.state === 'CHECKING' && hasData ? (
-                <DashboardSkeleton />
+              {/* State 1: Checking with existing data shows Skeleton, or Loader if first check */}
+              {stateCtx.state === 'CHECKING' ? (
+                hasData ? (
+                  <DashboardSkeleton />
+                ) : (
+                  <AnimatePresence mode="wait">
+                    <DashboardLoader
+                      key="checking-dashboard-loader"
+                      username={normalizedUsername}
+                      statusState="PENDING"
+                      step="Checking developer profile..."
+                      completedSlices={0}
+                      totalSlices={9}
+                      startTime={syncStartTime}
+                    />
+                  </AnimatePresence>
+                )
               ) : showStableLoader ? (
                 /* State 2: Single stable loader during SYNCING and LOADING_DATA */
                 <AnimatePresence mode="wait">
@@ -718,13 +674,16 @@ export default function UserDashboardPage({
                     startTime={syncStartTime}
                   />
                 </AnimatePresence>
-              ) : stateCtx.state === 'READY' && !hasData ? (
+              ) : stateCtx.state === 'READY' && !hasData && !refreshStatus?.lastSyncedAt ? (
                 /* State 3: Unsynced or Empty account */
                 <ProfileSyncPanel
                   username={normalizedUsername}
                   status={refreshStatus?.state === 'FAILED' || startSyncMutation.isError ? 'error' : 'idle'}
                   errorMessage={startSyncMutation.error?.message || (refreshStatus?.state === 'FAILED' ? refreshStatus?.errorMessage : null)}
-                  onStartSync={() => startSyncMutation.mutate()}
+                  onStartSync={() => {
+                    dispatch({ type: 'START_SYNC' });
+                    startSyncMutation.mutate();
+                  }}
                   isStarting={startSyncMutation.isPending}
                 />
               ) : (
@@ -938,20 +897,13 @@ export default function UserDashboardPage({
         )}
       </div>
 
-      {/* ── Story Modal & Ephemeral Token Modal ── */}
+      {/* ── Story Modal ── */}
       {isStoryOpen && activeStoryData && (
         <StoryContainer
           data={activeStoryData}
           onClose={() => setIsStoryOpen(false)}
         />
       )}
-
-      <EphemeralTokenModal
-        isOpen={isTokenModalOpen}
-        onClose={() => setIsTokenModalOpen(false)}
-        onTokenApply={handleTokenApply}
-        currentToken={ephemeralToken}
-      />
     </div>
   );
 }

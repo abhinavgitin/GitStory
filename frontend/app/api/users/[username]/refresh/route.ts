@@ -24,11 +24,28 @@ export async function POST(
     );
   }
 
-  const isFirstVisit =
-    request.headers.get('x-first-visit') === 'true' ||
-    new URL(request.url).searchParams.get('first') === 'true';
+  const normalized = normalizeUsername(username);
+  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:9000';
+  const refreshSecret = process.env.REFRESH_SECRET || '';
 
-  // Per-IP rate limiting (disabled when TRUST_PROXY_HEADER is false or behind shared proxies)
+  // Determine first visit strictly on the server: check whether existing sync data exists
+  let isFirstVisit = false;
+  try {
+    const checkRes = await fetch(`${backendUrl}/api/users/${normalized}`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (checkRes.ok) {
+      const existingUser = await checkRes.json().catch(() => null);
+      // hasData is false when the user has never had an indexing pass
+      isFirstVisit = Boolean(existingUser && existingUser.hasData === false);
+    }
+  } catch {
+    // If backend cannot be queried, fail closed: do not grant first-visit bypass
+    isFirstVisit = false;
+  }
+
+  // Rate limiting (fails closed to shared anonymous bucket if IP unverified)
   const clientIp = extractClientIp(request);
   const rateLimit = checkRefreshRateLimit(clientIp, isFirstVisit);
   if (!rateLimit.allowed) {
@@ -48,10 +65,6 @@ export async function POST(
       }
     );
   }
-
-  const normalized = normalizeUsername(username);
-  const backendUrl = process.env.SPRING_BACKEND_URL || 'http://localhost:9000';
-  const refreshSecret = process.env.REFRESH_SECRET || '';
 
   try {
     const res = await fetch(`${backendUrl}/api/users/${normalized}/refresh`, {

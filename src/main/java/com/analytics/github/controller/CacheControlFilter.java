@@ -29,6 +29,10 @@ public class CacheControlFilter extends OncePerRequestFilter {
             response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");
+            response.setHeader("X-Content-Type-Options", "nosniff");
+            response.setHeader("X-Frame-Options", "DENY");
+            response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+            response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
         }
         filterChain.doFilter(request, response);
     }

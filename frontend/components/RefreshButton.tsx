@@ -9,9 +9,10 @@ import { getPollingInterval, getFinalSyncLabel } from '@/lib/capabilities';
 interface RefreshButtonProps {
   username: string;
   onStatusChange?: (status: RefreshStatus | undefined) => void;
+  onRefreshStart?: () => void;
 }
 
-export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) {
+export function RefreshButton({ username, onStatusChange, onRefreshStart }: RefreshButtonProps) {
   const queryClient = useQueryClient();
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -67,6 +68,8 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       (prevState === 'RUNNING' || prevState === 'PENDING' || prevState === 'QUEUED') &&
       (currentState === 'SUCCESS' || currentState === 'PARTIAL')
     ) {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', username] });
+      queryClient.invalidateQueries({ queryKey: ['refreshStatus', username] });
       queryClient.invalidateQueries({ queryKey: ['capabilities', username] });
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
       queryClient.invalidateQueries({ queryKey: ['detailedProfile', username] });
@@ -88,6 +91,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     mutationFn: async () => {
       setLastError(null);
       runningStartRef.current = Date.now();
+      onRefreshStart?.();
       const res = await fetch(`/api/users/${encodeURIComponent(username)}/refresh`, {
         method: 'POST',
       });
@@ -95,13 +99,11 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       const body = await res.json().catch(() => ({}));
 
       if (res.status === 429) {
-        // Cooldown countdown applies ONLY to USER_COOLDOWN
         if (body.errorType === 'USER_COOLDOWN' && typeof body.cooldownRemainingSeconds === 'number' && body.cooldownRemainingSeconds > 0) {
           setCooldownRemaining(body.cooldownRemainingSeconds);
           throw new Error(`Profile recently refreshed: available in ${Math.ceil(body.cooldownRemainingSeconds / 60)} minutes.`);
         }
 
-        // Never set cooldown timer for non-cooldown 429 errors
         setCooldownRemaining(0);
 
         if (body.errorType === 'SERVER_BUSY') {
@@ -144,7 +146,6 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
     return `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
 
-  // Compute slice progress
   const slices = status?.slices || [];
   const completedCount = slices.filter(
     (s) => s.state === 'SUCCESS' || s.state === 'PARTIAL' || s.state === 'SKIPPED' || s.state === 'FAILED'
@@ -183,11 +184,16 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
   const finalLabel = getFinalSyncLabel(status?.state);
 
+  // Shared sizing + liquid-glass base for every pill/badge (matches button height exactly)
+  const pillBase =
+    'inline-flex items-center gap-1.5 min-h-[38px] px-3.5 rounded-md text-xs font-medium ' +
+    'backdrop-blur-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]';
+
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-      {/* Queued State Pill (Calm tone) */}
+      {/* Queued State Pill */}
       {isQueued && !isCooldown && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
+        <span className={`${pillBase} bg-zinc-800/50 text-zinc-300 border-zinc-700/50`}>
           <Clock className="w-3.5 h-3.5 text-zinc-400" />
           <span>You are in line, position {status?.queuePosition || 1}.</span>
         </span>
@@ -195,7 +201,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Slice Progress Pill when running */}
       {isRunning && !isQueued && (
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse motion-reduce:animate-none">
+        <span className={`${pillBase} bg-amber-500/10 text-amber-300 border-amber-500/20 animate-pulse motion-reduce:animate-none`}>
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           <span className="font-mono">
             Syncing {getStepLabel(activeStepName)}{completedCount > 0 ? ` (${completedCount}/${totalSlices})` : '...'}
@@ -203,16 +209,17 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         </span>
       )}
 
-      {/* Terminal State Badge (Updated just now / Partly updated) */}
+      {/* Terminal State Badge: Success */}
       {!isRunning && !isQueued && !isCooldown && status?.state === 'SUCCESS' && (
-        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-[#0A241B] text-[#5FED83] border border-[#0FBF3E]/30">
+        <span className={`hidden md:inline-flex ${pillBase} bg-[#0A241B]/70 text-[#5FED83] border-[#0FBF3E]/25`}>
           <CheckCircle2 className="w-3.5 h-3.5 text-[#0FBF3E]" />
           <span>{finalLabel || 'Updated just now'}</span>
         </span>
       )}
 
+      {/* Terminal State Badge: Partial */}
       {!isRunning && !isQueued && !isCooldown && status?.state === 'PARTIAL' && (
-        <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span className={`hidden md:inline-flex ${pillBase} bg-amber-500/10 text-amber-400 border-amber-500/20`}>
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Partly updated</span>
         </span>
@@ -220,7 +227,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
 
       {/* Cooldown pill */}
       {isCooldown && !isRunning && (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-md bg-zinc-950/70 text-[#B6BFB8] border border-white/10">
+        <span className={`${pillBase} bg-zinc-950/50 text-[#B6BFB8] border-white/10`}>
           <Clock className="w-3.5 h-3.5 text-[#909692]" />
           <span>Available in {formatCountdown(cooldownRemaining)}</span>
         </span>
@@ -230,7 +237,7 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
       {status?.state === 'FAILED' && !isRunning && !isCooldown && (
         <span
           title={status.errorMessage || 'Sync failed'}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20"
+          className={`${pillBase} bg-rose-500/10 text-rose-400 border-rose-500/20`}
         >
           <AlertCircle className="w-3.5 h-3.5" />
           <span>Sync failed</span>
@@ -242,10 +249,10 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         onClick={() => mutation.mutate()}
         disabled={isRunning || isQueued || isCooldown}
         aria-label="Refresh developer telemetry"
-        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-md text-xs font-bold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#0FBF3E]/30 ${
+        className={`inline-flex items-center justify-center gap-2 min-h-[38px] px-4 rounded-md text-xs font-bold transition-all duration-150 active:scale-[0.97] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#0FBF3E]/30 backdrop-blur-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
           isRunning || isQueued || isCooldown
-            ? 'bg-zinc-800/60 text-[#909692] border border-zinc-700/60 shadow-none cursor-not-allowed'
-            : 'bg-[#0FBF3E] hover:bg-[#5FED83] text-[#101411] border border-[#0FBF3E]'
+            ? 'bg-zinc-800/50 text-[#909692] border-zinc-700/50 shadow-none cursor-not-allowed'
+            : 'bg-[#0FBF3E]/90 hover:bg-[#5FED83] text-[#101411] border-[#0FBF3E]/60'
         }`}
       >
         <RotateCcw
@@ -256,19 +263,16 @@ export function RefreshButton({ username, onStatusChange }: RefreshButtonProps) 
         <span>{isQueued ? 'In Line...' : isRunning ? 'Syncing...' : isCooldown ? 'On Cooldown' : 'Refresh Data'}</span>
       </button>
 
-      {/* Small Hard Refresh / Fallback Button */}
+      {/* Fallback Refresh Button */}
       <button
         type="button"
         onClick={() => window.location.reload()}
-        title="If nothing appears, click to reload or press Ctrl+Shift+R"
-        aria-label="Hard refresh page if nothing appears"
-        className="inline-flex items-center gap-1.5 min-h-[38px] px-2.5 py-1.5 rounded-md text-xs font-medium text-[#B6BFB8] hover:text-[#F2F5F3] bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#B6BFB8]/30 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-sm select-none"
+        title="If nothing appears, click to reload"
+        aria-label="Refresh page if not shown"
+        className="inline-flex items-center gap-1.5 min-h-[38px] px-3.5 sm:px-4 rounded-md text-xs font-medium text-[#B6BFB8] hover:text-[#F2F5F3] bg-zinc-900/50 hover:bg-zinc-800/60 border border-zinc-800/60 hover:border-[#B6BFB8]/30 transition-all duration-150 active:scale-[0.97] cursor-pointer select-none backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
         <RotateCcw className="w-3 h-3 text-[#909692]" />
-        <span className="text-[#E4EBE6]">Hard Refresh</span>
-        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-[#B6BFB8] bg-zinc-800 border border-[#B6BFB8]/20 rounded">
-          Ctrl+Shift+R
-        </kbd>
+        <span className="text-[#E4EBE6]">Refresh if not shown</span>
       </button>
 
       {lastError && !isCooldown && (

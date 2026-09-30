@@ -307,6 +307,7 @@ public class GitHubApiClient {
     }
 
     private ResponseEntity<List<GitHubRepoResponse>> executeGetRepositories(String uri) {
+        validatePaginationUri(uri);
         RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
                 ? restClient.get().uri(URI.create(uri))
                 : restClient.get().uri(uri);
@@ -323,6 +324,7 @@ public class GitHubApiClient {
     }
 
     private ResponseEntity<List<GitHubCommitResponse>> executeGetCommits(String uri) {
+        validatePaginationUri(uri);
         RestClient.RequestHeadersSpec<?> requestSpec = uri.startsWith("http://") || uri.startsWith("https://")
                 ? restClient.get().uri(URI.create(uri))
                 : restClient.get().uri(uri);
@@ -427,15 +429,48 @@ public class GitHubApiClient {
                     String urlPart = parts[0].trim();
                     String relPart = parts[1].trim();
                     if (relPart.contains("rel=\"next\"")) {
-                        if (urlPart.startsWith("<") && urlPart.endsWith(">")) {
-                            return urlPart.substring(1, urlPart.length() - 1);
-                        }
-                        return urlPart;
+                        String rawUrl = (urlPart.startsWith("<") && urlPart.endsWith(">"))
+                                ? urlPart.substring(1, urlPart.length() - 1)
+                                : urlPart;
+                        return validatePaginationUri(rawUrl);
                     }
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Validates that any pagination URI from a Link header is safe to follow with default credentials.
+     * Prevents SSRF / token leakage (VULN-12) by requiring scheme == https and host == api.github.com exactly.
+     */
+    public String validatePaginationUri(String uri) {
+        if (uri == null || uri.isBlank()) {
+            return null;
+        }
+
+        if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            try {
+                URI parsed = URI.create(uri);
+                String scheme = parsed.getScheme();
+                String host = parsed.getHost();
+                String userInfo = parsed.getUserInfo();
+
+                if (!"https".equalsIgnoreCase(scheme)) {
+                    log.error("Rejected non-HTTPS pagination URI from Link header: {}", sanitizeUri(uri));
+                    throw new SecurityException("Pagination URI must use HTTPS: " + sanitizeUri(uri));
+                }
+
+                if (host == null || !"api.github.com".equalsIgnoreCase(host) || userInfo != null) {
+                    log.error("Rejected suspicious pagination URI from Link header with host '{}': {}", host, sanitizeUri(uri));
+                    throw new SecurityException("Pagination URI host must be exactly api.github.com: " + sanitizeUri(uri));
+                }
+            } catch (IllegalArgumentException e) {
+                log.error("Malformed pagination URI from Link header: {}", sanitizeUri(uri));
+                throw new SecurityException("Malformed pagination URI: " + sanitizeUri(uri), e);
+            }
+        }
+        return uri;
     }
 
     public GraphQLContributionCalendarResult fetchContributionCalendarGraphQL(String username) {

@@ -6,9 +6,10 @@ import {
   extractClientIp,
   _resetRateLimitMap,
   DEFAULT_RATE_LIMIT_PER_HOUR,
+  SHARED_ANONYMOUS_BUCKET,
 } from './rate-limit.ts';
 
-describe('Rate Limiter - Proxy & First-Time Safety', () => {
+describe('VULN-04: Rate Limiter - Fail-Closed Security & Server-Side First Visit', () => {
   beforeEach(() => {
     _resetRateLimitMap();
     delete process.env.TRUST_PROXY_HEADER;
@@ -16,35 +17,45 @@ describe('Rate Limiter - Proxy & First-Time Safety', () => {
     delete process.env.RATE_LIMIT_PER_HOUR;
   });
 
-  it('disables per-IP rate limiting when TRUST_PROXY_HEADER is false/unset', () => {
+  it('fails closed to SHARED_ANONYMOUS_BUCKET when TRUST_PROXY_HEADER is false/unset', () => {
+    process.env.RATE_LIMIT_PER_HOUR = '2';
     const req = new Request('http://localhost:3000/api/users/test/refresh', {
       headers: { 'x-forwarded-for': '203.0.113.195' },
     });
     const ip = extractClientIp(req);
-    assert.equal(ip, null);
+    assert.equal(ip, SHARED_ANONYMOUS_BUCKET, 'Must route to shared anonymous bucket');
 
-    const result = checkRefreshRateLimit(ip);
-    assert.equal(result.allowed, true);
-    assert.equal(result.remaining, DEFAULT_RATE_LIMIT_PER_HOUR);
+    // Prove it is strictly rate limited, NOT allowed unrestricted
+    assert.equal(checkRefreshRateLimit(ip).allowed, true);
+    recordRefreshSuccess(ip);
+    assert.equal(checkRefreshRateLimit(ip).allowed, true);
+    recordRefreshSuccess(ip);
+
+    // 3rd request must be blocked
+    const blocked = checkRefreshRateLimit(ip);
+    assert.equal(blocked.allowed, false, 'Anonymous clients must be blocked when limit exceeded');
+    assert.equal(blocked.remaining, 0);
   });
 
-  it('disables rate limiting when IP looks shared or loopback (e.g. 127.0.0.1)', () => {
+  it('fails closed to SHARED_ANONYMOUS_BUCKET when IP looks shared or loopback (e.g. 127.0.0.1)', () => {
     process.env.TRUST_PROXY_HEADER = 'true';
+    process.env.RATE_LIMIT_PER_HOUR = '2';
     const req = new Request('http://localhost:3000/api/users/test/refresh', {
       headers: { 'x-forwarded-for': '127.0.0.1' },
     });
     const ip = extractClientIp(req);
-    assert.equal(ip, null); // never fall back to shared 127.0.0.1
+    assert.equal(ip, SHARED_ANONYMOUS_BUCKET, 'Spoofed/private IP must fail closed to shared bucket');
 
-    const check = checkRefreshRateLimit(ip);
-    assert.equal(check.allowed, true);
+    recordRefreshSuccess(ip);
+    recordRefreshSuccess(ip);
+    assert.equal(checkRefreshRateLimit(ip).allowed, false, 'Spoofed loopback IPs cannot bypass rate limits');
   });
 
-  it('never blocks or counts a first-time refresh of a username', () => {
+  it('allows server-verified first-time refresh but enforces limits on subsequent refreshes', () => {
     process.env.TRUST_PROXY_HEADER = 'true';
     const ip = '198.51.100.22';
 
-    // Simulate exhausting limit
+    // Simulate exhausting limit for this IP
     for (let i = 0; i < 70; i++) {
       recordRefreshSuccess(ip, false);
     }
@@ -53,7 +64,7 @@ describe('Rate Limiter - Proxy & First-Time Safety', () => {
     const regularCheck = checkRefreshRateLimit(ip, false);
     assert.equal(regularCheck.allowed, false);
 
-    // But a first-time refresh is NEVER blocked
+    // When the server determines it is a new user (isFirstVisit = true), it is permitted
     const firstVisitCheck = checkRefreshRateLimit(ip, true);
     assert.equal(firstVisitCheck.allowed, true);
     assert.equal(firstVisitCheck.remaining, DEFAULT_RATE_LIMIT_PER_HOUR);

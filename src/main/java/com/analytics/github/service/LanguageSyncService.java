@@ -12,10 +12,15 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Service orchestrating language byte count ingestion per repository from GitHub API into MongoDB Atlas.
@@ -28,19 +33,37 @@ public class LanguageSyncService {
     private final GitHubApiClient gitHubApiClient;
     private final RepositoryMongoRepository repositoryMongoRepository;
     private final MongoTemplate mongoTemplate;
+    private final ExecutorService languageWorkerPool;
 
     @Autowired
     public LanguageSyncService(GitHubApiClient gitHubApiClient,
                                RepositoryMongoRepository repositoryMongoRepository,
                                MongoTemplate mongoTemplate) {
+        this(gitHubApiClient, repositoryMongoRepository, mongoTemplate,
+             Executors.newFixedThreadPool(4, Thread.ofPlatform().daemon().name("lang-worker-", 0).factory()));
+    }
+
+    public LanguageSyncService(GitHubApiClient gitHubApiClient,
+                               RepositoryMongoRepository repositoryMongoRepository,
+                               MongoTemplate mongoTemplate,
+                               ExecutorService languageWorkerPool) {
         this.gitHubApiClient = gitHubApiClient;
         this.repositoryMongoRepository = repositoryMongoRepository;
         this.mongoTemplate = mongoTemplate;
+        this.languageWorkerPool = languageWorkerPool != null ? languageWorkerPool :
+             Executors.newFixedThreadPool(4, Thread.ofPlatform().daemon().name("lang-worker-", 0).factory());
     }
 
     public LanguageSyncService(GitHubApiClient gitHubApiClient,
                                RepositoryMongoRepository repositoryMongoRepository) {
         this(gitHubApiClient, repositoryMongoRepository, null);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        if (languageWorkerPool != null) {
+            languageWorkerPool.shutdown();
+        }
     }
 
     public List<RepositoryDocument> syncAllLanguages(List<RepositoryDocument> repositories) {
@@ -61,6 +84,7 @@ public class LanguageSyncService {
         }
 
         List<RepositoryDocument> updatedRepositories = new ArrayList<>(repositories.size());
+        List<RepositoryDocument> needsRestFallback = new ArrayList<>();
 
         for (RepositoryDocument repo : repositories) {
             String fullName = repo.fullName();
@@ -86,25 +110,42 @@ public class LanguageSyncService {
                 continue;
             }
 
-            // 3. Fallback: REST per-repo fetch if not found in GraphQL and not skipped
+            // 3. Fallback: Queue for parallel REST fetch if not found in GraphQL and not skipped
             if (fullName == null || !fullName.contains("/")) {
                 updatedRepositories.add(repo);
                 continue;
             }
 
-            String[] parts = fullName.split("/", 2);
-            String owner = parts[0];
-            String rName = parts[1];
+            needsRestFallback.add(repo);
+        }
 
-            try {
-                Map<String, Long> languages = gitHubApiClient.fetchLanguagesForRepo(owner, rName);
-                log.info("Fetched {} languages via REST for {}: {}", languages.size(), fullName, languages.keySet());
-                updateLanguages(repo, languages);
-                updatedRepositories.add(repo.withLanguages(languages));
-            } catch (Exception ex) {
-                log.warn("Soft failure fetching languages for {}: {}. Retaining existing language data.",
-                        fullName, ex.getMessage());
-                updatedRepositories.add(repo);
+        // Execute REST fallback queries concurrently across bounded workers
+        if (!needsRestFallback.isEmpty()) {
+            log.info("Executing concurrent REST language fetch for {} repositories", needsRestFallback.size());
+            List<CompletableFuture<RepositoryDocument>> futures = needsRestFallback.stream()
+                .map(repo -> CompletableFuture.supplyAsync(() -> {
+                    String[] parts = repo.fullName().split("/", 2);
+                    String owner = parts[0];
+                    String rName = parts[1];
+                    try {
+                        Map<String, Long> languages = gitHubApiClient.fetchLanguagesForRepo(owner, rName);
+                        log.info("Fetched {} languages via REST for {}: {}", languages.size(), repo.fullName(), languages.keySet());
+                        updateLanguages(repo, languages);
+                        return repo.withLanguages(languages);
+                    } catch (Exception ex) {
+                        log.warn("Soft failure fetching languages for {}: {}. Retaining existing language data.",
+                                repo.fullName(), ex.getMessage());
+                        return repo;
+                    }
+                }, languageWorkerPool))
+                .toList();
+
+            for (CompletableFuture<RepositoryDocument> f : futures) {
+                try {
+                    updatedRepositories.add(f.join());
+                } catch (Exception e) {
+                    log.warn("Error awaiting language future: {}", e.getMessage());
+                }
             }
         }
 

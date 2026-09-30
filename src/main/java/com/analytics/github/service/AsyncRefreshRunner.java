@@ -130,12 +130,14 @@ public class AsyncRefreshRunner {
             // ==========================================
             sliceMap.put("profile", SliceResult.running("profile"));
             manager.updateStep(username, "PROFILE");
+            manager.updateStepAndSlices(username, "PROFILE", getOrderedSlices(sliceMap));
             long sliceStart = System.currentTimeMillis();
             log.info("Slice START: profile for user={}", username);
             try {
                 userSyncService.syncUser(username);
                 long profileDuration = System.currentTimeMillis() - sliceStart;
                 sliceMap.put("profile", SliceResult.success("profile", 1, profileDuration));
+                manager.updateStepAndSlices(username, "PROFILE", getOrderedSlices(sliceMap));
                 log.info("Slice END: profile for user={}, duration={}ms", username, profileDuration);
             } catch (UserNotFoundException ex) {
                 long profileDuration = System.currentTimeMillis() - sliceStart;
@@ -152,6 +154,7 @@ public class AsyncRefreshRunner {
             } catch (Exception ex) {
                 long profileDuration = System.currentTimeMillis() - sliceStart;
                 sliceMap.put("profile", SliceResult.failed("profile", profileDuration, sanitizeErrorMessage(ex)));
+                manager.updateStepAndSlices(username, "PROFILE", getOrderedSlices(sliceMap));
                 log.error("Slice FAILED: profile for user={}: {}", username, ex.getMessage());
             }
 
@@ -160,6 +163,7 @@ public class AsyncRefreshRunner {
             // ==========================================
             sliceMap.put("repos", SliceResult.running("repos"));
             manager.updateStep(username, "REPOS");
+            manager.updateStepAndSlices(username, "REPOS", getOrderedSlices(sliceMap));
             List<RepositoryDocument> repos = null;
             boolean reposUnavailable = false;
             boolean rateLimitLow = false;
@@ -167,6 +171,7 @@ public class AsyncRefreshRunner {
             if (isTimedOut(refreshStartTime, overallTimeoutMs)) {
                 sliceMap.put("repos", SliceResult.skipped("repos", "Time limit exceeded"));
                 sliceMap.put("repoInsights", SliceResult.skipped("repoInsights", "Time limit exceeded"));
+                manager.updateStepAndSlices(username, "REPOS", getOrderedSlices(sliceMap));
                 reposUnavailable = true;
             } else {
                 sliceStart = System.currentTimeMillis();
@@ -177,6 +182,7 @@ public class AsyncRefreshRunner {
                     long reposDuration = System.currentTimeMillis() - sliceStart;
                     sliceMap.put("repos", SliceResult.success("repos", reposSynced, reposDuration));
                     sliceMap.put("repoInsights", SliceResult.success("repoInsights", reposSynced, 0L));
+                    manager.updateStepAndSlices(username, "REPOS", getOrderedSlices(sliceMap));
                     log.info("Slice END: repos for user={}, items={}, duration={}ms", username, reposSynced, reposDuration);
                 } catch (GitHubRateLimitException ex) {
                     rateLimitLow = true;
@@ -184,6 +190,7 @@ public class AsyncRefreshRunner {
                     String cleanReason = sanitizeErrorMessage(ex);
                     sliceMap.put("repos", SliceResult.skipped("repos", cleanReason));
                     sliceMap.put("repoInsights", SliceResult.skipped("repoInsights", cleanReason));
+                    manager.updateStepAndSlices(username, "REPOS", getOrderedSlices(sliceMap));
                     reposUnavailable = true;
                     log.warn("Slice SKIPPED: repos for user={} due to rate limit: {}", username, cleanReason);
                 } catch (Exception ex) {
@@ -191,6 +198,7 @@ public class AsyncRefreshRunner {
                     String cleanReason = sanitizeErrorMessage(ex);
                     sliceMap.put("repos", SliceResult.failed("repos", reposDuration, cleanReason));
                     sliceMap.put("repoInsights", SliceResult.skipped("repoInsights", "Repositories unavailable"));
+                    manager.updateStepAndSlices(username, "REPOS", getOrderedSlices(sliceMap));
                     reposUnavailable = true;
                     log.error("Slice FAILED: repos for user={}: {}", username, ex.getMessage());
                 }
@@ -209,6 +217,7 @@ public class AsyncRefreshRunner {
                 sliceMap.put("languages", SliceResult.running("languages"));
                 sliceMap.put("commits", SliceResult.running("commits"));
                 manager.updateStep(username, "COMMITS");
+                manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
 
                 final List<RepositoryDocument> phase3Repos = repos;
                 final boolean phase3RateLimitLow = rateLimitLow;
@@ -216,6 +225,7 @@ public class AsyncRefreshRunner {
                 CompletableFuture<Void> languagesFuture = CompletableFuture.runAsync(() -> {
                     if (phase3RateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
                         sliceMap.put("languages", SliceResult.skipped("languages", phase3RateLimitLow ? "Rate limit low" : "Time limit exceeded"));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         return;
                     }
                     long langStart = System.currentTimeMillis();
@@ -224,13 +234,16 @@ public class AsyncRefreshRunner {
                         var updatedRepos = languageSyncService.syncAllLanguages(phase3Repos);
                         long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.success("languages", updatedRepos.size(), languagesDuration));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         log.info("Slice END: languages for user={}, reposProcessed={}, duration={}ms", username, updatedRepos.size(), languagesDuration);
                     } catch (GitHubRateLimitException ex) {
                         long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.skipped("languages", sanitizeErrorMessage(ex)));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                     } catch (Exception ex) {
                         long languagesDuration = System.currentTimeMillis() - langStart;
                         sliceMap.put("languages", SliceResult.failed("languages", languagesDuration, sanitizeErrorMessage(ex)));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         log.warn("Slice FAILED: languages for user={}: {}", username, ex.getMessage());
                     }
                 }, sliceExecutor);
@@ -238,6 +251,7 @@ public class AsyncRefreshRunner {
                 CompletableFuture<CommitSyncService.CommitSyncMetrics> commitsFuture = CompletableFuture.supplyAsync(() -> {
                     if (phase3RateLimitLow || isTimedOut(refreshStartTime, overallTimeoutMs)) {
                         sliceMap.put("commits", SliceResult.skipped("commits", phase3RateLimitLow ? "Rate limit low" : "Time limit exceeded"));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
                     }
                     long commitStart = System.currentTimeMillis();
@@ -246,16 +260,19 @@ public class AsyncRefreshRunner {
                         var commitMetrics = commitSyncService.syncAllCommits(username, phase3Repos);
                         long commitsDuration = System.currentTimeMillis() - commitStart;
                         sliceMap.put("commits", SliceResult.success("commits", commitMetrics.commitsSynced(), commitsDuration));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         log.info("Slice END: commits for user={}, commitsSynced={}, reposSkipped={}, reposFailed={}, duration={}ms",
                                 username, commitMetrics.commitsSynced(), commitMetrics.reposSkipped(), commitMetrics.reposFailed(), commitsDuration);
                         return commitMetrics;
                     } catch (GitHubRateLimitException ex) {
                         long commitsDuration = System.currentTimeMillis() - commitStart;
                         sliceMap.put("commits", SliceResult.skipped("commits", sanitizeErrorMessage(ex)));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
                     } catch (Exception ex) {
                         long commitsDuration = System.currentTimeMillis() - commitStart;
                         sliceMap.put("commits", SliceResult.failed("commits", commitsDuration, sanitizeErrorMessage(ex)));
+                        manager.updateStepAndSlices(username, "COMMITS", getOrderedSlices(sliceMap));
                         log.warn("Slice FAILED: commits for user={}: {}", username, ex.getMessage());
                         return new CommitSyncService.CommitSyncMetrics(0, 0, 0);
                     }
@@ -281,6 +298,7 @@ public class AsyncRefreshRunner {
             sliceMap.put("issues", SliceResult.running("issues"));
             sliceMap.put("activity", SliceResult.running("activity"));
             manager.updateStep(username, "INDEPENDENT_SLICES");
+            manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
 
             final boolean finalRateLimitLow = rateLimitLow;
             final List<RepositoryDocument> finalRepos = repos;
@@ -288,10 +306,12 @@ public class AsyncRefreshRunner {
             CompletableFuture<Void> calendarFuture = CompletableFuture.runAsync(() -> {
                 if (finalRateLimitLow) {
                     sliceMap.put("calendar", SliceResult.skipped("calendar", "Rate limit low"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 if (isTimedOut(refreshStartTime, overallTimeoutMs)) {
                     sliceMap.put("calendar", SliceResult.skipped("calendar", "Time limit exceeded"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 long start = System.currentTimeMillis();
@@ -301,11 +321,13 @@ public class AsyncRefreshRunner {
                     int calDaysCount = detailedDoc != null && detailedDoc.calendarDays() != null ? detailedDoc.calendarDays().size() : 0;
                     long duration = System.currentTimeMillis() - start;
                     sliceMap.put("calendar", SliceResult.success("calendar", calDaysCount, duration));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     log.info("Slice END: calendar for user={}, days={}, duration={}ms", username, calDaysCount, duration);
                 } catch (Exception ex) {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("Slice FAILED: calendar for user={}: {}", username, ex.getMessage());
                     sliceMap.put("calendar", SliceResult.failed("calendar", duration, sanitizeErrorMessage(ex)));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                 }
             }, sliceExecutor);
 
@@ -313,11 +335,13 @@ public class AsyncRefreshRunner {
                 if (finalRateLimitLow) {
                     sliceMap.put("pullRequests", SliceResult.skipped("pullRequests", "Rate limit low"));
                     sliceMap.put("issues", SliceResult.skipped("issues", "Rate limit low"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 if (isTimedOut(refreshStartTime, overallTimeoutMs)) {
                     sliceMap.put("pullRequests", SliceResult.skipped("pullRequests", "Time limit exceeded"));
                     sliceMap.put("issues", SliceResult.skipped("issues", "Time limit exceeded"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 long start = System.currentTimeMillis();
@@ -329,27 +353,32 @@ public class AsyncRefreshRunner {
                     int issues = result != null ? result.issuesSynced() : 0;
                     sliceMap.put("pullRequests", SliceResult.success("pullRequests", prs, duration / 2));
                     sliceMap.put("issues", SliceResult.success("issues", issues, duration / 2));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     log.info("Slice END: pr_issues for user={}, prs={}, issues={}, duration={}ms", username, prs, issues, duration);
                 } catch (GitHubSearchRateLimitException ex) {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("Slice SKIPPED: pullRequests and issues for user={} due to search rate limit", username);
                     sliceMap.put("pullRequests", SliceResult.skipped("pullRequests", "GitHub search rate limit reached"));
                     sliceMap.put("issues", SliceResult.skipped("issues", "GitHub search rate limit reached"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                 } catch (Exception ex) {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("Slice FAILED: pr_issues for user={}: {}", username, ex.getMessage());
                     sliceMap.put("pullRequests", SliceResult.failed("pullRequests", duration / 2, sanitizeErrorMessage(ex)));
                     sliceMap.put("issues", SliceResult.failed("issues", duration / 2, sanitizeErrorMessage(ex)));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                 }
             }, sliceExecutor);
 
             CompletableFuture<Void> activityFuture = CompletableFuture.runAsync(() -> {
                 if (finalRateLimitLow) {
                     sliceMap.put("activity", SliceResult.skipped("activity", "Rate limit low"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 if (isTimedOut(refreshStartTime, overallTimeoutMs)) {
                     sliceMap.put("activity", SliceResult.skipped("activity", "Time limit exceeded"));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     return;
                 }
                 long start = System.currentTimeMillis();
@@ -365,11 +394,13 @@ public class AsyncRefreshRunner {
                     }
                     long duration = System.currentTimeMillis() - start;
                     sliceMap.put("activity", SliceResult.success("activity", activityCount, duration));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                     log.info("Slice END: activity for user={}, count={}, duration={}ms", username, activityCount, duration);
                 } catch (Exception ex) {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("Slice FAILED: activity for user={}: {}", username, ex.getMessage());
                     sliceMap.put("activity", SliceResult.failed("activity", duration, sanitizeErrorMessage(ex)));
+                    manager.updateStepAndSlices(username, "INDEPENDENT_SLICES", getOrderedSlices(sliceMap));
                 }
             }, sliceExecutor);
 
@@ -480,9 +511,9 @@ public class AsyncRefreshRunner {
             return "Synchronization encountered an error";
         }
 
-        String sanitized = msg.replaceAll("ghp_[a-zA-Z0-9]+", "******")
+        String sanitized = msg.replaceAll("(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9_]+", "******")
                               .replaceAll("Bearer\\s+[a-zA-Z0-9._-]+", "Bearer ******")
-                              .replaceAll("(?i)refresh[-_]?secret=[^&\\s]+", "refresh_secret=******");
+                              .replaceAll("(?i)(?:refresh[-_]?secret|X-Refresh-Secret)\\s*[:=]\\s*[^&\\s,;]+", "refresh_secret=******");
 
         int newlineIndex = sanitized.indexOf('\n');
         if (newlineIndex != -1) {

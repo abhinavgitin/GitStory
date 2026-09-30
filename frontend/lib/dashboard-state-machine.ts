@@ -222,7 +222,7 @@ export function transitionDashboardState(
     }
 
     case 'READY': {
-      if (event.type === 'USER_TRIGGERED_REFRESH') {
+      if (event.type === 'USER_TRIGGERED_REFRESH' || event.type === 'START_SYNC') {
         return {
           ...ctx,
           state: 'SYNCING',
