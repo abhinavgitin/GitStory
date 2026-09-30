@@ -1,4 +1,4 @@
-import type { CapabilityStatus, UserCapabilities } from '../types/index.ts';
+import type { CapabilityStatus, UserCapabilities } from '../types';
 
 /**
  * Returns true if and only if the capability status indicates valid data exists.

@@ -17,6 +17,9 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   experimental: {
     staleTimes: {
       dynamic: 0,

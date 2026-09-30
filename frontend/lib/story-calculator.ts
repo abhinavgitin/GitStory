@@ -6,7 +6,7 @@ import type {
   StoryProductivity,
   StoryCommunity,
   VelocityPoint,
-} from '../types/story.ts';
+} from '../types/story';
 import type {
   UserSummary,
   UserProfile,
@@ -19,7 +19,7 @@ import type {
   IssueSummary,
   ContributionCalendar,
   Repository,
-} from '../types/index.ts';
+} from '../types';
 
 export const LANGUAGE_PALETTE: Record<string, string> = {
   TypeScript: '#3178C6',
